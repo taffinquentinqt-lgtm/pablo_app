@@ -27,7 +27,6 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 
-
 const GLOBAL_CONFIG_ID = "pablo_global_config";
 
 // GESTION MULTI-CHIENS (Base locale)
@@ -50,14 +49,12 @@ let isLoginMode = true;
 // GESTION DE L'AUTHENTIFICATION FIREBASE
 // ==========================================
 
-// Écouteur en temps réel de l'état de connexion
 onAuthStateChanged(auth, (user) => {
     const authPage = document.getElementById('auth-page');
     const mainApp = document.getElementById('main-app-layout');
     const landing = document.getElementById('landing-page');
     
     if (user) {
-        // Utilisateur connecté ! On cache les écrans d'accueil/connexion et on montre l'app
         console.log("🟢 Connecté :", user.email);
         if(landing) landing.style.display = 'none';
         if(authPage) authPage.style.display = 'none';
@@ -66,20 +63,15 @@ onAuthStateChanged(auth, (user) => {
             setTimeout(() => { if (typeof renderWeightChart === 'function') renderWeightChart(); }, 150);
         }
     } else {
-        // Personne n'est connecté. On laisse l'UI gérer si on affiche la landing ou la page de co.
         console.log("🔴 Déconnecté.");
         if(mainApp) mainApp.style.display = 'none';
     }
 });
 
-// Appelé par le bouton "Lancer le Dashboard" de la Landing Page
 window.enterApp = function() {
     const landing = document.getElementById('landing-page');
     const authPage = document.getElementById('auth-page');
-    
     if (landing) landing.style.display = 'none';
-    
-    // Si on n'est pas connecté, on affiche l'écran de connexion
     if (!auth.currentUser && authPage) {
         authPage.style.display = 'flex';
     }
@@ -105,7 +97,6 @@ window.toggleAuthMode = function() {
     }
 };
 
-// Connexion / Inscription Classique (Email + MDP)
 window.processAuth = function() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value.trim();
@@ -139,13 +130,11 @@ window.processAuth = function() {
     }
 };
 
-// Connexion avec Google
 window.processGoogleAuth = function() {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
         .then((result) => {
             console.log("Google Auth OK:", result.user.email);
-            // La redirection est automatique grâce à onAuthStateChanged
         })
         .catch((error) => {
             alert("Erreur avec Google : " + error.message);
@@ -153,10 +142,9 @@ window.processGoogleAuth = function() {
         });
 };
 
-// Déconnexion
 window.logoutApp = function() {
     signOut(auth).then(() => {
-        location.reload(); // Rafraîchit l'app pour tout remettre à zéro
+        location.reload();
     }).catch((error) => {
         console.error("Erreur déconnexion:", error);
     });
@@ -178,6 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const weightDate = document.getElementById('weight-date');
     if (weightDate) weightDate.value = new Date().toISOString().split('T')[0];
+
+    // FIX MOBILE AUTOMATIQUE POUR LE SÉLECTEUR DE CHIEN
+    const selector = document.getElementById('pet-selector');
+    if (selector) {
+        selector.addEventListener('change', (e) => {
+            switchPet(e.target.value);
+        });
+    }
 });
 
 // ==========================================
@@ -215,7 +211,7 @@ function toggleDarkMode() {
 }
 
 // ==========================================
-// LOGIQUE D'AMORÇAGE (Données Locales)
+// LOGIQUE D'AMORÇAGE & MULTI-CHIENS
 // ==========================================
 function initApp() {
     const savedPets = localStorage.getItem('app_pets_list');
@@ -260,7 +256,7 @@ function switchPet(petId) {
     navigateTo('screen-home');
 }
 
-// Ouvre la pop-up d'ajout
+// Ouvre la pop-up d'ajout (Mobile-safe)
 function createNewPet() {
     const modal = document.getElementById('add-pet-modal');
     const input = document.getElementById('new-pet-name-input');
@@ -302,10 +298,6 @@ function confirmCreateNewPet() {
     closePetModal();
     switchPet(newId);
 }
-
-// N'oublie pas d'exposer la fonction de confirmation au bouton HTML tout en bas de ton app.js :
-window.confirmCreateNewPet = confirmCreateNewPet;
-window.closePetModal = closePetModal;
 
 function loadCurrentPetData() {
     initPetProfile();
@@ -473,7 +465,6 @@ async function updateNutritionUI() {
     nutritionRationText.style.fontSize = "16px";
     nutritionRationText.innerText = "Calcul IA en cours...";
 
-    // Si pas de clé IA, calcul local automatique discret
     if (!GEMINI_API_KEY || GEMINI_API_KEY === "TA_CLE_GEMINI_ICI" || GEMINI_API_KEY === "") {
         let backupRation = Math.round(petProfile.weight * 13.5);
         if (activityLevel.value === 'calm') backupRation *= 0.85;
@@ -500,7 +491,6 @@ async function updateNutritionUI() {
         nutritionRationText.innerText = reply;
     } catch (e) {
         console.error("❌ Erreur calcul nutrition IA:", e);
-        // En cas de coupure réseau, affichage propre de la ration estimée
         let backupRation = Math.round(petProfile.weight * 13.5);
         if (activityLevel.value === 'calm') backupRation *= 0.85;
         if (activityLevel.value === 'active') backupRation *= 1.15;
@@ -508,6 +498,7 @@ async function updateNutritionUI() {
         nutritionRationText.innerText = Math.round(backupRation) + " g";
     }
 }
+
 function addNewWeight() {
     const weightVal = parseFloat(document.getElementById('weight-input').value);
     const dateVal = document.getElementById('weight-date').value;
@@ -800,6 +791,38 @@ window.sendMessage = async function() {
 };
 
 // ==========================================
+// GESTION DES NOTIFICATIONS ET RAPPELS
+// ==========================================
+window.requestNotificationPermission = function() {
+    if (!("Notification" in window)) {
+        alert("Votre navigateur ne prend pas en charge les notifications.");
+        return;
+    }
+
+    Notification.requestPermission().then(permission => {
+        const btn = document.getElementById('btn-enable-notifications');
+        if (permission === "granted") {
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Notifications activées !';
+                btn.style.borderColor = '#47d175';
+                btn.style.color = '#47d175';
+                btn.disabled = true;
+            }
+            sendLocalNotification("Félicitations !", "Les rappels de vaccins de Pablo sont actifs.");
+        }
+    });
+};
+
+function sendLocalNotification(title, message) {
+    if (Notification.permission === "granted") {
+        new Notification(title, {
+            body: message,
+            icon: '/icons/icon-192x192.png'
+        });
+    }
+}
+
+// ==========================================
 // NAVIGATION & EXPORTS GLOBALES
 // ==========================================
 window.exportToPDF = function() { window.print(); };
@@ -818,9 +841,11 @@ window.navigateTo = function(screenId) {
     if(screenId === 'screen-health') setTimeout(() => renderWeightChart(), 50);
 };
 
-// EXPOSITION GLOBALE POUR LE HTML DES AUTRES BOUTONS
+// EXPOSITION GLOBALE POUR LE HTML (PC & MOBILE TACTILE)
 window.switchPet = switchPet;
 window.createNewPet = createNewPet;
+window.confirmCreateNewPet = confirmCreateNewPet;
+window.closePetModal = closePetModal;
 window.toggleDarkMode = toggleDarkMode;
 window.updateNutritionUI = updateNutritionUI;
 window.addWater = addWater;
@@ -833,114 +858,3 @@ window.addBudgetExpense = addBudgetExpense;
 window.uploadPetPhoto = uploadPetPhoto;
 window.savePetProfile = savePetProfile;
 window.deleteCurrentPet = deleteCurrentPet;
-
-// ==========================================
-// ENREGISTREMENT DU SERVICE WORKER (PWA)
-// ==========================================
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('🚀 Service Worker Pablo enregistré avec succès !'))
-            .catch(err => console.warn('❌ Échec de l\'enregistrement du Service Worker', err));
-    });
-}
-// ==========================================
-// GESTION DES NOTIFICATIONS ET RAPPELS
-// ==========================================
-
-// 1. Demander l'autorisation à l'utilisateur
-function requestNotificationPermission() {
-    if (!("Notification" in window)) {
-        alert("Votre navigateur ne prend pas en charge les notifications de bureau.");
-        return;
-    }
-
-    Notification.requestPermission().then(permission => {
-        const btn = document.getElementById('btn-enable-notifications');
-        if (permission === "granted") {
-            if (btn) {
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Notifications activées !';
-                btn.style.borderColor = '#47d175';
-                btn.style.color = '#47d175';
-                btn.disabled = true;
-            }
-            // Envoyer une notification de test immédiate
-            sendLocalNotification("Félicitations !", "Les rappels de vaccins de Pablo sont désormais actifs.");
-            // Lancer une vérification
-            checkVaccinesDeadlines();
-        } else {
-            alert("Vous avez refusé les notifications. Vous pouvez les réactiver dans les paramètres de votre navigateur.");
-        }
-    });
-}
-
-// 2. Envoyer une notification Push Locale
-function sendLocalNotification(title, message) {
-    if (Notification.permission === "granted") {
-        const options = {
-            body: message,
-            icon: '/icons/icon-192x192.png', // Chemin vers l'icône de ton app
-            badge: '/icons/icon-192x192.png',
-            vibrate: [200, 100, 200]
-        };
-        new Notification(title, options);
-    }
-}
-
-// 3. Vérifier si un vaccin arrive à échéance (Rappel à J-7 et J-1)
-function checkVaccinesDeadlines() {
-    if (Notification.permission !== "granted" || !petProfile.id) return;
-
-    // Récupérer les événements du carnet de santé de l'animal actuel depuis Firebase (ou ton tableau local)
-    // Ici, on boucle sur tes données de santé existantes
-    const healthRecords = petProfile.healthRecords || [];
-    const today = new Date();
-
-    healthRecords.forEach(record => {
-        // On vérifie uniquement les lignes de type "vaccin" qui ont une date de rappel
-        if ((record.type === 'vaccine' || record.title.toLowerCase().includes('vaccin')) && record.dueDate) {
-            const dueDate = new Date(record.dueDate);
-            
-            // Calculer la différence en jours
-            const diffTime = dueDate - today;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            // Clé unique pour ne pas harceler l'utilisateur si la notif a déjà été envoyée aujourd'hui
-            const notifKey = `notif_vaccine_${record.id || record.date}_${diffDays}`;
-            
-            if (!localStorage.getItem(notifKey)) {
-                if (diffDays === 7) {
-                    sendLocalNotification(
-                        `💉 Rappel Vaccin - Dans 7 jours`, 
-                        `Le vaccin "${record.title}" pour ${petProfile.name || 'votre compagnon'} est prévu le ${record.dueDate}.`
-                    );
-                    localStorage.setItem(notifKey, 'true');
-                } else if (diffDays === 1) {
-                    sendLocalNotification(
-                        `⚠️ Urgent : Vaccin demain !`, 
-                        `N'oubliez pas le vaccin "${record.title}" de ${petProfile.name || 'votre compagnon'} prévu demain.`
-                    );
-                    localStorage.setItem(notifKey, 'true');
-                }
-            }
-        }
-    });
-}
-
-// 4. Mettre à jour le bouton au chargement du site si déjà activé
-document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => {
-        const btn = document.getElementById('btn-enable-notifications');
-        if (btn && Notification.permission === "granted") {
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Notifications activées';
-            btn.style.borderColor = '#47d175';
-            btn.style.color = '#47d175';
-            btn.disabled = true;
-        }
-        
-        // Vérifier automatiquement les vaccins au lancement de l'application
-        if (Notification.permission === "granted") {
-            checkVaccinesDeadlines();
-        }
-    }, 1000);
-});
