@@ -465,7 +465,7 @@ async function updateNutritionUI() {
     nutritionRationText.style.fontSize = "16px";
     nutritionRationText.innerText = "Calcul IA en cours...";
 
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === "TA_CLE_GEMINI_ICI" || GEMINI_API_KEY === "") {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === "AIzaSyDcwF6m35xKJsJmzAitIF8LomPzsck_7jg" || GEMINI_API_KEY === "") {
         let backupRation = Math.round(petProfile.weight * 13.5);
         if (activityLevel.value === 'calm') backupRation *= 0.85;
         if (activityLevel.value === 'active') backupRation *= 1.15;
@@ -484,7 +484,7 @@ async function updateNutritionUI() {
 
     try {
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         const result = await model.generateContent(promptNutrition);
         const reply = result.response.text().trim();
         nutritionRationText.style.fontSize = ""; 
