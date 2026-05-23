@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pablo - L'application intelligente pour votre chien</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Pablo">
+    <link rel="apple-touch-icon" href="/pablo.jpg">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="landing-page" class="landing-container">
+        <header class="landing-header">
+            <div class="landing-brand">
+                <i class="fa-solid fa-paw"></i><span>PABLO</span>
+            </div>
+            <button class="btn-primary" onclick="enterApp()">Ouvrir l'application</button>
+        </header>
+
+        <main class="landing-hero">
+            <h1>L'assistant ultime pour la santé de votre <span>chien</span>.</h1>
+            <p>Suivez le poids de votre compagnon, maîtrisez votre budget, gérez ses rappels de soins et discutez en temps réel avec <strong>Hey Pablo</strong>, notre intelligence artificielle vétérinaire sur-mesure.</p>
+            
+            <div class="hero-actions">
+                <button class="btn-hero-main" onclick="enterApp()">Lancer le Dashboard <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+
+            <div class="landing-features-grid">
+                <div class="feature-box">
+                    <i class="fa-solid fa-brain"></i>
+                    <h3>Hey Pablo IA</h3>
+                    <p>Calcul de rations selon la race et réponses instantanées à toutes vos questions santé.</p>
+                </div>
+                <div class="feature-box">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <h3>Suivi de Croissance</h3>
+                    <p>Visualisez l'évolution du poids de votre toutou sur des graphiques dynamiques épurés.</p>
+                </div>
+                <div class="feature-box">
+                    <i class="fa-solid fa-wallet"></i>
+                    <h3>Budget & Soins</h3>
+                    <p>Gardez l'œil sur les dépenses du mois et ne loupez plus aucun vaccin ou vermifuge.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="auth-page" class="auth-container" style="display: none;">
+        <div class="auth-card main-card">
+            <div class="auth-header">
+                <div class="logo-circle" style="margin: 0 auto 15px auto;">
+                    <i class="fa-solid fa-paw" style="font-size: 24px; color: var(--accent);"></i>
+                </div>
+                <h2>Bienvenue sur Pablo</h2>
+                <p id="auth-subtitle">Connectez-vous pour retrouver votre compagnon.</p>
+            </div>
+
+            <div class="form-group mt-20">
+                <label>Adresse Email</label>
+                <input type="email" id="auth-email" placeholder="maitre@email.com">
+            </div>
+            
+            <div class="form-group mt-15">
+                <label>Mot de passe</label>
+                <input type="password" id="auth-password" placeholder="••••••••">
+            </div>
+
+            <button class="btn-primary full-width mt-25" id="auth-action-btn" onclick="processAuth()">Se connecter</button>
+            
+            <div class="auth-switch">
+                <span id="auth-switch-text">Pas encore de compte ?</span>
+                <a href="#" onclick="toggleAuthMode()">Créer un compte</a>
+            </div>
+
+            <div style="margin: 20px 0; color: var(--text-muted); font-size: 13px; position: relative;">
+                <span style="background: var(--card-bg); padding: 0 10px; position: relative; z-index: 1;">ou</span>
+                <div style="border-top: 1px dashed var(--border-color); position: absolute; top: 50%; width: 100%; z-index: 0;"></div>
+            </div>
+
+            <button class="btn-secondary-outline full-width" onclick="processGoogleAuth()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; color: #222;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 18px; height: 18px;">
+                Continuer avec Google
+            </button>
+        </div>
+    </div>
+
+    <div id="main-app-layout" class="app-container light-mode" style="display: none;">
+        
+        <div class="sidebar no-print">
+            <div class="brand-area">
+                <div class="logo-circle">
+                    <img id="sidebar-pet-image" src="pablo.jpg" alt="Logo">
+                    <div class="logo-placeholder" id="sidebar-placeholder">?</div>
+                </div>
+                <h1 id="header-pet-name">PABLO<span>.</span></h1>
+            </div>
+
+            <div class="pet-switch-area">
+                <select id="pet-selector" onchange="switchPet(this.value)"></select>
+                <button class="btn-add-pet" onclick="createNewPet()" title="Ajouter un animal"><i class="fa-solid fa-plus"></i></button>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item active" id="btn-home" onclick="navigateTo('screen-home')">
+                    <i class="fa-solid fa-chart-pie"></i><span>Vue d'ensemble</span>
+                </div>
+                <div class="nav-item" id="btn-health" onclick="navigateTo('screen-health')">
+                    <i class="fa-solid fa-heartbeat"></i><span>Poids & Santé</span>
+                </div>
+                <div class="nav-item" id="btn-budget" onclick="navigateTo('screen-budget')">
+                    <i class="fa-solid fa-wallet"></i><span>Suivi Budget</span>
+                </div>
+                <div class="nav-item" id="btn-chat" onclick="navigateTo('screen-chat')">
+                    <i class="fa-solid fa-paw"></i><span>Hey Pablo</span>
+                </div>
+                <div class="nav-item" id="btn-profile" onclick="navigateTo('screen-profile')">
+                    <i class="fa-solid fa-cog"></i><span>Configuration</span>
+                </div>
+                
+                <button class="logout-btn" onclick="logoutApp()" style="margin-top: 15px;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
+                </button>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="dog-badge" id="header-pet-breed">--</div>
+                <div class="theme-switch" onclick="toggleDarkMode()">
+                    <i class="fa-solid fa-sun" id="theme-icon-light"></i>
+                    <i class="fa-solid fa-moon" id="theme-icon-dark"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            
+            <div class="top-bar no-print">
+                <h2 id="page-title">Tableau de bord</h2>
+                <div class="top-bar-right">
+                    <span class="status-indicator"></span>
+                    <span id="current-pet-display-top">Pablo</span>
+                </div>
+            </div>
+
+            <div class="screen-container">
+                
+                <div class="print-only-header">
+                    <h1>DOSSIER MÉDICAL K9</h1>
+                    <p>Généré par l'application Pablo</p>
+                </div>
+
+                <div id="screen-home" class="screen active">
+                    <div class="dashboard-layout-grid">
+                        
+                        <div class="welcome-widget main-card">
+                            <h2>Bonjour ! 👋</h2>
+                            <p>Les constantes de <strong id="welcome-pet-name">Pablo</strong> sont analysées.</p>
+                        </div>
+
+                        <div class="home-column-left">
+                            <h3 class="section-subtitle">Alertes & Rappels</h3>
+                            <div id="dynamic-reminders-list"></div>
+
+                            <h3 class="section-subtitle" style="margin-top: 25px;">Objectifs Jour</h3>
+                            <div class="health-status-card tracker-card main-card">
+                                <div class="tracker-item">
+                                    <div class="tracker-info">
+                                        <h4>Hydratation quotidienne</h4>
+                                        <span id="water-target-text">Objectif : 1800 ml</span>
+                                    </div>
+                                    <div class="tracker-controls">
+                                        <span id="water-current-text" class="tracker-value">0 ml</span>
+                                        <button class="btn-icon" onclick="addWater()"><i class="fa-solid fa-glass-water"></i> +250</button>
+                                    </div>
+                                </div>
+                                <div class="tracker-item divider-top">
+                                    <div class="tracker-info">
+                                        <h4>Activité physique</h4>
+                                        <span>Recommandé : 60 min</span>
+                                    </div>
+                                    <div class="tracker-controls">
+                                        <span id="walk-current-text" class="tracker-value">0 min</span>
+                                        <button class="btn-icon" onclick="addWalk()"><i class="fa-solid fa-running"></i> +15</button>
+                                    </div>
+                                </div>
+                                <button class="btn-secondary-outline full-width" onclick="resetDailyTrackers()">Reset Journée</button>
+                            </div>
+                        </div>
+
+                        <div class="home-column-right">
+                            <div class="home-budget-summary main-card">
+                                <h3>Budget du mois 💶</h3>
+                                <div class="budget-total" id="home-budget-total">0,00 €</div>
+                                <p>dépensés pour <span id="home-budget-pet-name">Pablo</span></p>
+                            </div>
+                            
+                            <div class="health-status-card nutrition-card main-card">
+                                <h4>Nutrition Dynamique 🍖</h4>
+                                <div class="nutrition-paramsDivider">
+                                    <span>Poids : <strong id="nutrition-weight-text">-- kg</strong></span>
+                                    <select id="activity-level-selector" onchange="updateNutritionUI()">
+                                        <option value="calm">Calme</option>
+                                        <option value="normal" selected>Normal</option>
+                                        <option value="active">Actif</option>
+                                    </select>
+                                </div>
+                                <div class="ration-value" id="nutrition-ration-text">-- g</div>
+                                <span class="ration-sub">Portion/jour (Estimation)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-teaser no-print" onclick="navigateTo('screen-chat')">
+                        <div class="teaser-text">
+                            <h4>Besoin d'un conseil d'éducation ou de santé ?</h4>
+                            <p>Discutez avec l'IA avancée pour une réponse sur-mesure.</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div id="screen-health" class="screen">
+                    <div class="dashboard-layout-grid">
+                        
+                        <div class="left-column no-print">
+                            <div class="health-status-card main-card">
+                                <h3><i class="fa-solid fa-weight"></i> Nouvelle pesée</h3>
+                                <div class="weight-input-area">
+                                    <input type="number" id="weight-input" step="0.1" placeholder="Poids (kg)">
+                                    <input type="date" id="weight-date">
+                                    <button class="btn-primary" onclick="addNewWeight()">Ajouter</button>
+                                </div>
+                            </div>
+
+                            <div class="health-status-card main-card">
+                                <h3><i class="fa-solid fa-syringe"></i> Ajouter un soin</h3>
+                                <div class="form-group">
+                                    <select id="event-type">
+                                        <option value="Vaccin">Vaccin</option>
+                                        <option value="Vermifuge">Vermifuge</option>
+                                        <option value="Anti-puces">Anti-puces / Tiques</option>
+                                        <option value="Vétérinaire">Consultation Véto</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <input type="date" id="event-date">
+                                </div>
+                                <button class="btn-primary full-width" onclick="addMedicalEvent()">Ajouter</button>
+                            </div>
+
+                            <button class="btn-export-pdf" onclick="exportToPDF()">
+                                <i class="fa-solid fa-file-pdf"></i> Exporter PDF
+                            </button>
+                        </div>
+
+                        <div class="right-column">
+                            <div class="health-status-card chart-card-wrapper main-card">
+                                <h3>Courbe de croissance</h3>
+                                <div class="chart-container">
+                                    <canvas id="weightChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="health-status-card main-card">
+                                <div class="card-header-actions">
+                                    <h3>Historique des événements</h3>
+                                    <button class="btn-danger-outline btn-sm no-print" onclick="clearMedicalHistory()">Vider</button>
+                                </div>
+                                <div id="medical-history-list"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="screen-budget" class="screen">
+                    <div class="dashboard-layout-grid">
+                        <div class="left-column">
+                            <div class="main-card p-25">
+                                <h3>Nouvelle dépense</h3>
+                                <div class="form-row">
+                                    <div class="form-group flex-2">
+                                        <input type="text" id="budget-title" placeholder="Titre (ex: Croquettes, Jouet)">
+                                    </div>
+                                    <div class="form-group flex-1">
+                                        <input type="number" id="budget-amount" step="0.01" placeholder="Montant (€)">
+                                    </div>
+                                </div>
+                                <button class="btn-primary full-width" onclick="addBudgetExpense()">Ajouter la dépense</button>
+                            </div>
+                        </div>
+                        <div class="right-column">
+                            <div class="main-card p-25">
+                                <div class="card-header-actions">
+                                    <h3>Liste des dépenses (Ce mois)</h3>
+                                    <div class="budget-total" id="budget-screen-total">0,00 €</div>
+                                </div>
+                                <div id="budget-history-list" class="budget-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="screen-chat" class="screen">
+                    <div class="chat-box main-card">
+                        <div class="chat-messages" id="chat-messages-container"></div>
+                        
+                        <div class="chat-suggestions" id="chat-suggestions">
+                            <button onclick="askPreset('Calcule la ration croquette idéale')">🐾 Ration idéale</button>
+                            <button onclick="askPreset('Quand faire le vermifuge ?')">🪱 Vermifuge</button>
+                            <button onclick="askPreset('Il boite légèrement, que faire ?')">🐕 Boiterie</button>
+                        </div>
+
+                        <div class="chat-input-area">
+                            <input type="text" id="chat-input-field" placeholder="Posez votre question à l'IA avancée...">
+                            <button class="send-btn" id="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="screen-profile" class="screen">
+                    <h2 class="screen-title">Modifier le profil</h2>
+                    <div class="health-status-card main-card" style="max-width: 650px; margin: 0 auto;">
+                        <div class="avatar-upload-container">
+                            <img id="profile-pet-image" src="" alt="Photo" style="display: none;">
+                            <div class="profile-avatar" id="profile-avatar-placeholder">?</div>
+                            <label for="file-upload-input" class="custom-file-upload">
+                                <i class="fa-solid fa-camera"></i>
+                            </label>
+                            <input id="file-upload-input" type="file" accept="image/*" onchange="uploadPetPhoto()"/>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="profile-name">Nom</label>
+                                <input type="text" id="profile-name" placeholder="Pablo">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="profile-breed">Race</label>
+                                <input type="text" id="profile-breed" placeholder="Berger Allemand">
+                            </div>
+                        </div>
+
+                        <div class="form-row mt-20">
+                            <div class="form-group flex-1">
+                                <label for="profile-age">Âge (mois)</label>
+                                <input type="number" id="profile-age" placeholder="14">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="profile-size">Taille (cm)</label>
+                                <input type="number" id="profile-size" placeholder="65">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="profile-weight">Poids (kg)</label>
+                                <input type="number" id="profile-weight" step="0.1" placeholder="31.5">
+                            </div>
+                        </div>
+
+                        <button class="btn-primary full-width mt-25 p-15" onclick="savePetProfile()">Sauvegarder</button>
+                        <button class="btn-danger-outline full-width mt-10 btn-sm" onclick="deleteCurrentPet()">Supprimer cet animal</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+</body>
+</html>

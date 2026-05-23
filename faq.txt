@@ -1,0 +1,8 @@
+Foire aux questions:
+
+questions:Cette application est-elle adaptée pour toutes races de chiens?
+reponse: Oui cette application convient à toutes races
+
+
+questions: Comment sont  conservées mes données?
+reponse: Vos données sont stocker en local ! Nous tenons à la confidentialité de vos données, elles ne sont pas vendus a des tiers
