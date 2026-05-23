@@ -973,3 +973,141 @@ input:focus {
     .landing-features-grid { grid-template-columns: 1fr; gap: 20px; margin-top: 50px; }
     .landing-hero { margin: 40px auto; }
 }
+
+/* ==========================================
+   RESPONSIVE DESIGN AUTOMATIQUE (MOBILE & TABLETTE)
+   ========================================== */
+@media (max-width: 768px) {
+    /* Éviter les scrolls horizontaux parasites */
+    html, body {
+        overflow-x: hidden;
+        position: relative;
+        max-width: 100vw;
+    }
+
+    /* Ajustement de la structure globale */
+    .app-container {
+        flex-direction: column;
+        height: 100vh;
+    }
+
+    .main-content {
+        padding: 15px 15px 90px 15px; /* Espace en bas pour ne pas cacher le contenu derrière la barre */
+        height: calc(100vh - 65px);
+        overflow-y: auto;
+    }
+
+    /* Masquer la Top Bar inutile sur mobile */
+    .top-bar {
+        display: none !important;
+    }
+
+    /* TRANSFORMATION DE LA SIDEBAR EN BARRE BASSE COMPACTE */
+    .sidebar {
+        width: 100vw;
+        height: 65px;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        z-index: 999;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        padding: 0 10px;
+        background-color: var(--card-bg);
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Cacher les zones textuelles et logos inutiles en bas */
+    .brand-area, .pet-switch-area, .sidebar-footer {
+        display: none !important;
+    }
+
+    /* Menu de navigation en mode horizontal */
+    .sidebar-nav {
+        display: flex;
+        flex-direction: row !important;
+        width: 100%;
+        justify-content: space-around;
+        align-items: center;
+        margin: 0 !important;
+        gap: 0 !important;
+    }
+
+    /* Style des boutons de la barre basse */
+    .nav-item {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 5px 10px !important;
+        background: transparent !important;
+        border-radius: 0;
+        gap: 4px !important;
+        flex: 1;
+        font-size: 10px !important; /* Texte miniature sous l'icône */
+    }
+
+    .nav-item i {
+        font-size: 20px !important; /* Icône plus grande et centrée */
+        margin: 0 !important;
+    }
+
+    .nav-item span {
+        font-size: 10px;
+        font-weight: 600;
+    }
+
+    /* Effet actif discret pour mobile */
+    .nav-item.active {
+        color: var(--accent) !important;
+    }
+
+    /* Dissimuler le bouton déconnexion de la liste principale sur mobile */
+    /* On pourra le mettre dans l'écran configuration */
+    .logout-btn {
+        display: none !important; 
+    }
+
+    /* REDIENSIONNEMENT DES GRILLES DU TABLEAU DE BORD */
+    .dashboard-layout-grid {
+        grid-template-columns: 1fr !important; /* Tout passe sur une seule colonne verticale */
+        gap: 15px;
+    }
+
+    .home-column-left, .home-column-right, .left-column, .right-column {
+        width: 100% !important;
+    }
+
+    /* Formulaires plus faciles à cliquer sur mobile (gros boutons tactiles) */
+    input, select, button {
+        font-size: 16px !important; /* Évite le zoom auto d'iOS au clic sur un input */
+        padding: 12px !important;
+    }
+
+    .btn-primary, .btn-hero-main {
+        padding: 14px !important;
+    }
+
+    /* Ajustement de la zone de Chat */
+    .chat-box {
+        height: calc(100vh - 170px) !important;
+    }
+    
+    .chat-suggestions {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .chat-suggestions button {
+        padding: 6px 12px !important;
+        font-size: 12px !important;
+    }
+
+    /* Ajustement de la page de connexion */
+    .auth-card {
+        width: 90%;
+        padding: 25px 20px;
+    }
+}
