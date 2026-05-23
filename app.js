@@ -260,9 +260,32 @@ function switchPet(petId) {
     navigateTo('screen-home');
 }
 
+// Ouvre la pop-up d'ajout
 function createNewPet() {
-    const name = prompt("Quel est le nom de votre nouveau compagnon ?");
-    if (!name || name.trim() === "") return;
+    const modal = document.getElementById('add-pet-modal');
+    const input = document.getElementById('new-pet-name-input');
+    if (modal) {
+        modal.style.display = 'flex';
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+    }
+}
+
+// Ferme la pop-up
+function closePetModal() {
+    const modal = document.getElementById('add-pet-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Valide la création depuis la pop-up
+function confirmCreateNewPet() {
+    const input = document.getElementById('new-pet-name-input');
+    if (!input) return;
+    
+    const name = input.value.trim();
+    if (!name) return alert("Le nom du chien ne peut pas être vide ! 🐾");
     
     const newId = 'pet_' + Date.now();
     petsList.push({ id: newId, name: name });
@@ -276,8 +299,13 @@ function createNewPet() {
     localStorage.setItem(`chat_${newId}`, JSON.stringify([{sender: 'bot', text: `Wouf ! Je suis l'assistant de ${name}.`}]));
     localStorage.setItem(`budget_${newId}`, JSON.stringify([]));
 
+    closePetModal();
     switchPet(newId);
 }
+
+// N'oublie pas d'exposer la fonction de confirmation au bouton HTML tout en bas de ton app.js :
+window.confirmCreateNewPet = confirmCreateNewPet;
+window.closePetModal = closePetModal;
 
 function loadCurrentPetData() {
     initPetProfile();
