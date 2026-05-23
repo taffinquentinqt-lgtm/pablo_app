@@ -445,12 +445,13 @@ async function updateNutritionUI() {
     nutritionRationText.style.fontSize = "16px";
     nutritionRationText.innerText = "Calcul IA en cours...";
 
+    // Si pas de clé IA, calcul local automatique discret
     if (!GEMINI_API_KEY || GEMINI_API_KEY === "TA_CLE_GEMINI_ICI" || GEMINI_API_KEY === "") {
         let backupRation = Math.round(petProfile.weight * 13.5);
         if (activityLevel.value === 'calm') backupRation *= 0.85;
         if (activityLevel.value === 'active') backupRation *= 1.15;
         nutritionRationText.style.fontSize = "";
-        nutritionRationText.innerText = Math.round(backupRation) + " g (Local)";
+        nutritionRationText.innerText = Math.round(backupRation) + " g";
         return;
     }
 
@@ -471,14 +472,14 @@ async function updateNutritionUI() {
         nutritionRationText.innerText = reply;
     } catch (e) {
         console.error("❌ Erreur calcul nutrition IA:", e);
+        // En cas de coupure réseau, affichage propre de la ration estimée
         let backupRation = Math.round(petProfile.weight * 13.5);
         if (activityLevel.value === 'calm') backupRation *= 0.85;
         if (activityLevel.value === 'active') backupRation *= 1.15;
         nutritionRationText.style.fontSize = "";
-        nutritionRationText.innerText = Math.round(backupRation) + " g (Secours)";
+        nutritionRationText.innerText = Math.round(backupRation) + " g";
     }
 }
-
 function addNewWeight() {
     const weightVal = parseFloat(document.getElementById('weight-input').value);
     const dateVal = document.getElementById('weight-date').value;
