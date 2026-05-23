@@ -1,14 +1,11 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 // --- IMPORTS FIREBASE ---
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 // ==========================================
-// SÉCURITÉ & CONFIGURATION GLOBALE
+// CONFIGURATION GLOBALE
 // ==========================================
-// La clé est maintenant sécurisée via Vite et invisible dans le code source public
-const MAMMOUTH_API_KEY = import.meta.env.VITE_MAMMOUTH_API_KEY;
 const GLOBAL_CONFIG_ID = "pablo_global_config";
 
 // Configuration Firebase
@@ -26,7 +23,7 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 
-// Variables d'état
+// Variables d'état globales
 let petsList = [];
 let currentPetId = null;
 let petProfile = {};
@@ -198,7 +195,7 @@ function initApp() {
     loadCurrentPetData();
 }
 
-// Fonction utilitaire pour centraliser les sauvegardes (facilitera la transition Firestore)
+// Fonction utilitaire pour centraliser les sauvegardes
 function saveLocalData(petId, key, data) {
     localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
 }
@@ -378,7 +375,7 @@ function uploadPetPhoto() {
 }
 
 // ==========================================
-// POIDS ET NUTRITION (MAMMOUTH AI 🦣)
+// POIDS ET NUTRITION (PROXY SERVERLESS)
 // ==========================================
 function initWeightHistory() {
     weightHistory = getLocalData(currentPetId, 'weight', []);
@@ -422,31 +419,25 @@ async function updateNutritionUI() {
     if (activityLevel.value === 'calm') baseRation *= 0.85;
     if (activityLevel.value === 'active') baseRation *= 1.15;
 
-    if (!MAMMOUTH_API_KEY) {
-        nutritionRationText.style.fontSize = "";
-        nutritionRationText.innerText = Math.round(baseRation) + " g";
-        return;
-    }
-
     const promptNutrition = `Calcule la ration de croquettes quotidienne idéale pour un chien de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, ${petProfile.age || 0} mois, activité ${activityLevel.value}. Réponds UNIQUEMENT par le nombre de grammes suivi de 'g'. Exemple : 420g`;
 
     try {
-        const response = await fetch("https://api.mammouth.ai/v1/chat/completions", {
+        const response = await fetch("/.netlify/functions/mammouth-proxy", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${MAMMOUTH_API_KEY}`
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: "gpt-4.1",
                 messages: [{ role: "user", content: promptNutrition }]
             })
         });
         const data = await response.json();
+        
+        if (data.error) throw new Error(data.error);
+
         nutritionRationText.style.fontSize = ""; 
         nutritionRationText.innerText = data.choices[0].message.content.trim();
     } catch (e) {
-        console.error("❌ Erreur nutrition Mammouth:", e);
+        console.error("❌ Erreur nutrition:", e);
         nutritionRationText.style.fontSize = "";
         nutritionRationText.innerText = Math.round(baseRation) + " g";
     }
@@ -646,7 +637,7 @@ function addBudgetExpense() {
 }
 
 // ==========================================
-// CHAT IA - MAMMOUTH AI SÉCURISÉ 🦣
+// CHAT IA - SÉCURISÉ (PROXY SERVERLESS)
 // ==========================================
 function initChat() {
     chatHistory = getLocalData(currentPetId, 'chat', [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petProfile.name}. Comment puis-je aider ?` }]);
@@ -687,14 +678,6 @@ window.sendMessage = async () => {
     input.value = '';
     renderChat();
 
-    if (!MAMMOUTH_API_KEY) {
-        setTimeout(() => {
-            chatHistory.push({ sender: 'bot', text: "Erreur : Clé API introuvable dans le fichier .env." });
-            renderChat();
-        }, 800);
-        return;
-    }
-
     const botLoadingMsgId = Date.now();
     chatHistory.push({ sender: 'bot', text: '...', id: botLoadingMsgId });
     renderChat();
@@ -702,12 +685,9 @@ window.sendMessage = async () => {
     const systemPrompt = `Tu es l'assistant vétérinaire de l'application Pablo. Tu aides le maître de : ${petProfile.name}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Sois très concis, bienveillant et finis toujours par un wouf !`;
 
     try {
-        const response = await fetch("https://api.mammouth.ai/v1/chat/completions", {
+        const response = await fetch("/.netlify/functions/mammouth-proxy", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${MAMMOUTH_API_KEY}`
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: "gpt-4.1",
                 messages: [
@@ -718,7 +698,7 @@ window.sendMessage = async () => {
         });
 
         const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
+        if (data.error) throw new Error(data.error);
         
         chatHistory = chatHistory.filter(msg => msg.id !== botLoadingMsgId);
         chatHistory.push({ sender: 'bot', text: data.choices[0].message.content });
@@ -726,9 +706,9 @@ window.sendMessage = async () => {
         saveLocalData(currentPetId, 'chat', chatHistory);
 
     } catch (e) {
-        console.error("❌ Erreur Mammouth API:", e);
+        console.error("❌ Erreur proxy IA:", e);
         chatHistory = chatHistory.filter(msg => msg.id !== botLoadingMsgId);
-        chatHistory.push({ sender: 'bot', text: `Wouf... Erreur de connexion au serveur IA. (${e.message})` });
+        chatHistory.push({ sender: 'bot', text: `Wouf... Erreur de connexion avec le serveur sécurisé. (${e.message})` });
         renderChat();
     }
 };
