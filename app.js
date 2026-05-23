@@ -816,3 +816,103 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.warn('❌ Échec de l\'enregistrement du Service Worker', err));
     });
 }
+// ==========================================
+// GESTION DES NOTIFICATIONS ET RAPPELS
+// ==========================================
+
+// 1. Demander l'autorisation à l'utilisateur
+function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        alert("Votre navigateur ne prend pas en charge les notifications de bureau.");
+        return;
+    }
+
+    Notification.requestPermission().then(permission => {
+        const btn = document.getElementById('btn-enable-notifications');
+        if (permission === "granted") {
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Notifications activées !';
+                btn.style.borderColor = '#47d175';
+                btn.style.color = '#47d175';
+                btn.disabled = true;
+            }
+            // Envoyer une notification de test immédiate
+            sendLocalNotification("Félicitations !", "Les rappels de vaccins de Pablo sont désormais actifs.");
+            // Lancer une vérification
+            checkVaccinesDeadlines();
+        } else {
+            alert("Vous avez refusé les notifications. Vous pouvez les réactiver dans les paramètres de votre navigateur.");
+        }
+    });
+}
+
+// 2. Envoyer une notification Push Locale
+function sendLocalNotification(title, message) {
+    if (Notification.permission === "granted") {
+        const options = {
+            body: message,
+            icon: '/icons/icon-192x192.png', // Chemin vers l'icône de ton app
+            badge: '/icons/icon-192x192.png',
+            vibrate: [200, 100, 200]
+        };
+        new Notification(title, options);
+    }
+}
+
+// 3. Vérifier si un vaccin arrive à échéance (Rappel à J-7 et J-1)
+function checkVaccinesDeadlines() {
+    if (Notification.permission !== "granted" || !petProfile.id) return;
+
+    // Récupérer les événements du carnet de santé de l'animal actuel depuis Firebase (ou ton tableau local)
+    // Ici, on boucle sur tes données de santé existantes
+    const healthRecords = petProfile.healthRecords || [];
+    const today = new Date();
+
+    healthRecords.forEach(record => {
+        // On vérifie uniquement les lignes de type "vaccin" qui ont une date de rappel
+        if ((record.type === 'vaccine' || record.title.toLowerCase().includes('vaccin')) && record.dueDate) {
+            const dueDate = new Date(record.dueDate);
+            
+            // Calculer la différence en jours
+            const diffTime = dueDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // Clé unique pour ne pas harceler l'utilisateur si la notif a déjà été envoyée aujourd'hui
+            const notifKey = `notif_vaccine_${record.id || record.date}_${diffDays}`;
+            
+            if (!localStorage.getItem(notifKey)) {
+                if (diffDays === 7) {
+                    sendLocalNotification(
+                        `💉 Rappel Vaccin - Dans 7 jours`, 
+                        `Le vaccin "${record.title}" pour ${petProfile.name || 'votre compagnon'} est prévu le ${record.dueDate}.`
+                    );
+                    localStorage.setItem(notifKey, 'true');
+                } else if (diffDays === 1) {
+                    sendLocalNotification(
+                        `⚠️ Urgent : Vaccin demain !`, 
+                        `N'oubliez pas le vaccin "${record.title}" de ${petProfile.name || 'votre compagnon'} prévu demain.`
+                    );
+                    localStorage.setItem(notifKey, 'true');
+                }
+            }
+        }
+    });
+}
+
+// 4. Mettre à jour le bouton au chargement du site si déjà activé
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        const btn = document.getElementById('btn-enable-notifications');
+        if (btn && Notification.permission === "granted") {
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Notifications activées';
+            btn.style.borderColor = '#47d175';
+            btn.style.color = '#47d175';
+            btn.disabled = true;
+        }
+        
+        // Vérifier automatiquement les vaccins au lancement de l'application
+        if (Notification.permission === "granted") {
+            checkVaccinesDeadlines();
+        }
+    }, 1000);
+});

@@ -366,7 +366,17 @@
                                 <input type="number" id="profile-weight" step="0.1" placeholder="31.5">
                             </div>
                         </div>
-
+<div class="card mt-20 p-15" style="border: 1px solid var(--border-color); background: rgba(var(--accent-rgb), 0.02);">
+        <h4 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-bell" style="color: var(--accent);"></i> Rappels automatiques
+        </h4>
+        <p style="font-size: 13px; color: #777; margin: 5px 0 15px 0;">
+            Recevez des alertes directement sur cet appareil lorsque la date d'un vaccin approche.
+        </p>
+        <button id="btn-enable-notifications" class="btn-secondary-outline full-width p-10" onclick="requestNotificationPermission()">
+            <i class="fa-regular fa-bell"></i> Activer les notifications de rappel
+        </button>
+    </div>
                         <button class="btn-primary full-width mt-25 p-15" onclick="savePetProfile()">Sauvegarder</button>
                         <button class="btn-danger-outline full-width mt-10 btn-sm" onclick="deleteCurrentPet()">Supprimer cet animal</button>
                     </div>
