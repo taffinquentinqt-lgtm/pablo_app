@@ -17,14 +17,14 @@ export default async function handler(req, res) {
 
     const userText = messages[messages.length - 1].content;
 
-    // Concaténation de l'instruction et du message
+    // Concaténation ultra-robuste de l'instruction système et du message utilisateur
     const fullPrompt = systemInstruction 
         ? `${systemInstruction}\n\nDemande de l'utilisateur :\n${userText}`
         : userText;
 
     try {
-        // LE FIX EST ICI : Utilisation de l'alias universel "gemini-pro"
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+        // LE FIX EST LÀ : Utilisation officielle de Gemini 2.0 Flash
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -42,12 +42,14 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
+        // Interception propre si Google renvoie quand même une erreur
         if (data.error) {
             return res.status(500).json({ error: data.error });
         }
 
         const botResponse = data.candidates[0].content.parts[0].text;
 
+        // Renvoi sous le format attendu par app.js
         return res.status(200).json({
             choices: [{
                 message: { content: botResponse }
@@ -55,7 +57,7 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error("Erreur Proxy Gemini:", error);
+        console.error("Erreur Proxy Gemini 2.0:", error);
         return res.status(500).json({ error: error.message });
     }
 }
