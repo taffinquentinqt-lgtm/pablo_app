@@ -36,7 +36,8 @@ export default async function handler(req, res) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: "llama3-8b-8192", // Modèle ultra-rapide et gratuit de Meta
+                // LE FIX EST ICI : Le tout nouveau modèle gratuit de Meta
+                model: "llama-3.3-70b-versatile",
                 messages: formattedMessages,
                 temperature: 0.7,
                 max_tokens: 1000
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
         // Extraction de la réponse
         const botResponse = data.choices[0].message.content;
 
-        // Renvoi au format attendu par ton app.js (sans que tu aies besoin de le modifier)
+        // Renvoi au format attendu par ton app.js
         return res.status(200).json({
             choices: [{
                 message: { content: botResponse }
