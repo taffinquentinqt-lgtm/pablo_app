@@ -15,17 +15,16 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Messages manquants' });
     }
 
-    // Récupération du message de l'utilisateur
     const userText = messages[messages.length - 1].content;
 
-    // Concaténation propre de la consigne système et du message
+    // Concaténation de l'instruction et du message
     const fullPrompt = systemInstruction 
-        ? `${systemInstruction}\n\nVoici la demande de l'utilisateur :\n${userText}`
+        ? `${systemInstruction}\n\nDemande de l'utilisateur :\n${userText}`
         : userText;
 
     try {
-        // CORRECTION ICI : URL officielle recommandée (v1beta) avec le nom de modèle exact (gemini-1.5-flash)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // LE FIX EST ICI : Utilisation de l'alias universel "gemini-pro"
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -43,15 +42,12 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // Capture d'une erreur renvoyée par Google
         if (data.error) {
             return res.status(500).json({ error: data.error });
         }
 
-        // Extraction sécurisée du texte
         const botResponse = data.candidates[0].content.parts[0].text;
 
-        // Renvoi au format attendu par ton app.js actuel
         return res.status(200).json({
             choices: [{
                 message: { content: botResponse }
