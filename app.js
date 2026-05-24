@@ -1,7 +1,8 @@
-// --- IMPORTS FIREBASE ---
+// --- IMPORTS FIREBASE & CLOUD FIRESTORE ---
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 
 // ==========================================
 // CONFIGURATION GLOBALE
@@ -22,6 +23,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
+const db = getFirestore(app); // Base de données Cloud
 
 // Variables d'état globales
 let petsList = [];
@@ -38,17 +40,40 @@ let darkModeActive = false;
 let isLoginMode = true;
 
 // ==========================================
-// AUTHENTIFICATION FIREBASE
+// AUTHENTIFICATION & SYNCHRONISATION CLOUD
 // ==========================================
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     const authPage = document.getElementById('auth-page');
     const mainApp = document.getElementById('main-app-layout');
     const landing = document.getElementById('landing-page');
     
     if (user) {
         console.log("🟢 Connecté :", user.email);
+        
+        // --- RESTAURATION DU CLOUD FIRESTORE VERS LE LOCAL ---
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+                const cloudData = userDoc.data();
+                // On injecte toutes les données trouvées dans le Cloud dans le localStorage actuel
+                Object.keys(cloudData).forEach(key => {
+                    localStorage.setItem(key, JSON.stringify(cloudData[key]));
+                });
+                console.log("☁️ Données Cloud restaurées avec succès dans le navigateur !");
+            }
+        } catch (e) {
+            console.error("Erreur de restauration Cloud :", e);
+        }
+        // --- FIN DE LA RESTAURATION ---
+
         if(landing) landing.style.display = 'none';
         if(authPage) authPage.style.display = 'none';
+        
+        // On initialise l'application avec les données toutes fraîches
+        initApp();
+
         if(mainApp) {
             mainApp.style.display = 'flex';
             setTimeout(() => { if (typeof renderWeightChart === 'function') renderWeightChart(); }, 150);
@@ -125,7 +150,7 @@ window.logoutApp = async () => {
 };
 
 // ==========================================
-// INITIALISATION
+// INITIALISATION & THÈME
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     initGlobalConfig();
@@ -141,9 +166,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const weightDate = document.getElementById('weight-date');
     if (weightDate) weightDate.value = new Date().toISOString().split('T')[0];
 
+    // Écouteur pour ordinateur
     const selector = document.getElementById('pet-selector');
     if (selector) {
         selector.addEventListener('change', (e) => switchPet(e.target.value));
+    }
+
+    // Écouteur pour la version mobile
+    const mobileSelector = document.getElementById('mobile-pet-selector');
+    if (mobileSelector) {
+        mobileSelector.addEventListener('change', (e) => switchPet(e.target.value));
     }
 });
 
@@ -170,7 +202,32 @@ function toggleDarkMode() {
 }
 
 // ==========================================
-// GESTION MULTI-CHIENS (PRÉPARATION CLOUD)
+// SAUVEGARDE HYBRIDE EN ARRIÈRE-PLAN
+// ==========================================
+async function saveLocalData(petId, key, data) {
+    // 1. Sauvegarde instantanée en local
+    localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
+    
+    // 2. Sauvegarde miroir dans le Cloud de Firestore
+    if (auth.currentUser) {
+        try {
+            const userDocRef = doc(db, "users", auth.currentUser.uid);
+            await setDoc(userDocRef, {
+                [`${key}_${petId}`]: data
+            }, { merge: true });
+        } catch (e) {
+            console.error("Erreur de synchronisation Cloud :", e);
+        }
+    }
+}
+
+function getLocalData(petId, key, defaultValue) {
+    const data = localStorage.getItem(`${key}_${petId}`);
+    return data ? JSON.parse(data) : defaultValue;
+}
+
+// ==========================================
+// GESTION MULTI-CHIENS (SYNCHRONISÉ)
 // ==========================================
 function initApp() {
     const savedPets = localStorage.getItem('app_pets_list');
@@ -187,6 +244,8 @@ function initApp() {
         
         currentPetId = defaultId;
         localStorage.setItem('current_pet_id', currentPetId);
+        
+        if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
     } else {
         currentPetId = localStorage.getItem('current_pet_id') || petsList[0].id;
     }
@@ -195,25 +254,25 @@ function initApp() {
     loadCurrentPetData();
 }
 
-function saveLocalData(petId, key, data) {
-    localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
-}
-
-function getLocalData(petId, key, defaultValue) {
-    const data = localStorage.getItem(`${key}_${petId}`);
-    return data ? JSON.parse(data) : defaultValue;
-}
-
 function renderPetSelector() {
     const selector = document.getElementById('pet-selector');
-    if(!selector) return;
-    selector.innerHTML = '';
+    const mobileSelector = document.getElementById('mobile-pet-selector');
+    
+    if(selector) selector.innerHTML = '';
+    if(mobileSelector) mobileSelector.innerHTML = '';
+    
     petsList.forEach(pet => {
         const option = document.createElement('option');
         option.value = pet.id;
         option.textContent = pet.name;
         if(pet.id === currentPetId) option.selected = true;
-        selector.appendChild(option);
+        
+        if(selector) selector.appendChild(option);
+        
+        if(mobileSelector) {
+            const mobileOption = option.cloneNode(true);
+            mobileSelector.appendChild(mobileOption);
+        }
     });
 }
 
@@ -259,6 +318,9 @@ function confirmCreateNewPet() {
     petsList.push({ id: newId, name: name });
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
     
+    // Sauvegarde Cloud de la liste principale
+    if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+    
     const newProfile = { name: name, species: species, breed: breed, age: 0, size: 0, weight: 0, avatar: "", breedAdvice: "" };
     
     saveLocalData(newId, 'profile', newProfile);
@@ -290,6 +352,8 @@ function deleteCurrentPet() {
     petsList = petsList.filter(pet => pet.id !== currentPetId);
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
 
+    if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+
     if(petsList.length === 0) {
         currentPetId = null;
         localStorage.removeItem('current_pet_id');
@@ -300,7 +364,7 @@ function deleteCurrentPet() {
 }
 
 // ==========================================
-// PROFIL ET ENCYCLOPÉDIE IA
+// PROFIL ET ENCYCLOPÉDIE IA (VERCEL)
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
@@ -335,7 +399,6 @@ function initPetProfile() {
     setVal('profile-size', petProfile.size);
     setVal('profile-weight', petProfile.weight);
 
-    // Déclenche l'encyclopédie dynamique sur l'accueil
     updateBreedAdviceUI();
 }
 
@@ -370,7 +433,6 @@ async function updateBreedAdviceUI() {
         <h4>Conseil d'éducation</h4>
         Utilise des paragraphes <p> et des listes <ul><li> pour rendre la lecture agréable. Pas d'introduction bateau ni de conclusion, envoie uniquement le code HTML propre.`;
         
-        // MIGRATION VERCEL ICI
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -400,7 +462,6 @@ function savePetProfile() {
     const weight = parseFloat(document.getElementById('profile-weight').value);
     const newBreed = document.getElementById('profile-breed').value.trim();
     
-    // Si la race a changé, on réinitialise le conseil IA pour en générer un nouveau
     if (petProfile.breed !== newBreed) {
         petProfile.breedAdvice = "";
     }
@@ -422,6 +483,7 @@ function savePetProfile() {
     if(petObj) {
         petObj.name = name;
         localStorage.setItem('app_pets_list', JSON.stringify(petsList));
+        if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
         renderPetSelector();
     }
 
@@ -440,13 +502,14 @@ function uploadPetPhoto() {
             const placeholder = document.getElementById('profile-avatar-placeholder');
             if(img) { img.src = reader.result; img.style.display = 'block'; }
             if(placeholder) placeholder.style.display = 'none';
+            saveLocalData(currentPetId, 'profile', petProfile);
         };
         reader.readAsDataURL(file);
     }
 }
 
 // ==========================================
-// POIDS ET NUTRITION (PROXY SERVERLESS)
+// POIDS ET NUTRITION (VERCEL)
 // ==========================================
 function initWeightHistory() {
     weightHistory = getLocalData(currentPetId, 'weight', []);
@@ -493,7 +556,6 @@ async function updateNutritionUI() {
     const promptNutrition = `Calcule la ration de croquettes quotidienne idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, ${petProfile.age || 0} mois, activité ${activityLevel.value}. Réponds UNIQUEMENT par le nombre de grammes suivi de 'g'. Exemple : 420g`;
 
     try {
-        // MIGRATION VERCEL ICI
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -709,7 +771,7 @@ function addBudgetExpense() {
 }
 
 // ==========================================
-// CHAT IA - SÉCURISÉ (PROXY SERVERLESS)
+// CHAT IA - SÉCURISÉ (VERCEL)
 // ==========================================
 function initChat() {
     chatHistory = getLocalData(currentPetId, 'chat', [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petProfile.name}. Comment puis-je aider ?` }]);
@@ -757,7 +819,6 @@ window.sendMessage = async () => {
     const systemPrompt = `Tu es l'assistant vétérinaire de l'application Pablo. Tu aides le maître de : ${petProfile.name}, Espèce: ${petProfile.species}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Sois très concis, bienveillant et finis toujours par un wouf ou un miaou !`;
 
     try {
-        // MIGRATION VERCEL ICI
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -800,7 +861,7 @@ window.requestNotificationPermission = () => {
                 btn.style.color = '#47d175';
                 btn.disabled = true;
             }
-            new Notification("Félicitations !", { body: "Les rappels sont actifs.", icon: '/icons/icon-192x192.png' });
+            new Notification("Félicitations !", { body: "Les rappels sont actifs.", icon: '/pablo.jpg' });
         }
     });
 };
