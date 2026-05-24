@@ -1,0 +1,23 @@
+{
+  "name": "Pablo - Compagnon Santé",
+  "short_name": "Pablo",
+  "description": "Le carnet de santé intelligent connecté à votre vétérinaire IA.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121212",
+  "theme_color": "#2c2520",
+  "icons": [
+    {
+      "src": "/pablo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pablo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

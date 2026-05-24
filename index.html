@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pablo - Compagnon Santé</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2c2520">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pablo">
+    <link rel="apple-touch-icon" href="/pablo.jpg">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -329,6 +339,7 @@
             display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;
         }
         .modal-card { width: 100%; max-width: 450px; margin-bottom: 0; }
+        .modal-card h3 { display: flex; align-items: center; gap: 8px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; }
         .btn-close-modal { background: transparent; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
 
@@ -657,6 +668,20 @@
             </div>
         </div>
     </div>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('Service Worker enregistré avec succès :', registration.scope);
+            })
+            .catch(error => {
+              console.log('Échec de l\'enregistrement du Service Worker :', error);
+            });
+        });
+      }
+    </script>
 
     <script type="module" src="./app.js"></script>
 </body>
