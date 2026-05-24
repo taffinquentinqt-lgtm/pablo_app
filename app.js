@@ -23,7 +23,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
-const db = getFirestore(app); // Base de données Cloud
+const db = getFirestore(app); 
 
 // Variables d'état globales
 let petsList = [];
@@ -34,10 +34,22 @@ let medicalEvents = [];
 let dailyTrackers = {};
 let chatHistory = [];
 let budgetExpenses = [];
+let educationData = {}; // Gère les acquis éducation en local
 
 let weightChartInstance = null;
 let darkModeActive = false;
 let isLoginMode = true;
+
+// LISTE DES COMPÉTENCES D'ÉDUCATION PAR DÉFAUT
+const DEFAULT_EDU_EXERCISES = [
+    { id: 'assis', name: "S'asseoir (Assis)", icon: 'fa-arrow-down' },
+    { id: 'coucher', name: 'Se coucher (Couché)', icon: 'fa-bed' },
+    { id: 'rappel', name: 'Le Rappel au pied', icon: 'fa-dog' },
+    { id: 'pas-bouger', name: 'Pas bouger (Statique)', icon: 'fa-hand' },
+    { id: 'proprete', name: 'La Propreté', icon: 'fa-droplet-slash' },
+    { id: 'marche-laisse', name: 'Marche en laisse détendue', icon: 'fa-bezier-curve' },
+    { id: 'solitude', name: 'Gestion de la solitude', icon: 'fa-house-chimney-user' }
+];
 
 // ==========================================
 // AUTHENTIFICATION & SYNCHRONISATION CLOUD
@@ -50,14 +62,12 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         console.log("🟢 Connecté :", user.email);
         
-        // --- RESTAURATION DU CLOUD FIRESTORE VERS LE LOCAL ---
         try {
             const userDocRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userDocRef);
             
             if (userDoc.exists()) {
                 const cloudData = userDoc.data();
-                // On injecte toutes les données trouvées dans le Cloud dans le localStorage actuel
                 Object.keys(cloudData).forEach(key => {
                     localStorage.setItem(key, JSON.stringify(cloudData[key]));
                 });
@@ -66,12 +76,10 @@ onAuthStateChanged(auth, async (user) => {
         } catch (e) {
             console.error("Erreur de restauration Cloud :", e);
         }
-        // --- FIN DE LA RESTAURATION ---
 
         if(landing) landing.style.display = 'none';
         if(authPage) authPage.style.display = 'none';
         
-        // On initialise l'application avec les données toutes fraîches
         initApp();
 
         if(mainApp) {
@@ -166,13 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const weightDate = document.getElementById('weight-date');
     if (weightDate) weightDate.value = new Date().toISOString().split('T')[0];
 
-    // Écouteur pour ordinateur
     const selector = document.getElementById('pet-selector');
     if (selector) {
         selector.addEventListener('change', (e) => switchPet(e.target.value));
     }
 
-    // Écouteur pour la version mobile
     const mobileSelector = document.getElementById('mobile-pet-selector');
     if (mobileSelector) {
         mobileSelector.addEventListener('change', (e) => switchPet(e.target.value));
@@ -192,7 +198,7 @@ function applyTheme() {
     elements.forEach(el => {
         if (el) darkModeActive ? el.classList.add('dark-mode') : el.classList.remove('dark-mode');
     });
-    renderWeightChart();
+    if (typeof renderWeightChart === 'function') renderWeightChart();
 }
 
 function toggleDarkMode() {
@@ -205,10 +211,8 @@ function toggleDarkMode() {
 // SAUVEGARDE HYBRIDE EN ARRIÈRE-PLAN
 // ==========================================
 async function saveLocalData(petId, key, data) {
-    // 1. Sauvegarde instantanée en local
     localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
     
-    // 2. Sauvegarde miroir dans le Cloud de Firestore
     if (auth.currentUser) {
         try {
             const userDocRef = doc(db, "users", auth.currentUser.uid);
@@ -241,6 +245,7 @@ function initApp() {
         petProfile = { name: "Pablo", species: "Chien", breed: "Berger Allemand", age: 14, size: 65, weight: 31.5, avatar: "", breedAdvice: "" };
         saveLocalData(defaultId, 'profile', petProfile);
         saveLocalData(defaultId, 'weight', [{ date: new Date().toISOString().split('T')[0], weight: 31.5 }]);
+        saveLocalData(defaultId, 'education', {});
         
         currentPetId = defaultId;
         localStorage.setItem('current_pet_id', currentPetId);
@@ -318,7 +323,6 @@ function confirmCreateNewPet() {
     petsList.push({ id: newId, name: name });
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
     
-    // Sauvegarde Cloud de la liste principale
     if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
     
     const newProfile = { name: name, species: species, breed: breed, age: 0, size: 0, weight: 0, avatar: "", breedAdvice: "" };
@@ -326,6 +330,7 @@ function confirmCreateNewPet() {
     saveLocalData(newId, 'profile', newProfile);
     saveLocalData(newId, 'weight', []);
     saveLocalData(newId, 'medical', []);
+    saveLocalData(newId, 'education', {});
     saveLocalData(newId, 'daily', {water: 0, walk: 0, date: new Date().toISOString().split('T')[0]});
     saveLocalData(newId, 'chat', [{sender: 'bot', text: `Wouf ! Je suis l'assistant de ${name}.`}]);
     saveLocalData(newId, 'budget', []);
@@ -338,6 +343,7 @@ function loadCurrentPetData() {
     initPetProfile();
     initWeightHistory();
     initMedicalRecords();
+    initEducation();
     initDailyTrackers();
     initChat();
     initBudgetTracker();
@@ -346,7 +352,7 @@ function loadCurrentPetData() {
 function deleteCurrentPet() {
     if (!confirm(`⚠️ Êtes-vous sûr de vouloir supprimer ${petProfile.name} ?`)) return;
 
-    const keys = ['profile', 'weight', 'medical', 'daily', 'chat', 'budget'];
+    const keys = ['profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget'];
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
 
     petsList = petsList.filter(pet => pet.id !== currentPetId);
@@ -364,7 +370,7 @@ function deleteCurrentPet() {
 }
 
 // ==========================================
-// PROFIL ET ENCYCLOPÉDIE IA (VERCEL)
+// PROFIL ET ENCYCLOPÉDIE ADVISOR (VERCEL)
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
@@ -372,7 +378,7 @@ function initPetProfile() {
     const updateText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
     const updateHTML = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
     
-    updateHTML('header-pet-name', `PABLO<span>.</span>`);
+    updateHTML('header-pet-name', `${petProfile.name || 'PABLO'}<span>.</span>`);
     updateText('header-pet-breed', petProfile.breed || "Race non définie");
     updateText('welcome-pet-name', petProfile.name);
     updateText('current-pet-display-top', petProfile.name);
@@ -422,16 +428,16 @@ async function updateBreedAdviceUI() {
         return;
     }
 
-    adviceContent.innerHTML = "<div style='text-align:center; padding: 20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size: 24px; color: var(--accent);'></i><br><br>Génération de l'encyclopédie vétérinaire en cours...</div>";
+    adviceContent.innerHTML = "<div style='text-align:center; padding: 20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size: 24px; color: var(--accent);'></i><br><br>Génération de l'encyclopédie en cours...</div>";
 
     try {
-        const prompt = `Tu es un expert vétérinaire. Rédige une documentation complète et détaillée pour un ${petProfile.species || 'animal'} de race ${petProfile.breed}. 
+        const prompt = `Tu es un expert. Rédige une documentation complète et détaillée pour un ${petProfile.species || 'animal'} de race ${petProfile.breed}. 
         Structure ta réponse directement en HTML avec ces balises <h4> (et ajoute des emojis pertinents) : 
         <h4>Comportement & Caractère</h4>
         <h4>Besoins en exercice</h4>
         <h4>Santé & Toilettage</h4>
         <h4>Conseil d'éducation</h4>
-        Utilise des paragraphes <p> et des listes <ul><li> pour rendre la lecture agréable. Pas d'introduction bateau ni de conclusion, envoie uniquement le code HTML propre.`;
+        Utilise des paragraphes <p> et des listes <ul><li> pour rendre la lecture agréable. Pas d'introduction ni de conclusion, envoie uniquement le code HTML propre.`;
         
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
@@ -451,7 +457,7 @@ async function updateBreedAdviceUI() {
         adviceContent.innerHTML = petProfile.breedAdvice;
     } catch (error) {
         console.error("Erreur génération conseils:", error);
-        adviceContent.innerText = "Documentation non disponible. Demandez à l'assistant dans l'onglet IA !";
+        adviceContent.innerText = "Documentation non disponible. Demandez à l'assistant dans l'onglet dédié !";
     }
 }
 
@@ -547,7 +553,7 @@ async function updateNutritionUI() {
     if (!petProfile.weight || !nutritionRationText || !activityLevel) return;
 
     nutritionRationText.style.fontSize = "16px";
-    nutritionRationText.innerText = "Calcul IA en cours...";
+    nutritionRationText.innerText = "Calcul algorithmique en cours...";
 
     let baseRation = petProfile.weight * 13.5; 
     if (activityLevel.value === 'calm') baseRation *= 0.85;
@@ -716,6 +722,57 @@ function renderReminders() {
 }
 
 // ==========================================
+// 🔥 NOVEAU MODULE : CARNET D'ÉDUCATION
+// ==========================================
+function initEducation() {
+    educationData = getLocalData(currentPetId, 'education', {});
+    renderEducation();
+}
+
+function renderEducation() {
+    const container = document.getElementById('edu-container');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    DEFAULT_EDU_EXERCISES.forEach(ex => {
+        const currentLevel = educationData[ex.id] || 0; // 0: À commencer, 1: En cours, 2: Acquis, 3: Maîtrisé
+        
+        const card = document.createElement('div');
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        card.style.padding = '12px 15px';
+        card.style.borderRadius = '12px';
+        card.style.backgroundColor = 'var(--main-card-bg)';
+        card.style.border = '1px solid var(--border-color)';
+        
+        card.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:35px; height:35px; border-radius:50%; background:var(--accent-light); display:flex; justify-content:center; align-items:center; color:var(--accent);">
+                    <i class="fa-solid ${ex.icon}"></i>
+                </div>
+                <h4 style="margin:0; font-size:14px; color:var(--text-color); font-weight:600;">${ex.name}</h4>
+            </div>
+            <div>
+                <select onchange="updateEduLevel('${ex.id}', this.value)" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border-color); font-size:13px; background:var(--main-card-bg); color:var(--text-color); font-weight:500; cursor:pointer;">
+                    <option value="0" ${currentLevel === 0 ? 'selected' : ''}>⚪ À commencer</option>
+                    <option value="1" ${currentLevel === 1 ? 'selected' : ''}>🟡 En cours</option>
+                    <option value="2" ${currentLevel === 2 ? 'selected' : ''}>🟢 Acquis</option>
+                    <option value="3" ${currentLevel === 3 ? 'selected' : ''}>🏆 Maîtrisé</option>
+                </select>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+window.updateEduLevel = async function(exerciseId, levelValue) {
+    educationData[exerciseId] = parseInt(levelValue);
+    await saveLocalData(currentPetId, 'education', educationData);
+    console.log(`Exercice ${exerciseId} synchronisé au niveau ${levelValue}`);
+};
+
+// ==========================================
 // SUIVI DE BUDGET
 // ==========================================
 function initBudgetTracker() {
@@ -748,7 +805,7 @@ function renderBudgetHistory(expenses) {
     if (!list) return;
     list.innerHTML = '';
     
-    [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(expense => {
+    ...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(expense => {
         const item = document.createElement('div');
         item.className = 'budget-item';
         item.innerHTML = `<span class="budget-item-title">${expense.title}</span>
@@ -771,7 +828,7 @@ function addBudgetExpense() {
 }
 
 // ==========================================
-// CHAT IA - SÉCURISÉ (VERCEL)
+// CHAT - SÉCURISÉ (VERCEL)
 // ==========================================
 function initChat() {
     chatHistory = getLocalData(currentPetId, 'chat', [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petProfile.name}. Comment puis-je aider ?` }]);
@@ -816,7 +873,7 @@ window.sendMessage = async () => {
     chatHistory.push({ sender: 'bot', text: '...', id: botLoadingMsgId });
     renderChat();
 
-    const systemPrompt = `Tu es l'assistant vétérinaire de l'application Pablo. Tu aides le maître de : ${petProfile.name}, Espèce: ${petProfile.species}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Sois très concis, bienveillant et finis toujours par un wouf ou un miaou !`;
+    const systemPrompt = `Tu es l'assistant de l'application Pablo. Tu aides le maître de : ${petProfile.name}, Espèce: ${petProfile.species}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Sois très concis, bienveillant et finis toujours par un wouf ou un miaou !`;
 
     try {
         const response = await fetch("/api/mammouth-proxy", {
@@ -840,7 +897,7 @@ window.sendMessage = async () => {
         saveLocalData(currentPetId, 'chat', chatHistory);
 
     } catch (e) {
-        console.error("❌ Erreur proxy IA:", e);
+        console.error("❌ Erreur proxy:", e);
         chatHistory = chatHistory.filter(msg => msg.id !== botLoadingMsgId);
         chatHistory.push({ sender: 'bot', text: `Wouf... Erreur de connexion avec le serveur sécurisé. (${e.message})` });
         renderChat();
@@ -848,7 +905,7 @@ window.sendMessage = async () => {
 };
 
 // ==========================================
-// NOTIFICATIONS ET NAVIGATION
+// NOTIFICATIONS ET NAVIGATION RETOUCHÉE
 // ==========================================
 window.requestNotificationPermission = () => {
     if (!("Notification" in window)) return alert("Votre navigateur ne prend pas en charge les notifications.");
@@ -873,10 +930,18 @@ window.navigateTo = (screenId) => {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     
-    const navBtn = document.querySelector(`.nav-item[onclick="navigateTo('${screenId}')"]`);
-    if(navBtn) navBtn.classList.add('active');
+    // Support de la synchronisation de classe active sidebar desktop + barre basse mobile
+    const navBtns = document.querySelectorAll(`[onclick="navigateTo('${screenId}')"]`);
+    navBtns.forEach(btn => btn.classList.add('active'));
 
-    const titles = {'screen-home': "Vue d'ensemble", 'screen-health': "Poids & Santé", 'screen-budget': "Suivi Budget", 'screen-chat': "Hey Pablo", 'screen-profile': "Configuration"};
+    const titles = {
+        'screen-home': "Vue d'ensemble", 
+        'screen-health': "Poids & Santé", 
+        'screen-edu': "Carnet d'Éducation", 
+        'screen-budget': "Suivi Budget", 
+        'screen-chat': "Hey Pablo", 
+        'screen-profile': "Configuration"
+    };
     const titleEl = document.getElementById('page-title');
     if(titleEl && titles[screenId]) titleEl.innerText = titles[screenId];
     if(screenId === 'screen-health') setTimeout(() => renderWeightChart(), 50);
@@ -899,3 +964,4 @@ window.addBudgetExpense = addBudgetExpense;
 window.uploadPetPhoto = uploadPetPhoto;
 window.savePetProfile = savePetProfile;
 window.deleteCurrentPet = deleteCurrentPet;
+window.navigateTo = navigateTo;

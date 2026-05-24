@@ -150,7 +150,7 @@
         .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: underline; }
 
         /* ==========================================
-           ARCHITECTURE GLOBAL DE L'APPLICATION
+           ARCHITECTURE GLOBALE DE L'APPLICATION
            ========================================== */
         .app-container {
             display: flex;
@@ -357,7 +357,6 @@
         .mt-20 { margin-top: 20px; }
         .mb-20 { margin-bottom: 20px; }
 
-        /* Styles spécifiques pour le contenu de l'IA */
         #breed-advice-content h4 {
             margin-top: 15px;
             margin-bottom: 5px;
@@ -376,7 +375,6 @@
             .main-header { padding: 0 15px; }
             .screens-container { padding: 15px; padding-bottom: 85px; }
             .chat-area { height: calc(100vh - 210px); }
-            /* Affiche le sélecteur d'animaux dans le header sur mobile */
             #mobile-pet-selector { display: block !important; }
         }
     </style>
@@ -386,7 +384,7 @@
     <div id="landing-page" class="full-screen-page">
         <i class="fa-solid fa-shield-dog" style="font-size: 60px; color: var(--accent); margin-bottom: 20px;"></i>
         <h1 style="font-size: 32px; margin-bottom: 10px;">PABLO<span>.</span></h1>
-        <p style="color: #bbb; max-width: 280px; margin-bottom: 30px; font-size: 15px;">Le carnet de santé intelligent connecté à votre vétérinaire IA.</p>
+        <p style="color: #bbb; max-width: 280px; margin-bottom: 30px; font-size: 15px;">Le carnet de santé intelligent connecté à votre assistant.</p>
         <button class="btn-primary" onclick="enterApp()" style="max-width: 260px;">Rejoindre la meute</button>
     </div>
 
@@ -429,8 +427,9 @@
             <ul class="sidebar-menu">
                 <li class="active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i> Accueil</li>
                 <li onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i> Santé & Courbe</li>
+                <li onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i> Éducation</li>
                 <li onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i> Budget</li>
-                <li onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i> Hey Pablo (IA)</li>
+                <li onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i> Hey Pablo</li>
                 <li onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i> Configuration</li>
             </ul>
 
@@ -447,7 +446,6 @@
                 
                 <div style="display: flex; gap: 12px; align-items:center;">
                     <select id="mobile-pet-selector" style="display: none; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-size: 13px; max-width: 120px;"></select>
-                    
                     <i class="fa-solid fa-bell" style="color: var(--text-muted); cursor:pointer;" onclick="navigateTo('screen-profile')"></i>
                 </div>
             </div>
@@ -535,12 +533,21 @@
                                 <option value="Vaccin">Vaccination 💉</option>
                                 <option value="Vermifuge">Vermifuge 💊</option>
                                 <option value="Anti-puces">Anti-puces 🛡️</option>
-                                <option value="Vétérinaire">Consultation Vet 🩺</option>
+                                <option value="Vétérinaire">Consultation 🩺</option>
                             </select>
                             <input type="date" id="event-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
                             <button onclick="addMedicalEvent()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
                         </div>
                         <div id="medical-history-list"></div>
+                    </div>
+                </div>
+
+                <div id="screen-edu" class="screen">
+                    <div class="main-card">
+                        <h3 style="margin-bottom:5px;"><i class="fa-solid fa-graduation-cap" style="color: var(--accent); margin-right: 8px;"></i>Carnet d'Éducation</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Pilotez et enregistrez les acquis d'apprentissage de votre compagnon.</p>
+                        <div id="edu-container" style="display:flex; flex-direction:column; gap:12px;">
+                            </div>
                     </div>
                 </div>
 
@@ -551,7 +558,7 @@
                     </div>
 
                     <div class="main-card mt-15">
-                        <h3>Ajouter un achat (Croquettes, Véto...)</h3>
+                        <h3>Ajouter un achat (Croquettes, Accessoires...)</h3>
                         <div style="display: flex; gap:10px;" class="mt-10">
                             <input type="text" id="budget-title" placeholder="Ex: Sac de Croquettes" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
                             <input type="number" step="0.01" id="budget-amount" placeholder="Prix (€)" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
@@ -568,7 +575,7 @@
                     <div class="chat-area">
                         <div class="messages-box" id="chat-messages-container"></div>
                         <div class="chat-input-row">
-                            <input type="text" id="chat-input-field" placeholder="Posez une question sur l'éducation ou la santé..." style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <input type="text" id="chat-input-field" placeholder="Posez une question sur l'éducation ou le bien-être..." style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
                             <button onclick="sendMessage()" class="btn-primary" style="width:auto; padding:10px 18px;"><i class="fa-solid fa-paper-plane"></i></button>
                         </div>
                     </div>
@@ -616,13 +623,18 @@
 
                     <div class="main-card mt-20">
                         <h3>Options Système & Sécurité</h3>
-                        <button class="btn-secondary-outline mt-10" onclick="toggleDarkMode()" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                        
+                        <button class="btn-primary mt-15" onclick="createNewPet()" style="background-color: var(--success); width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center; color: white;">
+                            <span>Ajouter un nouveau compagnon</span><i class="fa-solid fa-plus"></i>
+                        </button>
+
+                        <button class="btn-secondary-outline mt-15" onclick="toggleDarkMode()" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
                             <span>Mode Sombre graphique</span><i class="fa-solid fa-moon"></i>
                         </button>
                         <button id="btn-enable-notifications" class="btn-secondary-outline mt-10" onclick="requestNotificationPermission()" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
                             <span>Activer les rappels push de vaccins</span><i class="fa-solid fa-bell"></i>
                         </button>
-                        <button class="btn-secondary-outline mt-10" onclick="deleteCurrentPet()" style="width:100%; border-color:var(--danger); color:var(--danger); text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                        <button class="btn-secondary-outline mt-15" onclick="deleteCurrentPet()" style="width:100%; border-color:var(--danger); color:var(--danger); text-align:left; display:flex; justify-content:space-between; align-items:center;">
                             <span>Supprimer définitivement ce profil</span><i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>
@@ -633,8 +645,9 @@
             <div class="mobile-nav">
                 <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
                 <div class="nav-item" onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i>Santé</div>
+                <div class="nav-item" onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i>Édu</div>
                 <div class="nav-item" onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i>Budget</div>
-                <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo IA</div>
+                <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>
                 <div class="nav-item" onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i>Config</div>
             </div>
 
