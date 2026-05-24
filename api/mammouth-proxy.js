@@ -3,10 +3,11 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Méthode non autorisée' });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY; 
+    // On récupère la clé Groq sur Vercel
+    const apiKey = process.env.GROQ_API_KEY; 
 
     if (!apiKey) {
-        return res.status(500).json({ error: "La clé API GEMINI_API_KEY n'est pas configurée sur Vercel." });
+        return res.status(500).json({ error: "La clé API GROQ_API_KEY n'est pas configurée sur Vercel." });
     }
     
     const { messages, systemInstruction } = req.body;
@@ -17,39 +18,42 @@ export default async function handler(req, res) {
 
     const userText = messages[messages.length - 1].content;
 
-    // Concaténation ultra-robuste de l'instruction système et du message utilisateur
-    const fullPrompt = systemInstruction 
-        ? `${systemInstruction}\n\nDemande de l'utilisateur :\n${userText}`
-        : userText;
+    // Préparation du format attendu par Groq
+    const formattedMessages = [];
+    if (systemInstruction) {
+        formattedMessages.push({ role: "system", content: systemInstruction });
+    }
+    formattedMessages.push({ role: "user", content: userText });
 
     try {
-        // LE FIX EST LÀ : Utilisation officielle de Gemini 2.0 Flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        // Point d'accès officiel de Groq
+        const url = "https://api.groq.com/openai/v1/chat/completions";
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: fullPrompt }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1000
-                }
+                model: "llama3-8b-8192", // Modèle ultra-rapide et gratuit de Meta
+                messages: formattedMessages,
+                temperature: 0.7,
+                max_tokens: 1000
             })
         });
 
         const data = await response.json();
 
-        // Interception propre si Google renvoie quand même une erreur
+        // Gestion des erreurs renvoyées par Groq
         if (data.error) {
-            return res.status(500).json({ error: data.error });
+            return res.status(500).json({ error: data.error.message || data.error });
         }
 
-        const botResponse = data.candidates[0].content.parts[0].text;
+        // Extraction de la réponse
+        const botResponse = data.choices[0].message.content;
 
-        // Renvoi sous le format attendu par app.js
+        // Renvoi au format attendu par ton app.js (sans que tu aies besoin de le modifier)
         return res.status(200).json({
             choices: [{
                 message: { content: botResponse }
@@ -57,7 +61,7 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error("Erreur Proxy Gemini 2.0:", error);
+        console.error("Erreur Proxy Groq:", error);
         return res.status(500).json({ error: error.message });
     }
 }
