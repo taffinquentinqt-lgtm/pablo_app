@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     const userMessage = messages[messages.length - 1].content;
 
     try {
-        // URL officielle du endpoint de génération de contenu de Gemini 1.5 Flash
+        // URL officielle du endpoint de génération de contenu de Gemini 1.5 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         const response = await fetch(url, {
