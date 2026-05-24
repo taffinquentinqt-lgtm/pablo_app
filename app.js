@@ -300,7 +300,7 @@ function deleteCurrentPet() {
 }
 
 // ==========================================
-// PROFIL ET CONSEILS IA
+// PROFIL ET ENCYCLOPÉDIE IA
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
@@ -335,7 +335,7 @@ function initPetProfile() {
     setVal('profile-size', petProfile.size);
     setVal('profile-weight', petProfile.weight);
 
-    // Déclenche la carte de conseil dynamique sur l'accueil
+    // Déclenche l'encyclopédie dynamique sur l'accueil
     updateBreedAdviceUI();
 }
 
@@ -359,10 +359,16 @@ async function updateBreedAdviceUI() {
         return;
     }
 
-    adviceContent.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Génération du guide par l'IA en cours...";
+    adviceContent.innerHTML = "<div style='text-align:center; padding: 20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size: 24px; color: var(--accent);'></i><br><br>Génération de l'encyclopédie vétérinaire en cours...</div>";
 
     try {
-        const prompt = `Génère un court guide très concis (3 puces courtes maximum) pour un propriétaire de ${petProfile.species || 'chien'} de race ${petProfile.breed}. Donne un conseil sur son éducation et un trait de caractère dominant. Formate la réponse directement en HTML (utilise <ul> et <li>). Pas d'introduction, va droit au but.`;
+        const prompt = `Tu es un expert vétérinaire. Rédige une documentation complète et détaillée pour un ${petProfile.species || 'animal'} de race ${petProfile.breed}. 
+        Structure ta réponse directement en HTML avec ces balises <h4> (et ajoute des emojis pertinents) : 
+        <h4>Comportement & Caractère</h4>
+        <h4>Besoins en exercice</h4>
+        <h4>Santé & Toilettage</h4>
+        <h4>Conseil d'éducation</h4>
+        Utilise des paragraphes <p> et des listes <ul><li> pour rendre la lecture agréable. Pas d'introduction bateau ni de conclusion, envoie uniquement le code HTML propre.`;
         
         const response = await fetch("/.netlify/functions/mammouth-proxy", {
             method: "POST",
@@ -382,7 +388,7 @@ async function updateBreedAdviceUI() {
         adviceContent.innerHTML = petProfile.breedAdvice;
     } catch (error) {
         console.error("Erreur génération conseils:", error);
-        adviceContent.innerText = "Conseils non disponibles. Demandez à l'assistant dans l'onglet IA !";
+        adviceContent.innerText = "Documentation non disponible. Demandez à l'assistant dans l'onglet IA !";
     }
 }
 

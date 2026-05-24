@@ -346,6 +346,18 @@
         .mt-20 { margin-top: 20px; }
         .mb-20 { margin-bottom: 20px; }
 
+        /* Styles spécifiques pour le contenu de l'IA */
+        #breed-advice-content h4 {
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: var(--accent);
+            font-size: 15px;
+        }
+        #breed-advice-content ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
         /* Responsive Mobile */
         @media (max-width: 768px) {
             .sidebar { display: none; }
@@ -432,11 +444,11 @@
 
                     <div class="main-card mt-20 mb-20" id="breed-advice-card" style="display: none; border-left: 4px solid var(--accent);">
                         <h3 style="margin-top:0; font-size: 16px; display:flex; align-items:center; gap:8px;">
-                            <i class="fa-solid fa-book-open" style="color: var(--accent);"></i> 
-                            Guide express : <span id="advice-breed-name"></span>
+                            <i class="fa-solid fa-book-journal-whills" style="color: var(--accent);"></i> 
+                            Encyclopédie : <span id="advice-breed-name"></span>
                         </h3>
-                        <div id="breed-advice-content" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);">
-                            Chargement des conseils...
+                        <div id="breed-advice-content" style="font-size: 14px; line-height: 1.6; color: var(--text-color); max-height: 250px; overflow-y: auto; padding-right: 10px; margin-top: 15px;">
+                            Chargement de la documentation...
                         </div>
                     </div>
 
@@ -627,7 +639,7 @@
             
             <div class="form-group mt-10">
                 <label for="new-pet-species-input">Espèce</label>
-                <select id="new-pet-species-input">
+                <select id="new-pet-species-input" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
                     <option value="Chien">Chien 🐶</option>
                     <option value="Chat">Chat 🐱</option>
                     <option value="Autre">Autre 🐾</option>
