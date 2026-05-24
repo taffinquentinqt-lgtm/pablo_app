@@ -172,26 +172,22 @@ function getLocalData(petId, key, defaultValue) {
     return data ? JSON.parse(data) : defaultValue;
 }
 
+// FIX INSCRIPTION : DEMANDE DIRECTE POUR LES NOUVEAUX COMPTES
 function initApp() {
     const savedPets = localStorage.getItem('app_pets_list');
     petsList = savedPets ? JSON.parse(savedPets) : [];
 
     if (petsList.length === 0) {
-        const defaultId = 'pet_' + Date.now();
-        petsList.push({ id: defaultId, name: 'Pablo' });
-        localStorage.setItem('app_pets_list', JSON.stringify(petsList));
-        
-        petProfile = { name: "Pablo", species: "Chien", breed: "Berger Allemand", age: 14, size: 65, weight: 31.5, sex: "M", avatar: "", breedAdvice: "" };
-        saveLocalData(defaultId, 'profile', petProfile);
-        saveLocalData(defaultId, 'weight', [{ date: new Date().toISOString().split('T')[0], weight: 31.5 }]);
-        saveLocalData(defaultId, 'education', {});
-        currentPetId = defaultId;
-        localStorage.setItem('current_pet_id', currentPetId);
+        // Nouveau compte détecté : on force l'affichage de la modale de création d'animal
+        renderPetSelector();
+        setTimeout(() => {
+            createNewPet();
+        }, 300);
     } else {
         currentPetId = localStorage.getItem('current_pet_id') || petsList[0].id;
+        renderPetSelector();
+        loadCurrentPetData();
     }
-    renderPetSelector();
-    loadCurrentPetData();
 }
 
 function renderPetSelector() {
@@ -217,6 +213,7 @@ function createNewPet() {
     if (modal) {
         modal.style.display = 'flex';
         document.getElementById('new-pet-name-input').value = '';
+        document.getElementById('new-pet-breed-input').value = '';
         document.getElementById('new-pet-name-input').focus();
     }
 }
@@ -227,20 +224,22 @@ function closePetModal() {
 
 function confirmCreateNewPet() {
     const name = document.getElementById('new-pet-name-input').value.trim();
-    if (!name) return alert("Le nom est vide.");
+    const species = document.getElementById('new-pet-species-input')?.value || "Chien";
+    const breed = document.getElementById('new-pet-breed-input')?.value.trim() || "";
+    if (!name) return alert("Le nom est obligatoire ! 🐾");
     
     const newId = 'pet_' + Date.now();
     petsList.push({ id: newId, name: name });
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
     
-    const newProfile = { name, species: "Chien", breed: "", age: 0, size: 0, weight: 0, sex: "M", avatar: "", breedAdvice: "" };
+    const newProfile = { name, species, breed, age: 0, size: 0, weight: 0, sex: "M", avatar: "", breedAdvice: "" };
     saveLocalData(newId, 'profile', newProfile);
     saveLocalData(newId, 'weight', []);
     saveLocalData(newId, 'medical', []);
     saveLocalData(newId, 'education', {});
     saveLocalData(newId, 'custom_exercises', []);
     saveLocalData(newId, 'daily', {water: 0, walk: 0, date: new Date().toISOString().split('T')[0]});
-    saveLocalData(newId, 'chat', [{sender: 'bot', text: `Bonjour !`}]);
+    saveLocalData(newId, 'chat', [{sender: 'bot', text: `Bonjour ! Je suis prêt pour suivre ${name}.`}]);
     saveLocalData(newId, 'budget', []);
 
     closePetModal();
@@ -268,10 +267,11 @@ function deleteCurrentPet() {
 }
 
 // ==========================================
-// REPRODUCTION, CALS AUTOMATIQUES ET TRAQUEUR D'ÂGE
+// CONFIGURATION ET REPRODUCTION
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
+    if (!petProfile.name) return; // Sécurité si chargement initial vide
     
     if (document.getElementById('header-pet-name')) document.getElementById('header-pet-name').innerHTML = `${petProfile.name || 'PABLO'}<span>.</span>`;
     if (document.getElementById('header-pet-breed')) document.getElementById('header-pet-breed').innerText = petProfile.breed || "Race non définie";
@@ -318,9 +318,8 @@ function initPetProfile() {
     if(document.getElementById('pedigree-gfather-m')) document.getElementById('pedigree-gfather-m').value = ped.gFatherM || "";
     if(document.getElementById('pedigree-gmother-m')) document.getElementById('pedigree-gmother-m').value = ped.gMotherM || "";
 
-    // Affichage dynamique du suivi des chaleurs si femelle
     const femaleSection = document.getElementById('repro-female-only');
-    if(femaleSection) femaleSection.style.display = (petProfile.sex === "F") ? "block" : "none";
+    if(femaleSection) femaleSection.style.display = (document.getElementById('profile-sex').value === "F") ? "block" : "none";
 
     calculateNextHeat();
     calculateGestation();
@@ -328,7 +327,7 @@ function initPetProfile() {
 
     const mobileEduBtn = document.querySelector('.mobile-nav .nav-item[onclick*="screen-edu"]');
     const sidebarEduBtn = document.getElementById('sidebar-nav-edu');
-    if (petProfile.species === "Chien") {
+    if (document.getElementById('profile-species').value === "Chien") {
         if (mobileEduBtn) mobileEduBtn.style.display = 'flex';
         if (sidebarEduBtn) sidebarEduBtn.style.display = 'flex';
     } else {
@@ -342,16 +341,11 @@ function calculateNextHeat() {
     const elInput = document.getElementById('profile-last-heat');
     const elNextHeat = document.getElementById('next-heat-estimate');
     const elSaillie = document.getElementById('calc-saillie');
-    
     if (!elInput || !elInput.value) return;
     const d = new Date(elInput.value);
-    
-    // Prochaines chaleurs (+6 mois)
     const nextHeat = new Date(d.getTime());
     nextHeat.setDate(nextHeat.getDate() + 180);
     if(elNextHeat) elNextHeat.innerText = nextHeat.toLocaleDateString('fr-FR');
-
-    // Zone optimale de saillie (J11 à J13)
     const saillieStart = new Date(d.getTime()); saillieStart.setDate(saillieStart.getDate() + 11);
     const saillieEnd = new Date(d.getTime()); saillieEnd.setDate(saillieEnd.getDate() + 13);
     if(elSaillie) elSaillie.innerText = `Du ${saillieStart.toLocaleDateString('fr-FR')} au ${saillieEnd.toLocaleDateString('fr-FR')}`;
@@ -366,42 +360,37 @@ function calculateGestation() {
     elTarget.value = d.toISOString().split('T')[0];
 }
 
-// L'OPTION COOL : COMPTEUR D'ÂGE PRÉCIS POUR LES CHIOTS (Jours, Semaines, Mois)
+// FIX CHALEURS : FONCTION GLOBALE CORRECTE
+window.saveHeatDate = function() {
+    const heatInput = document.getElementById('profile-last-heat');
+    if (!heatInput || !heatInput.value) return alert("Sélectionnez une date valide. 🩸");
+    petProfile.lastHeat = heatInput.value;
+    saveLocalData(currentPetId, 'profile', petProfile);
+    calculateNextHeat();
+    alert("Date des chaleurs enregistrée ! ✨");
+};
+
 function updateLitterAgeTracker() {
     const birthInput = document.getElementById('profile-litter-birth-date');
     const displayBox = document.getElementById('litter-age-counter-box');
     const textDisplay = document.getElementById('litter-exact-age-display');
     const alertDisplay = document.getElementById('litter-milestone-alert');
-
     if (!birthInput || !birthInput.value || !displayBox) return;
 
     const birthDate = new Date(birthInput.value);
-    const now = new Date();
-    const diffTime = now - birthDate;
-
-    if (diffTime < 0) {
-        displayBox.style.display = 'none';
-        return;
-    }
-
+    const diffTime = new Date() - birthDate;
+    if (diffTime < 0) { displayBox.style.display = 'none'; return; }
     displayBox.style.display = 'block';
 
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     const diffWeeks = Math.floor(diffDays / 7);
-    const diffMonths = Math.floor(diffDays / 30.43); // Moyenne jours/mois
+    const diffMonths = Math.floor(diffDays / 30.43);
 
     textDisplay.innerHTML = `🍼 Âge de la portée : <br><span style="font-size:24px; color:var(--accent)">${diffDays} Jours</span> | <span>${diffWeeks} Semaines</span> | <span>${diffMonths} Mois</span>`;
-
-    // Alertes réglementaires automatiques selon l'âge
-    if (diffDays <= 5) {
-        alertDisplay.innerText = "🚨 Alerte Élevage : Suivi quotidien rigoureux du poids requis (J0-J5).";
-    } else if (diffWeeks >= 6 && diffWeeks < 8) {
-        alertDisplay.innerText = "💉 Rappel : Fenêtre idéale pour le premier vaccin de sevrage et l'identification puce.";
-    } else if (diffWeeks >= 8) {
-        alertDisplay.innerText = "🏡 Information : Les chiots ont atteint l'âge légal pour rejoindre leurs nouvelles familles.";
-    } else {
-        alertDisplay.innerText = "✨ Lignée en pleine croissance.";
-    }
+    if (diffDays <= 5) alertDisplay.innerText = "🚨 Suivi quotidien rigoureux du poids requis (J0-J5).";
+    else if (diffWeeks >= 6 && diffWeeks < 8) alertDisplay.innerText = "💉 Idéal premier vaccin de sevrage et puce.";
+    else if (diffWeeks >= 8) alertDisplay.innerText = "🏡 Les chiots ont l'âge légal de cession.";
+    else alertDisplay.innerText = "✨ Lignée en croissance.";
 }
 
 function savePetProfile() {
@@ -444,13 +433,21 @@ function savePetProfile() {
     };
 
     saveLocalData(currentPetId, 'profile', petProfile);
+    
+    // Corrige la synchronisation de la liste des animaux globale
+    const currentPetObj = petsList.find(p => p.id === currentPetId);
+    if(currentPetObj) currentPetObj.name = name;
+    localStorage.setItem('app_pets_list', JSON.stringify(petsList));
+    if(auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+
     loadCurrentPetData();
+    renderPetSelector();
     alert("Profil mis à jour ! 🐾");
     navigateTo('screen-home');
 }
 
 // ==========================================
-// MODULE COMPLET : CONCOURS & CLUBS (L'OPTION COOL)
+// CONCOURS & CLUBS
 // ==========================================
 function initConcoursAndClubs() {
     concoursList = getLocalData(currentPetId, 'concours', []);
@@ -463,12 +460,10 @@ window.addConcoursEvent = function() {
     const title = document.getElementById('concours-title').value.trim();
     const date = document.getElementById('concours-event-date').value;
     const club = document.getElementById('concours-club').value.trim();
-
-    if(!title || !date) return alert("Veuillez renseigner un titre et une date pour le concours.");
+    if(!title || !date) return alert("Date et titre requis.");
 
     concoursList.push({ id: Date.now(), title, date, club });
     saveLocalData(currentPetId, 'concours', concoursList);
-    
     document.getElementById('concours-title').value = '';
     document.getElementById('concours-event-date').value = '';
     document.getElementById('concours-club').value = '';
@@ -478,40 +473,13 @@ window.addConcoursEvent = function() {
 function renderConcoursAgenda() {
     const container = document.getElementById('concours-agenda-list');
     if(!container) return; container.innerHTML = '';
+    if(concoursList.length === 0) { container.innerHTML = "<p style='color:#777; font-size:13px; text-align:center;'>Aucun concours.</p>"; return; }
 
-    if(concoursList.length === 0) {
-        container.innerHTML = "<p style='color:#777; font-size:13px; text-align:center;'>Aucun concours prévu au calendrier.</p>";
-        return;
-    }
-
-    // Tri des concours par date la plus proche
     concoursList.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(c => {
-        const cDate = new Date(c.date);
-        const now = new Date();
-        now.setHours(0,0,0,0);
-        const diffTime = cDate - now;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        const item = document.createElement('div');
-        item.className = "list-item-custom";
-        
-        let countdownBadge = "";
-        if(diffDays < 0) {
-            countdownBadge = "<span class='alert-badge' style='background:#ddd; color:#666;'>Terminé</span>";
-        } else if(diffDays === 0) {
-            countdownBadge = "<span class='alert-badge danger'>AUJOURD'HUI 🏆</span>";
-        } else {
-            countdownBadge = `<span class='alert-badge success'>J - ${diffDays} jours</span>`;
-        }
-
-        item.innerHTML = `
-            <div>
-                <strong>${c.title}</strong><br>
-                <span style='font-size:12px; color:var(--text-muted);'><i class="fa-solid fa-building-columns"></i> Organisé par : ${c.club || 'Inconnu'}</span><br>
-                <span style='font-size:12px; color:var(--accent);'><i class="fa-solid fa-calendar-days"></i> ${cDate.toLocaleDateString('fr-FR')}</span>
-            </div>
-            <div>${countdownBadge}</div>
-        `;
+        const diffDays = Math.ceil((new Date(c.date) - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+        const item = document.createElement('div'); item.className = "list-item-custom";
+        let badge = diffDays < 0 ? "<span class='alert-badge' style='background:#ddd;'>Terminé</span>" : (diffDays === 0 ? "<span class='alert-badge danger'>JOUR J 🏆</span>" : `<span class='alert-badge success'>J - ${diffDays}</span>`);
+        item.innerHTML = `<div><strong>${c.title}</strong><br><span style='font-size:12px; color:var(--text-muted);'>Organisé : ${c.club}</span></div><div>${badge}</div>`;
         container.appendChild(item);
     });
 }
@@ -519,12 +487,9 @@ function renderConcoursAgenda() {
 window.addClubToDirectory = function() {
     const name = document.getElementById('club-directory-name').value.trim();
     const contact = document.getElementById('club-directory-contact').value.trim();
-
-    if(!name) return alert("Le nom du club est requis.");
-
+    if(!name) return alert("Nom du club requis.");
     clubsDirectory.push({ id: Date.now(), name, contact });
     saveLocalData(currentPetId, 'clubs', clubsDirectory);
-
     document.getElementById('club-directory-name').value = '';
     document.getElementById('club-directory-contact').value = '';
     renderClubsDirectory();
@@ -533,44 +498,31 @@ window.addClubToDirectory = function() {
 function renderClubsDirectory() {
     const container = document.getElementById('clubs-directory-list');
     if(!container) return; container.innerHTML = '';
-
-    if(clubsDirectory.length === 0) {
-        container.innerHTML = "<p style='color:#777; font-size:13px; text-align:center;'>Aucun club enregistré dans l'annuaire.</p>";
-        return;
-    }
-
+    if(clubsDirectory.length === 0) { container.innerHTML = "<p style='color:#777; font-size:13px; text-align:center;'>Aucun club.</p>"; return; }
     clubsDirectory.forEach(club => {
-        const item = document.createElement('div');
-        item.className = "list-item-custom";
-        item.innerHTML = `
-            <div>
-                <strong>${club.name}</strong><br>
-                <span style='font-size:12px; color:var(--text-muted);'>📍 Contact/Infos : ${club.contact || 'Aucune information saisie'}</span>
-            </div>
-        `;
+        const item = document.createElement('div'); item.className = "list-item-custom";
+        item.innerHTML = `<div><strong>${club.name}</strong><br><span style='font-size:12px; color:var(--text-muted);'>📍 Contact : ${club.contact}</span></div>`;
         container.appendChild(item);
     });
 }
 
 // ==========================================
-// AUTRES COMPOSANTS (RECONSTRUITS À L'IDENTIQUE)
+// AUTRES COMPOSANTS RESTANTS (POIDS/TRACKERS/CHAT)
 // ==========================================
 async function updateBreedAdviceUI() {
     const adviceCard = document.getElementById('breed-advice-card');
     const adviceContent = document.getElementById('breed-advice-content');
     if (!adviceCard || !adviceContent || !petProfile.breed) return;
-
     adviceCard.style.display = 'block';
     if(petProfile.breedAdvice) { adviceContent.innerHTML = petProfile.breedAdvice; return; }
-
-    adviceContent.innerHTML = "Génération de l'encyclopédie...";
+    adviceContent.innerHTML = "Génération de la fiche...";
     try {
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                systemInstruction: "Tu es un éleveur canin expert. Rédige une fiche synthétique en HTML.",
-                messages: [{ content: `Donne des conseils pour la race ${petProfile.breed}. Rédige uniquement en HTML simple.` }]
+                systemInstruction: "Tu es un éleveur expert. Écris directement en HTML propre.",
+                messages: [{ content: `Donne des conseils pour la race ${petProfile.breed}.` }]
             })
         });
         const data = await response.json();
@@ -602,7 +554,7 @@ async function updateNutritionUI() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 systemInstruction: "Réponds uniquement par un chiffre suivi de 'g'.",
-                messages: [{ content: `Ration de croquettes pour un ${petProfile.species} de ${petProfile.weight} kg.` }]
+                messages: [{ content: `Ration pour un ${petProfile.species} de ${petProfile.weight} kg.` }]
             })
         });
         const data = await response.json();
@@ -704,12 +656,7 @@ function renderEducation() {
     [...DEFAULT_EDU_EXERCISES, ...custom].forEach(ex => {
         const lvl = educationData[ex.id] || 0;
         const card = document.createElement('div'); card.className = 'health-log-item';
-        card.innerHTML = `<span>${ex.name}</span>
-            <select onchange="updateEduLevel('${ex.id}', this.value)">
-                <option value="0" ${lvl===0?'selected':''}>À commencer</option>
-                <option value="1" ${lvl===1?'selected':''}>En cours</option>
-                <option value="2" ${lvl===2?'selected':''}>Acquis</option>
-            </select>`;
+        card.innerHTML = `<span>${ex.name}</span><select onchange="updateEduLevel('${ex.id}', this.value)"><option value="0" ${lvl===0?'selected':''}>À commencer</option><option value="1" ${lvl===1?'selected':''}>En cours</option><option value="2" ${lvl===2?'selected':''}>Acquis</option></select>`;
         container.appendChild(card);
     });
 }
@@ -781,13 +728,12 @@ window.sendMessage = async () => {
     const text = input.value.trim();
     if (!text) return;
     chatHistory.push({ sender: 'user', text }); input.value = ''; renderChat();
-
     try {
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                systemInstruction: `Tu es Pablo, un assistant d'élevage expert. Tu accompagnes l'animal : ${petProfile.name}, Race: ${petProfile.breed}, Sexe: ${petProfile.sex}.`,
+                systemInstruction: `Tu es l'assistant de l'application Pablo. Tu accompagnes : ${petProfile.name}.`,
                 messages: [{ content: text }]
             })
         });
@@ -795,9 +741,7 @@ window.sendMessage = async () => {
         chatHistory.push({ sender: 'bot', text: data.choices[0].message.content });
         renderChat();
         saveLocalData(currentPetId, 'chat', chatHistory);
-    } catch (e) {
-        chatHistory.push({ sender: 'bot', text: "Erreur de réseau." }); renderChat();
-    }
+    } catch (e) { chatHistory.push({ sender: 'bot', text: "Erreur réseau." }); renderChat(); }
 };
 
 function uploadPetPhoto() {
@@ -817,27 +761,11 @@ window.navigateTo = (screenId) => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     if(document.getElementById(screenId)) document.getElementById(screenId).classList.add('active');
-};
-// FONCTION POUR SAUVEGARDER LA DATE DES CHALEURS
-window.saveHeatDate = function() {
-    const heatInput = document.getElementById('profile-last-heat');
-    if (!heatInput || !heatInput.value) {
-        alert("Veuillez sélectionner une date de début des chaleurs.");
-        return;
-    }
-    
-    // On met à jour le profil avec la nouvelle date
-    petProfile.lastHeat = heatInput.value;
-    
-    // On sauvegarde
-    saveLocalData(currentPetId, 'profile', petProfile);
-    
-    // On relance le calcul visuel des zones de saillie
-    calculateNextHeat();
-    
-    alert("Date des chaleurs enregistrée avec succès ! 🩸");
+    const activeNavs = document.querySelectorAll(`[onclick="navigateTo('${screenId}')"]`);
+    activeNavs.forEach(n => n.classList.add('active'));
 };
 
+// --- FIX EXPOTATION EXPLICITE WINDOW POUR GLOBALES MOBILE / DOM ---
 window.switchPet = switchPet;
 window.createNewPet = createNewPet;
 window.confirmCreateNewPet = confirmCreateNewPet;

@@ -324,7 +324,7 @@
         <i class="fa-solid fa-shield-dog" style="font-size: 60px; color: var(--accent); margin-bottom: 20px;"></i>
         <h1 style="font-size: 32px; margin-bottom: 10px;">PABLO<span>.</span></h1>
         <p style="color: #bbb; max-width: 280px; margin-bottom: 30px; font-size: 15px;">Le système expert de gestion d'élevage, de santé et de concours.</p>
-        <button class="btn-primary" onclick="enterApp()" style="max-width: 260px;">Rejoindre la meute</button>
+        <button class="btn-primary" onclick="enterApp()">Rejoindre la meute</button>
     </div>
 
     <div id="auth-page" class="full-screen-page" style="display: none;">
@@ -350,7 +350,7 @@
             <div id="header-pet-breed" style="font-size:12px; color:var(--accent); margin-top:-20px; margin-bottom:20px; text-transform:uppercase;">Race non définie</div>
             
             <div class="pet-selector-wrapper">
-                <select id="pet-selector"></select>
+                <select id="pet-selector" onchange="switchPet(this.value)"></select>
                 <button onclick="createNewPet()" class="btn-primary mt-10" style="padding: 6px; font-size:12px;">+ Ajouter un animal</button>
             </div>
 
@@ -368,7 +368,7 @@
         <div class="main-content">
             <div class="main-header">
                 <h1 id="page-title" style="font-size: 18px;">Vue d'ensemble</h1>
-                <select id="mobile-pet-selector" style="display: none; padding: 6px;"></select>
+                <select id="mobile-pet-selector" style="display: none; padding: 6px;" onchange="switchPet(this.value)"></select>
             </div>
 
             <div class="screens-container">
@@ -404,13 +404,11 @@
                         <h3><i class="fa-solid fa-venus"></i> Suivi des Chaleurs & Reproduction</h3>
                         <label>Date de début des dernières chaleurs</label>
                         <input type="date" id="profile-last-heat">
-                        
                         <button onclick="saveHeatDate()" class="btn-primary mt-10" style="background-color: var(--danger);">Enregistrer les chaleurs</button>
                         
                         <div class="mt-15 style-box" style="background: var(--bg-color); padding: 12px; border-radius: 8px;">
                             <p>🎯 **Zone de saillie optimale (J11 à J13) :** <strong id="calc-saillie" style="color:var(--danger)">--</strong></p>
                             <p>🔮 **Estimation des prochaines chaleurs :** <strong id="next-heat-estimate">--/--/----</strong></p>
-                            <p style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">⚠️ *Réglementation Bien-être SCC : Limite de 3 portées sur 24 mois glissants pour la santé des lices.*</p>
                         </div>
                     </div>
 
@@ -434,7 +432,6 @@
                 <div id="screen-concours" class="screen">
                     <div class="main-card">
                         <h3><i class="fa-solid fa-baby-carriage"></i> Traqueur d'Âge précis de la Portée</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Calcul dynamique du temps écoulé pour le sevrage et les jalons de croissance.</p>
                         <label>Date & Heure de mise bas</label>
                         <input type="datetime-local" id="profile-litter-birth-date" onchange="updateLitterAgeTracker()">
                         
@@ -525,22 +522,22 @@
                     </div>
 
                     <div class="main-card mt-20">
-                        <h3><i class="fa-solid fa-id-card"></i> Données Officielles de Traçabilité</h3>
-                        <label>Numéro de Puce / Tatouage</label><input type="text" id="profile-chip">
+                        <h3><i class="fa-solid fa-id-card"></i> Traçabilité & Reproduction</h3>
+                        <label>Numéro de Puce</label><input type="text" id="profile-chip">
                         <label>Numéro de LOF / LOOF</label><input type="text" id="profile-lof">
-                        <label>Date d'Accouplement (Saillie)</label><input type="date" id="profile-mating-date">
-                        <label>Mise bas prévisionnelle automatique</label><input type="date" id="profile-birth-estimated" disabled style="background:var(--bg-color);">
-                        <label>Nombre de chiots/chatons nés</label><input type="number" id="profile-litter-size">
+                        <label>Date de Saillie</label><input type="date" id="profile-mating-date">
+                        <label>Mise bas prévisionnelle</label><input type="date" id="profile-birth-estimated" disabled style="background:var(--bg-color);">
+                        <label>Nombre de chiots nés</label><input type="number" id="profile-litter-size">
                     </div>
 
                     <div class="main-card mt-20">
-                        <h3><i class="fa-solid fa-dna"></i> Radios & Tests de Sélection Cliniques</h3>
-                        <label>Test ADN Génétique (Maladies)</label><input type="text" id="profile-dna" placeholder="Clear / Indemne">
-                        <label>Radio Clinique Hanches (Dysplasie)</label><input type="text" id="profile-hips" placeholder="Ex: HD-A, HD-B">
-                        <label>Radio Clinique Coudes</label><input type="text" id="profile-elbows" placeholder="Ex: ED-0">
-                        <label>Date de Confirmation Initiale</label><input type="date" id="profile-confirmation-date">
-                        <label>Date Obtention Diplôme CSAU</label><input type="date" id="profile-csau-date">
-                        <label>Niveau de Cotation dans la Grille d'Élevage</label>
+                        <h3><i class="fa-solid fa-dna"></i> Radios & Tests</h3>
+                        <label>Test ADN</label><input type="text" id="profile-dna">
+                        <label>Radio Hanches</label><input type="text" id="profile-hips">
+                        <label>Radio Coudes</label><input type="text" id="profile-elbows">
+                        <label>Date Confirmation</label><input type="date" id="profile-confirmation-date">
+                        <label>Date CSAU</label><input type="date" id="profile-csau-date">
+                        <label>Cotation d'Élevage</label>
                         <select id="profile-cotation">
                             <option value="1">1 - Confirmé</option>
                             <option value="2">2 - Reconnu</option>
@@ -550,7 +547,7 @@
                     </div>
 
                     <div class="main-card mt-20">
-                        <h3><i class="fa-solid fa-sitemap"></i> Pedigree (Lignage de Généalogie)</h3>
+                        <h3><i class="fa-solid fa-sitemap"></i> Pedigree</h3>
                         <label>Père</label><input type="text" id="pedigree-father">
                         <label>Mère</label><input type="text" id="pedigree-mother">
                         <label>Grand-père paternel</label><input type="text" id="pedigree-gfather-p">
@@ -560,7 +557,7 @@
                     </div>
 
                     <button class="btn-primary mt-20" onclick="savePetProfile()">Enregistrer le profil</button>
-                    <button class="btn-secondary-outline mt-10" onclick="toggleDarkMode()" style="width:100%;">Mode Graphique Sombre</button>
+                    <button class="btn-secondary-outline mt-10" onclick="toggleDarkMode()" style="width:100%;">Mode Sombre</button>
                     <button class="btn-secondary-outline mt-10" onclick="deleteCurrentPet()" style="width:100%; color:var(--danger); border-color:var(--danger);">Supprimer l'animal</button>
                 </div>
             </div>
@@ -579,10 +576,23 @@
 
     <div id="add-pet-modal" class="modal-overlay" style="display: none;">
         <div class="modal-card main-card">
-            <h3>Nouveau compagnon</h3>
-            <input type="text" id="new-pet-name-input" placeholder="Nom">
-            <button class="btn-primary mt-15" onclick="confirmCreateNewPet()">Créer</button>
-            <button class="btn-secondary-outline mt-10" onclick="closePetModal()" style="width:100%;">Annuler</button>
+            <h3><i class="fa-solid fa-paw" style="color:var(--accent);"></i> Enregistrer votre compagnon</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">Renseignez les premières informations pour configurer votre espace.</p>
+            
+            <label>Quel est son nom ?</label>
+            <input type="text" id="new-pet-name-input" placeholder="Ex: Spacer, Bella...">
+            
+            <label>Espèce</label>
+            <select id="new-pet-species-input">
+                <option value="Chien">Chien 🐶</option>
+                <option value="Chat">Chat 🐱</option>
+            </select>
+            
+            <label>Race (facultatif)</label>
+            <input type="text" id="new-pet-breed-input" placeholder="Ex: Berger Allemand, Maine Coon...">
+            
+            <button class="btn-primary mt-20" onclick="confirmCreateNewPet()">Créer l'espace</button>
+            <button class="btn-secondary-outline mt-10" onclick="closePetModal()" style="width:100%;">Fermer</button>
         </div>
     </div>
 
