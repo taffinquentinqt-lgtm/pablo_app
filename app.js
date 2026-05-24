@@ -805,7 +805,8 @@ function renderBudgetHistory(expenses) {
     if (!list) return;
     list.innerHTML = '';
     
-    ...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(expense => {
+    // Correction ici : Ajout du crochet [ avant les trois points
+    [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(expense => {
         const item = document.createElement('div');
         item.className = 'budget-item';
         item.innerHTML = `<span class="budget-item-title">${expense.title}</span>
