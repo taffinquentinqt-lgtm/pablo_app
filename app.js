@@ -371,7 +371,7 @@ function deleteCurrentPet() {
 }
 
 // ==========================================
-// PROFIL ET ENCYCLOPÉDIE ADVISOR (VERCEL)
+// PROFIL ET ENCYCLOPÉDIE ADVISOR (GEMINI 1.5)
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
@@ -446,23 +446,23 @@ async function updateBreedAdviceUI() {
         return;
     }
 
-    adviceContent.innerHTML = "<div style='text-align:center; padding: 20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size: 24px; color: var(--accent);'></i><br><br>Génération de l'encyclopédie en cours...</div>";
+    adviceContent.innerHTML = "<div style='text-align:center; padding: 20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size: 24px; color: var(--accent);'></i><br><br>Génération de l'encyclopédie via Gemini...</div>";
 
     try {
-        const prompt = `Tu es un expert. Rédige une documentation complète et détaillée pour un ${petProfile.species || 'animal'} de race ${petProfile.breed}. 
-        Structure ta réponse directement en HTML avec ces balises <h4> (et ajoute des emojis pertinents) : 
+        const prompt = `Tu es un expert en comportement animal. Rédige une documentation complète et détaillée pour un ${petProfile.species || 'animal'} de race ${petProfile.breed}. 
+        Structure ta réponse directement en HTML propre avec ces balises <h4> (et ajoute des emojis pertinents) : 
         <h4>Comportement & Caractère</h4>
         <h4>Besoins en exercice</h4>
         <h4>Santé & Toilettage</h4>
         <h4>Conseil d'éducation</h4>
-        Utilise des paragraphes <p> et des listes <ul><li> pour rendre la lecture agréable. Pas d'introduction ni de conclusion, envoie uniquement le code HTML propre.`;
+        Utilise des paragraphes <p> et des listes <ul><li> pour rendre la lecture agréable. Envoie uniquement le code HTML, sans balises markdown de bloc de code.`;
         
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "gpt-4.1",
-                messages: [{ role: "user", content: prompt }]
+                systemInstruction: "Tu es un rédacteur d'encyclopédie canine et féline expert. Tu écris directement en HTML.",
+                messages: [{ content: prompt }]
             })
         });
         
@@ -475,7 +475,7 @@ async function updateBreedAdviceUI() {
         adviceContent.innerHTML = petProfile.breedAdvice;
     } catch (error) {
         console.error("Erreur génération conseils:", error);
-        adviceContent.innerText = "Documentation non disponible. Demandez à l'assistant dans l'onglet dédié !";
+        adviceContent.innerText = "Documentation non disponible temporairement.";
     }
 }
 
@@ -533,7 +533,7 @@ function uploadPetPhoto() {
 }
 
 // ==========================================
-// POIDS ET NUTRITION (VERCEL)
+// POIDS ET NUTRITION (GEMINI 1.5)
 // ==========================================
 function initWeightHistory() {
     weightHistory = getLocalData(currentPetId, 'weight', []);
@@ -570,22 +570,22 @@ async function updateNutritionUI() {
     
     if (!petProfile.weight || !nutritionRationText || !activityLevel) return;
 
-    nutritionRationText.style.fontSize = "16px";
-    nutritionRationText.innerText = "Calcul algorithmique en cours...";
+    nutritionRationText.style.fontSize = "14px";
+    nutritionRationText.innerText = "Calcul Gemini...";
 
     let baseRation = petProfile.weight * 13.5; 
     if (activityLevel.value === 'calm') baseRation *= 0.85;
     if (activityLevel.value === 'active') baseRation *= 1.15;
 
-    const promptNutrition = `Calcule la ration de croquettes quotidienne idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, ${petProfile.age || 0} mois, activité ${activityLevel.value}. Réponds UNIQUEMENT par le nombre de grammes suivi de 'g'. Exemple : 420g`;
+    const promptNutrition = `Calcule la ration quotidienne de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, âgé de ${petProfile.age || 0} mois, avec un niveau d'activité ${activityLevel.value}. Réponds UNIQUEMENT par le nombre de grammes suivi de 'g'. Exemple : 420g`;
 
     try {
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "gpt-4.1",
-                messages: [{ role: "user", content: promptNutrition }]
+                systemInstruction: "Tu es un outil automatique de calcul vétérinaire. Tu réponds strictement par un chiffre suivi de la lettre g, sans aucune phrase autour.",
+                messages: [{ content: promptNutrition }]
             })
         });
         const data = await response.json();
@@ -678,7 +678,6 @@ function updateTrackersUI() {
     if(walkEl) walkEl.innerText = `${dailyTrackers.walk} min`;
 }
 
-// Éléments du tracker
 window.addWater = function() { dailyTrackers.water += 250; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); };
 window.addWalk = function() { dailyTrackers.walk += 15; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); };
 window.resetDailyTrackers = function() { dailyTrackers.water = 0; dailyTrackers.walk = 0; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); };
@@ -741,7 +740,7 @@ function renderReminders() {
 }
 
 // ==========================================
-// 🔥 MODULE : CARNET D'ÉDUCATION PERSONALISÉ
+// 🔥 MODULE : CARNET D'ÉDUCATION COMPLET
 // ==========================================
 function initEducation() {
     educationData = getLocalData(currentPetId, 'education', {});
@@ -848,7 +847,6 @@ function renderBudgetHistory(expenses) {
     if (!list) return;
     list.innerHTML = '';
     
-    // Correction de syntaxe ici : [ ajouté avant ...
     [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(expense => {
         const item = document.createElement('div');
         item.className = 'budget-item';
@@ -872,10 +870,10 @@ window.addBudgetExpense = function() {
 };
 
 // ==========================================
-// CHAT - SÉCURISÉ AVEC CAPTURE TEXTUELLE DES ERREURS
+// CHAT SECURISE ADAPTE POUR GEMINI 1.5 FLASH
 // ==========================================
 function initChat() {
-    chatHistory = getLocalData(currentPetId, 'chat', [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petProfile.name}. Comment puis-je aider ?` }]);
+    chatHistory = getLocalData(currentPetId, 'chat', [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petProfile.name}. Comment puis-je vous aider aujourd'hui ?` }]);
     renderChat();
 }
 
@@ -917,24 +915,21 @@ window.sendMessage = async () => {
     chatHistory.push({ sender: 'bot', text: '...', id: botLoadingMsgId });
     renderChat();
 
-    const systemPrompt = `Tu es l'assistant de l'application Pablo. Tu aides le maître de : ${petProfile.name}, Espèce: ${petProfile.species}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Sois très concis, bienveillant et finis toujours par un wouf ou un miaou !`;
+    // Prompt système adapté aux spécificités de l'animal
+    const systemPrompt = `Tu es l'assistant intelligent de l'application Pablo. Tu aides le propriétaire de l'animal suivant : Nom: ${petProfile.name}, Espèce: ${petProfile.species}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Donne des conseils précis, chaleureux, bienveillants et termine tes phrases de manière amusante par un petit wouf ou miaou en fonction de l'espèce.`;
 
     try {
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "gpt-4.1",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: text }
-                ]
+                systemInstruction: systemPrompt, // Attribut d'instruction système de Gemini
+                messages: [{ content: text }]     // Envoi du message utilisateur
             })
         });
 
         const data = await response.json();
         
-        // Extraction textuelle propre si l'API envoie un objet d'erreur
         if (data.error) {
             const errorMsg = typeof data.error === 'object' ? (data.error.message || JSON.stringify(data.error)) : data.error;
             throw new Error(errorMsg);
@@ -946,11 +941,9 @@ window.sendMessage = async () => {
         saveLocalData(currentPetId, 'chat', chatHistory);
 
     } catch (e) {
-        console.error("❌ Erreur proxy:", e);
+        console.error("❌ Erreur proxy Gemini:", e);
         chatHistory = chatHistory.filter(msg => msg.id !== botLoadingMsgId);
-        
-        // Injection de l'erreur brute et lisible pour l'utilisateur
-        chatHistory.push({ sender: 'bot', text: `Wouf... Problème de communication avec le serveur sécurisé : ${e.message}` });
+        chatHistory.push({ sender: 'bot', text: `Une erreur est survenue lors de la communication avec Gemini : ${e.message}` });
         renderChat();
     }
 };
