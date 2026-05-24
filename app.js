@@ -818,6 +818,25 @@ window.navigateTo = (screenId) => {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     if(document.getElementById(screenId)) document.getElementById(screenId).classList.add('active');
 };
+// FONCTION POUR SAUVEGARDER LA DATE DES CHALEURS
+window.saveHeatDate = function() {
+    const heatInput = document.getElementById('profile-last-heat');
+    if (!heatInput || !heatInput.value) {
+        alert("Veuillez sélectionner une date de début des chaleurs.");
+        return;
+    }
+    
+    // On met à jour le profil avec la nouvelle date
+    petProfile.lastHeat = heatInput.value;
+    
+    // On sauvegarde
+    saveLocalData(currentPetId, 'profile', petProfile);
+    
+    // On relance le calcul visuel des zones de saillie
+    calculateNextHeat();
+    
+    alert("Date des chaleurs enregistrée avec succès ! 🩸");
+};
 
 window.switchPet = switchPet;
 window.createNewPet = createNewPet;
