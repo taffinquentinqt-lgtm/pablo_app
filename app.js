@@ -722,8 +722,6 @@ function renderReminders() {
 }
 
 // ==========================================
-// 🔥 NOVEAU MODULE : CARNET D'ÉDUCATION
-// ==========================================
 function initEducation() {
     educationData = getLocalData(currentPetId, 'education', {});
     renderEducation();
@@ -734,7 +732,17 @@ function renderEducation() {
     if (!container) return;
     container.innerHTML = '';
     
-    DEFAULT_EDU_EXERCISES.forEach(ex => {
+    // 1. Récupérer la liste des exercices (les basiques + les personnalisés s'il y en a)
+    // On stocke les exercices personnalisés dans le profil sous la clé 'custom_exercises'
+    const customExercises = getLocalData(currentPetId, 'custom_exercises', []);
+    const allExercises = [...DEFAULT_EDU_EXERCISES, ...customExercises];
+    
+    if (allExercises.length === 0) {
+        container.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">Aucun exercice disponible.</p>`;
+        return;
+    }
+
+    allExercises.forEach(ex => {
         const currentLevel = educationData[ex.id] || 0; // 0: À commencer, 1: En cours, 2: Acquis, 3: Maîtrisé
         
         const card = document.createElement('div');
@@ -749,7 +757,7 @@ function renderEducation() {
         card.innerHTML = `
             <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div style="width:35px; height:35px; border-radius:50%; background:var(--accent-light); display:flex; justify-content:center; align-items:center; color:var(--accent);">
-                    <i class="fa-solid ${ex.icon}"></i>
+                    <i class="fa-solid ${ex.icon || 'fa-star'}"></i>
                 </div>
                 <h4 style="margin:0; font-size:14px; color:var(--text-color); font-weight:600;">${ex.name}</h4>
             </div>
@@ -770,6 +778,35 @@ window.updateEduLevel = async function(exerciseId, levelValue) {
     educationData[exerciseId] = parseInt(levelValue);
     await saveLocalData(currentPetId, 'education', educationData);
     console.log(`Exercice ${exerciseId} synchronisé au niveau ${levelValue}`);
+};
+
+// Nouvelle fonction pour ajouter un exercice personnalisé créé par l'utilisateur
+window.addCustomExercise = async function() {
+    const input = document.getElementById('new-custom-exercise-input');
+    if (!input) return;
+    
+    const exerciseName = input.value.trim();
+    if (!exerciseName) return alert("Veuillez entrer le nom d'un exercice. 🐾");
+    
+    // Génère un ID unique propre à l'exercice
+    const exerciseId = 'custom_' + Date.now();
+    
+    // Récupère les anciens exercices customisés de cet animal
+    const customExercises = getLocalData(currentPetId, 'custom_exercises', []);
+    
+    // Ajoute le nouveau
+    customExercises.push({
+        id: exerciseId,
+        name: exerciseName,
+        icon: 'fa-star' // Une étoile par défaut pour repérer les ordres personnalisés
+    });
+    
+    // Sauvegarde de manière hybride (Local + Firestore Cloud)
+    await saveLocalData(currentPetId, 'custom_exercises', customExercises);
+    
+    // Nettoie le champ de saisie et rafraîchit la liste
+    input.value = '';
+    renderEducation();
 };
 
 // ==========================================
