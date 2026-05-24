@@ -15,32 +15,30 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Messages manquants' });
     }
 
-    const userMessage = messages[messages.length - 1].content;
+    // Récupération du message de l'utilisateur
+    const userText = messages[messages.length - 1].content;
+
+    // Concaténation propre de la consigne système et du message pour éviter le champ rejeté "system_instruction"
+    const fullPrompt = systemInstruction 
+        ? `${systemInstruction}\n\nVoici la demande de l'utilisateur :\n${userText}`
+        : userText;
 
     try {
-        // Route stable v1
+        // Point d'accès officiel stable v1
         const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-
-        // Construction du payload selon la documentation stricte de Google v1
-        const payload = {
-            contents: [{ parts: [{ text: userMessage }] }],
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 1000
-            }
-        };
-
-        // Si une consigne système est présente, on l'ajoute au bon format attendu par la v1
-        if (systemInstruction) {
-            payload.system_instruction = {
-                parts: [{ text: systemInstruction }]
-            };
-        }
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: fullPrompt }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1000
+                }
+            })
         });
 
         const data = await response.json();
@@ -49,13 +47,10 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: data.error });
         }
 
-        // Extraction sécurisée de la réponse
-        if (!data.candidates || !data.candidates[0].content.parts[0].text) {
-            throw new Error("Format de réponse Gemini inattendu");
-        }
-
+        // Extraction sécurisée du texte
         const botResponse = data.candidates[0].content.parts[0].text;
 
+        // Renvoi au format attendu par ton app.js actuel
         return res.status(200).json({
             choices: [{
                 message: { content: botResponse }
