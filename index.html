@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pablo - Compagnon Santé & Élevage</title>
+    <title>Pablo - Gestion Élevage & Concours</title>
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2c2520">
@@ -253,7 +253,7 @@
 
         .big-stat-number { font-size: 28px; font-weight: bold; color: var(--text-color); margin: 5px 0; }
 
-        .health-log-item, .budget-item {
+        .health-log-item, .budget-item, .list-item-custom {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -269,6 +269,7 @@
         }
         .alert-badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
         .alert-badge.danger { background-color: #ffe3e5; color: var(--danger); }
+        .alert-badge.success { background-color: #e3f9eb; color: var(--success); }
 
         .chat-area {
             height: calc(100vh - 240px);
@@ -322,7 +323,7 @@
     <div id="landing-page" class="full-screen-page">
         <i class="fa-solid fa-shield-dog" style="font-size: 60px; color: var(--accent); margin-bottom: 20px;"></i>
         <h1 style="font-size: 32px; margin-bottom: 10px;">PABLO<span>.</span></h1>
-        <p style="color: #bbb; max-width: 280px; margin-bottom: 30px; font-size: 15px;">Le carnet de santé & d'élevage intelligent connecté.</p>
+        <p style="color: #bbb; max-width: 280px; margin-bottom: 30px; font-size: 15px;">Le système expert de gestion d'élevage, de santé et de concours.</p>
         <button class="btn-primary" onclick="enterApp()" style="max-width: 260px;">Rejoindre la meute</button>
     </div>
 
@@ -355,7 +356,8 @@
 
             <ul class="sidebar-menu">
                 <li class="active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i> Accueil</li>
-                <li onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i> Santé & Courbe</li>
+                <li onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i> Santé & Chaleurs</li>
+                <li onclick="navigateTo('screen-concours')"><i class="fa-solid fa-trophy"></i> Élevage & Concours</li>
                 <li id="sidebar-nav-edu" onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i> Éducation</li>
                 <li onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i> Budget</li>
                 <li onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i> Hey Pablo</li>
@@ -397,6 +399,19 @@
                         <div class="main-card"><span>Poids actuel</span><div class="big-stat-number" id="nutrition-weight-text">-- kg</div></div>
                         <div class="main-card"><span>Ration recommandée</span><div class="big-stat-number" id="nutrition-ration-text">-- g</div></div>
                     </div>
+                    
+                    <div id="repro-female-only" class="main-card mt-15" style="display: none; border-left: 4px solid var(--danger);">
+                        <h3><i class="fa-solid fa-venus"></i> Suivi des Chaleurs & Reproduction</h3>
+                        <label>Date de début des dernières chaleurs</label>
+                        <input type="date" id="profile-last-heat">
+                        
+                        <div class="mt-15 style-box" style="background: var(--bg-color); padding: 12px; border-radius: 8px;">
+                            <p>🎯 **Zone de saillie optimale (J11 à J13) :** <strong id="calc-saillie" style="color:var(--danger)">--</strong></p>
+                            <p>🔮 **Estimation des prochaines chaleurs :** <strong id="next-heat-estimate">--/--/----</strong></p>
+                            <p style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">⚠️ *Réglementation Bien-être SCC : Limite de 3 portées sur 24 mois glissants pour la santé des lices.*</p>
+                        </div>
+                    </div>
+
                     <div class="main-card mt-15">
                         <canvas id="weightChart" style="height:200px;"></canvas>
                         <input type="number" step="0.1" id="weight-input" placeholder="kg">
@@ -404,11 +419,59 @@
                         <button onclick="addNewWeight()" class="btn-primary mt-10">Enregistrer la pesée</button>
                     </div>
                     <div id="dynamic-reminders-list"></div>
+                    
                     <div class="main-card mt-20">
+                        <h3>Actes médicaux</h3>
                         <select id="event-type"><option value="Vaccin">Vaccin</option><option value="Vermifuge">Vermifuge</option></select>
                         <input type="date" id="event-date">
                         <button onclick="addMedicalEvent()" class="btn-primary mt-10">Ajouter soin</button>
-                        <div id="medical-history-list"></div>
+                        <div id="medical-history-list" class="mt-10"></div>
+                    </div>
+                </div>
+
+                <div id="screen-concours" class="screen">
+                    <div class="main-card">
+                        <h3><i class="fa-solid fa-baby-carriage"></i> Traqueur d'Âge précis de la Portée</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Calcul dynamique du temps écoulé pour le sevrage et les jalons de croissance.</p>
+                        <label>Date & Heure de mise bas</label>
+                        <input type="datetime-local" id="profile-litter-birth-date" onchange="updateLitterAgeTracker()">
+                        
+                        <div id="litter-age-counter-box" class="mt-15" style="display: none; background: var(--accent-light); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 20px; font-weight: bold; color: var(--text-color);" id="litter-exact-age-display">--</div>
+                            <div id="litter-milestone-alert" style="font-size: 12px; font-weight: 600; margin-top: 8px; color: var(--danger);"></div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-layout-grid mt-20">
+                        <div class="main-card">
+                            <h3>🏆 Inscription à un Concours</h3>
+                            <label>Nom de l'exposition / Événement</label>
+                            <input type="text" id="concours-title" placeholder="Ex: Championnat de France">
+                            <label>Date de l'événement</label>
+                            <input type="date" id="concours-event-date">
+                            <label>Club Canin organisateur</label>
+                            <input type="text" id="concours-club" placeholder="Ex: Club du Berger Allemand">
+                            <button onclick="addConcoursEvent()" class="btn-primary mt-15">Inscrire le chien</button>
+                        </div>
+
+                        <div class="main-card">
+                            <h3>🏢 Répertoire des Clubs Affiliés</h3>
+                            <label>Nom du Club Canin fréquenté</label>
+                            <input type="text" id="club-directory-name" placeholder="Ex: Club d'Éducation Canine Merville">
+                            <label>Coordonnées / Contact</label>
+                            <input type="text" id="club-directory-contact" placeholder="Adresse, téléphone...">
+                            <button onclick="addClubToDirectory()" class="btn-primary mt-15">Enregistrer le club</button>
+                        </div>
+                    </div>
+
+                    <div class="main-card mt-20">
+                        <h3>📅 Agenda des Concours & Comptes à Rebours</h3>
+                        <div id="concours-agenda-list" class="mt-10"></div>
+                    </div>
+
+                    <div class="main-card mt-20">
+                        <h3>🏢 Clubs enregistrés</h3>
+                        <div id="clubs-directory-list" class="mt-10"></div>
                     </div>
                 </div>
 
@@ -460,29 +523,22 @@
                     </div>
 
                     <div class="main-card mt-20">
-                        <h3><i class="fa-solid fa-venus-mars"></i> Traçabilité & Reproduction</h3>
+                        <h3><i class="fa-solid fa-id-card"></i> Données Officielles de Traçabilité</h3>
                         <label>Numéro de Puce / Tatouage</label><input type="text" id="profile-chip">
                         <label>Numéro de LOF / LOOF</label><input type="text" id="profile-lof">
-
-                        <div id="repro-female-only" style="display:none; border-top:1px dashed var(--border-color); padding-top:10px; margin-top:10px;">
-                            <label>Dernières chaleurs constatées</label><input type="date" id="profile-last-heat">
-                            <p style="font-size:12px; color:var(--accent); margin-bottom:10px;">Prochaines chaleurs estimées : <strong id="next-heat-estimate">--/--/----</strong></p>
-                            <label>Date de Saillie (Accouplement)</label><input type="date" id="profile-mating-date">
-                            <label>Mise bas prévisionnelle</label><input type="date" id="profile-birth-estimated" disabled style="background:#eee;">
-                        </div>
-
-                        <label>Date de Naissance Réelle de la Portée</label><input type="date" id="profile-litter-birth-date">
+                        <label>Date d'Accouplement (Saillie)</label><input type="date" id="profile-mating-date">
+                        <label>Mise bas prévisionnelle automatique</label><input type="date" id="profile-birth-estimated" disabled style="background:var(--bg-color);">
                         <label>Nombre de chiots/chatons nés</label><input type="number" id="profile-litter-size">
                     </div>
 
                     <div class="main-card mt-20">
-                        <h3><i class="fa-solid fa-dna"></i> Examens Officiels & Sélection</h3>
-                        <label>Test ADN Génétique (Statut)</label><input type="text" id="profile-dna" placeholder="Clear / Normal">
-                        <label>Dépistage Dysplasie Hanches (Radio)</label><input type="text" id="profile-hips" placeholder="HD-A, HD-B...">
-                        <label>Dépistage Dysplasie Coudes (Radio)</label><input type="text" id="profile-elbows" placeholder="ED-0, ED-1...">
-                        <label>Date de Confirmation LOF</label><input type="date" id="profile-confirmation-date">
-                        <label>Date Obtention CSAU</label><input type="date" id="profile-csau-date">
-                        <label>Niveau de Cotation officiel</label>
+                        <h3><i class="fa-solid fa-dna"></i> Radios & Tests de Sélection Cliniques</h3>
+                        <label>Test ADN Génétique (Maladies)</label><input type="text" id="profile-dna" placeholder="Clear / Indemne">
+                        <label>Radio Clinique Hanches (Dysplasie)</label><input type="text" id="profile-hips" placeholder="Ex: HD-A, HD-B">
+                        <label>Radio Clinique Coudes</label><input type="text" id="profile-elbows" placeholder="Ex: ED-0">
+                        <label>Date de Confirmation Initiale</label><input type="date" id="profile-confirmation-date">
+                        <label>Date Obtention Diplôme CSAU</label><input type="date" id="profile-csau-date">
+                        <label>Niveau de Cotation dans la Grille d'Élevage</label>
                         <select id="profile-cotation">
                             <option value="1">1 - Confirmé</option>
                             <option value="2">2 - Reconnu</option>
@@ -492,13 +548,7 @@
                     </div>
 
                     <div class="main-card mt-20">
-                        <h3><i class="fa-solid fa-id-badge"></i> Affiliation Club Canin</h3>
-                        <label>Nom de l'association / Club Canin</label><input type="text" id="profile-club-name">
-                        <label>Date d'adhésion</label><input type="date" id="profile-club-entry">
-                    </div>
-
-                    <div class="main-card mt-20">
-                        <h3><i class="fa-solid fa-sitemap"></i> Arbre Généalogique</h3>
+                        <h3><i class="fa-solid fa-sitemap"></i> Pedigree (Lignage de Généalogie)</h3>
                         <label>Père</label><input type="text" id="pedigree-father">
                         <label>Mère</label><input type="text" id="pedigree-mother">
                         <label>Grand-père paternel</label><input type="text" id="pedigree-gfather-p">
@@ -507,7 +557,7 @@
                         <label>Grand-mère maternelle</label><input type="text" id="pedigree-gmother-m">
                     </div>
 
-                    <button class="btn-primary mt-20" onclick="savePetProfile()">Enregistrer le profil complet</button>
+                    <button class="btn-primary mt-20" onclick="savePetProfile()">Enregistrer le profil</button>
                     <button class="btn-secondary-outline mt-10" onclick="toggleDarkMode()" style="width:100%;">Mode Graphique Sombre</button>
                     <button class="btn-secondary-outline mt-10" onclick="deleteCurrentPet()" style="width:100%; color:var(--danger); border-color:var(--danger);">Supprimer l'animal</button>
                 </div>
@@ -516,6 +566,7 @@
             <div class="mobile-nav">
                 <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
                 <div class="nav-item" onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i>Santé</div>
+                <div class="nav-item" onclick="navigateTo('screen-concours')"><i class="fa-solid fa-trophy"></i>Élevage</div>
                 <div id="mobile-nav-edu" class="nav-item" onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i>Édu</div>
                 <div class="nav-item" onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i>Budget</div>
                 <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>

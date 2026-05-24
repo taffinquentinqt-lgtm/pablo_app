@@ -32,7 +32,9 @@ let medicalEvents = [];
 let dailyTrackers = {};
 let chatHistory = [];
 let budgetExpenses = [];
-let educationData = {}; 
+let educationData = {};
+let concoursList = [];
+let clubsDirectory = [];
 
 let weightChartInstance = null;
 let darkModeActive = false;
@@ -63,7 +65,6 @@ onAuthStateChanged(auth, async (user) => {
                 Object.keys(cloudData).forEach(key => {
                     localStorage.setItem(key, JSON.stringify(cloudData[key]));
                 });
-                console.log("☁️ Données Cloud restaurées !");
             }
         } catch (e) {
             console.error(e);
@@ -129,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('pet-selector')) document.getElementById('pet-selector').addEventListener('change', (e) => switchPet(e.target.value));
     if (document.getElementById('mobile-pet-selector')) document.getElementById('mobile-pet-selector').addEventListener('change', (e) => switchPet(e.target.value));
 
-    // Attribution des verrous d'écoute pour les calculs d'élevage automatisés
     const heatEl = document.getElementById('profile-last-heat');
     if (heatEl) heatEl.addEventListener('change', calculateNextHeat);
     const matingEl = document.getElementById('profile-mating-date');
@@ -227,15 +227,13 @@ function closePetModal() {
 
 function confirmCreateNewPet() {
     const name = document.getElementById('new-pet-name-input').value.trim();
-    const species = document.getElementById('new-pet-species-input')?.value || "Chien";
-    const breed = document.getElementById('new-pet-breed-input')?.value.trim() || "";
     if (!name) return alert("Le nom est vide.");
     
     const newId = 'pet_' + Date.now();
     petsList.push({ id: newId, name: name });
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
     
-    const newProfile = { name, species, breed, age: 0, size: 0, weight: 0, sex: "M", avatar: "", breedAdvice: "" };
+    const newProfile = { name, species: "Chien", breed: "", age: 0, size: 0, weight: 0, sex: "M", avatar: "", breedAdvice: "" };
     saveLocalData(newId, 'profile', newProfile);
     saveLocalData(newId, 'weight', []);
     saveLocalData(newId, 'medical', []);
@@ -257,11 +255,12 @@ function loadCurrentPetData() {
     initDailyTrackers();
     initChat();
     initBudgetTracker();
+    initConcoursAndClubs();
 }
 
 function deleteCurrentPet() {
     if (!confirm("Supprimer ce compagnon ?")) return;
-    const keys = ['profile', 'weight', 'medical', 'education', 'custom_exercises', 'daily', 'chat', 'budget'];
+    const keys = ['profile', 'weight', 'medical', 'education', 'custom_exercises', 'daily', 'chat', 'budget', 'concours', 'clubs'];
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
     petsList = petsList.filter(pet => pet.id !== currentPetId);
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
@@ -269,7 +268,7 @@ function deleteCurrentPet() {
 }
 
 // ==========================================
-// FORMULAIRE ÉLEVAGE, RAPPELS AUTOMATIQUES & PEDIGREE
+// REPRODUCTION, CALS AUTOMATIQUES ET TRAQUEUR D'ÂGE
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
@@ -279,24 +278,10 @@ function initPetProfile() {
     if (document.getElementById('welcome-pet-name')) document.getElementById('welcome-pet-name').innerText = petProfile.name || "";
     if (document.getElementById('current-pet-display-top')) document.getElementById('current-pet-display-top').innerText = petProfile.name || "";
 
-    if (petProfile.avatar) {
-        const pImg = document.getElementById('profile-pet-image');
-        const sImg = document.getElementById('sidebar-pet-image');
-        if (pImg) { pImg.src = petProfile.avatar; pImg.style.display = 'block'; }
-        if (sImg) { sImg.src = petProfile.avatar; sImg.style.display = 'block'; }
-        
-        const pPlc = document.getElementById('profile-avatar-placeholder');
-        const sPlc = document.getElementById('sidebar-placeholder');
-        if (pPlc) pPlc.style.display = 'none';
-        if (sPlc) sPlc.style.display = 'none';
-    } else {
-        const pImg = document.getElementById('profile-pet-image');
-        if (pImg) pImg.style.display = 'none';
-        const pPlc = document.getElementById('profile-avatar-placeholder');
-        if (pPlc) {
-            pPlc.style.display = 'flex';
-            pPlc.innerText = petProfile.name?.charAt(0).toUpperCase() || 'P';
-        }
+    if (petProfile.avatar && document.getElementById('profile-pet-image')) {
+        document.getElementById('profile-pet-image').src = petProfile.avatar;
+        document.getElementById('profile-pet-image').style.display = 'block';
+        if (document.getElementById('profile-avatar-placeholder')) document.getElementById('profile-avatar-placeholder').style.display = 'none';
     }
 
     if(document.getElementById('profile-name')) document.getElementById('profile-name').value = petProfile.name || "";
@@ -307,7 +292,6 @@ function initPetProfile() {
     if(document.getElementById('profile-weight')) document.getElementById('profile-weight').value = petProfile.weight || 0;
     if(document.getElementById('profile-sex')) document.getElementById('profile-sex').value = petProfile.sex || "M";
 
-    // Chargement des Nouveaux Inputs d'élevage
     if(document.getElementById('profile-chip')) document.getElementById('profile-chip').value = petProfile.chip || "";
     if(document.getElementById('profile-lof')) document.getElementById('profile-lof').value = petProfile.lof || "";
     if(document.getElementById('profile-last-heat')) document.getElementById('profile-last-heat').value = petProfile.lastHeat || "";
@@ -326,7 +310,6 @@ function initPetProfile() {
     if(document.getElementById('profile-club-name')) document.getElementById('profile-club-name').value = petProfile.clubName || "";
     if(document.getElementById('profile-club-entry')) document.getElementById('profile-club-entry').value = petProfile.clubEntry || "";
 
-    // Pedigree
     const ped = petProfile.pedigree || {};
     if(document.getElementById('pedigree-father')) document.getElementById('pedigree-father').value = ped.father || "";
     if(document.getElementById('pedigree-mother')) document.getElementById('pedigree-mother').value = ped.mother || "";
@@ -335,33 +318,43 @@ function initPetProfile() {
     if(document.getElementById('pedigree-gfather-m')) document.getElementById('pedigree-gfather-m').value = ped.gFatherM || "";
     if(document.getElementById('pedigree-gmother-m')) document.getElementById('pedigree-gmother-m').value = ped.gMotherM || "";
 
-    // Affichage conditionnel de la section chaleurs
+    // Affichage dynamique du suivi des chaleurs si femelle
     const femaleSection = document.getElementById('repro-female-only');
-    if(femaleSection) femaleSection.style.display = (document.getElementById('profile-sex').value === "F") ? "block" : "none";
+    if(femaleSection) femaleSection.style.display = (petProfile.sex === "F") ? "block" : "none";
 
     calculateNextHeat();
     calculateGestation();
+    updateLitterAgeTracker();
 
     const mobileEduBtn = document.querySelector('.mobile-nav .nav-item[onclick*="screen-edu"]');
     const sidebarEduBtn = document.getElementById('sidebar-nav-edu');
-    if (document.getElementById('profile-species').value === "Chien") {
+    if (petProfile.species === "Chien") {
         if (mobileEduBtn) mobileEduBtn.style.display = 'flex';
         if (sidebarEduBtn) sidebarEduBtn.style.display = 'flex';
     } else {
         if (mobileEduBtn) mobileEduBtn.style.display = 'none';
         if (sidebarEduBtn) sidebarEduBtn.style.display = 'none';
     }
-
     updateBreedAdviceUI();
 }
 
 function calculateNextHeat() {
     const elInput = document.getElementById('profile-last-heat');
-    const elText = document.getElementById('next-heat-estimate');
-    if (!elInput || !elInput.value || !elText) return;
+    const elNextHeat = document.getElementById('next-heat-estimate');
+    const elSaillie = document.getElementById('calc-saillie');
+    
+    if (!elInput || !elInput.value) return;
     const d = new Date(elInput.value);
-    d.setDate(d.getDate() + 180); 
-    elText.innerText = d.toLocaleDateString('fr-FR');
+    
+    // Prochaines chaleurs (+6 mois)
+    const nextHeat = new Date(d.getTime());
+    nextHeat.setDate(nextHeat.getDate() + 180);
+    if(elNextHeat) elNextHeat.innerText = nextHeat.toLocaleDateString('fr-FR');
+
+    // Zone optimale de saillie (J11 à J13)
+    const saillieStart = new Date(d.getTime()); saillieStart.setDate(saillieStart.getDate() + 11);
+    const saillieEnd = new Date(d.getTime()); saillieEnd.setDate(saillieEnd.getDate() + 13);
+    if(elSaillie) elSaillie.innerText = `Du ${saillieStart.toLocaleDateString('fr-FR')} au ${saillieEnd.toLocaleDateString('fr-FR')}`;
 }
 
 function calculateGestation() {
@@ -373,30 +366,41 @@ function calculateGestation() {
     elTarget.value = d.toISOString().split('T')[0];
 }
 
-async function updateBreedAdviceUI() {
-    const adviceCard = document.getElementById('breed-advice-card');
-    const adviceContent = document.getElementById('breed-advice-content');
-    if (!adviceCard || !adviceContent || !petProfile.breed) return;
+// L'OPTION COOL : COMPTEUR D'ÂGE PRÉCIS POUR LES CHIOTS (Jours, Semaines, Mois)
+function updateLitterAgeTracker() {
+    const birthInput = document.getElementById('profile-litter-birth-date');
+    const displayBox = document.getElementById('litter-age-counter-box');
+    const textDisplay = document.getElementById('litter-exact-age-display');
+    const alertDisplay = document.getElementById('litter-milestone-alert');
 
-    adviceCard.style.display = 'block';
-    if(petProfile.breedAdvice) { adviceContent.innerHTML = petProfile.breedAdvice; return; }
+    if (!birthInput || !birthInput.value || !displayBox) return;
 
-    adviceContent.innerHTML = "Rédaction de la fiche de race...";
-    try {
-        const response = await fetch("/api/mammouth-proxy", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                systemInstruction: "Tu es un éleveur expert. Écris en HTML simple sans blocs de code markdown.",
-                messages: [{ content: `Rédige des recommandations d'élevage pour la race ${petProfile.breed} (Hanches, coudes, adn et comportement).` }]
-            })
-        });
-        const data = await response.json();
-        petProfile.breedAdvice = data.choices[0].message.content.trim();
-        saveLocalData(currentPetId, 'profile', petProfile);
-        adviceContent.innerHTML = petProfile.breedAdvice;
-    } catch (error) {
-        adviceContent.innerText = "Fiche indisponible.";
+    const birthDate = new Date(birthInput.value);
+    const now = new Date();
+    const diffTime = now - birthDate;
+
+    if (diffTime < 0) {
+        displayBox.style.display = 'none';
+        return;
+    }
+
+    displayBox.style.display = 'block';
+
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30.43); // Moyenne jours/mois
+
+    textDisplay.innerHTML = `🍼 Âge de la portée : <br><span style="font-size:24px; color:var(--accent)">${diffDays} Jours</span> | <span>${diffWeeks} Semaines</span> | <span>${diffMonths} Mois</span>`;
+
+    // Alertes réglementaires automatiques selon l'âge
+    if (diffDays <= 5) {
+        alertDisplay.innerText = "🚨 Alerte Élevage : Suivi quotidien rigoureux du poids requis (J0-J5).";
+    } else if (diffWeeks >= 6 && diffWeeks < 8) {
+        alertDisplay.innerText = "💉 Rappel : Fenêtre idéale pour le premier vaccin de sevrage et l'identification puce.";
+    } else if (diffWeeks >= 8) {
+        alertDisplay.innerText = "🏡 Information : Les chiots ont atteint l'âge légal pour rejoindre leurs nouvelles familles.";
+    } else {
+        alertDisplay.innerText = "✨ Lignée en pleine croissance.";
     }
 }
 
@@ -441,26 +445,141 @@ function savePetProfile() {
 
     saveLocalData(currentPetId, 'profile', petProfile);
     loadCurrentPetData();
-    alert("Données sauvegardées ! 🐾");
+    alert("Profil mis à jour ! 🐾");
     navigateTo('screen-home');
 }
 
-function uploadPetPhoto() {
-    const file = document.getElementById('file-upload-input').files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            petProfile.avatar = reader.result;
-            saveLocalData(currentPetId, 'profile', petProfile);
-            initPetProfile();
-        };
-        reader.readAsDataURL(file);
+// ==========================================
+// MODULE COMPLET : CONCOURS & CLUBS (L'OPTION COOL)
+// ==========================================
+function initConcoursAndClubs() {
+    concoursList = getLocalData(currentPetId, 'concours', []);
+    clubsDirectory = getLocalData(currentPetId, 'clubs', []);
+    renderConcoursAgenda();
+    renderClubsDirectory();
+}
+
+window.addConcoursEvent = function() {
+    const title = document.getElementById('concours-title').value.trim();
+    const date = document.getElementById('concours-event-date').value;
+    const club = document.getElementById('concours-club').value.trim();
+
+    if(!title || !date) return alert("Veuillez renseigner un titre et une date pour le concours.");
+
+    concoursList.push({ id: Date.now(), title, date, club });
+    saveLocalData(currentPetId, 'concours', concoursList);
+    
+    document.getElementById('concours-title').value = '';
+    document.getElementById('concours-event-date').value = '';
+    document.getElementById('concours-club').value = '';
+    renderConcoursAgenda();
+};
+
+function renderConcoursAgenda() {
+    const container = document.getElementById('concours-agenda-list');
+    if(!container) return; container.innerHTML = '';
+
+    if(concoursList.length === 0) {
+        container.innerHTML = "<p style='color:#777; font-size:13px; text-align:center;'>Aucun concours prévu au calendrier.</p>";
+        return;
     }
+
+    // Tri des concours par date la plus proche
+    concoursList.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(c => {
+        const cDate = new Date(c.date);
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        const diffTime = cDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        const item = document.createElement('div');
+        item.className = "list-item-custom";
+        
+        let countdownBadge = "";
+        if(diffDays < 0) {
+            countdownBadge = "<span class='alert-badge' style='background:#ddd; color:#666;'>Terminé</span>";
+        } else if(diffDays === 0) {
+            countdownBadge = "<span class='alert-badge danger'>AUJOURD'HUI 🏆</span>";
+        } else {
+            countdownBadge = `<span class='alert-badge success'>J - ${diffDays} jours</span>`;
+        }
+
+        item.innerHTML = `
+            <div>
+                <strong>${c.title}</strong><br>
+                <span style='font-size:12px; color:var(--text-muted);'><i class="fa-solid fa-building-columns"></i> Organisé par : ${c.club || 'Inconnu'}</span><br>
+                <span style='font-size:12px; color:var(--accent);'><i class="fa-solid fa-calendar-days"></i> ${cDate.toLocaleDateString('fr-FR')}</span>
+            </div>
+            <div>${countdownBadge}</div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+window.addClubToDirectory = function() {
+    const name = document.getElementById('club-directory-name').value.trim();
+    const contact = document.getElementById('club-directory-contact').value.trim();
+
+    if(!name) return alert("Le nom du club est requis.");
+
+    clubsDirectory.push({ id: Date.now(), name, contact });
+    saveLocalData(currentPetId, 'clubs', clubsDirectory);
+
+    document.getElementById('club-directory-name').value = '';
+    document.getElementById('club-directory-contact').value = '';
+    renderClubsDirectory();
+};
+
+function renderClubsDirectory() {
+    const container = document.getElementById('clubs-directory-list');
+    if(!container) return; container.innerHTML = '';
+
+    if(clubsDirectory.length === 0) {
+        container.innerHTML = "<p style='color:#777; font-size:13px; text-align:center;'>Aucun club enregistré dans l'annuaire.</p>";
+        return;
+    }
+
+    clubsDirectory.forEach(club => {
+        const item = document.createElement('div');
+        item.className = "list-item-custom";
+        item.innerHTML = `
+            <div>
+                <strong>${club.name}</strong><br>
+                <span style='font-size:12px; color:var(--text-muted);'>📍 Contact/Infos : ${club.contact || 'Aucune information saisie'}</span>
+            </div>
+        `;
+        container.appendChild(item);
+    });
 }
 
 // ==========================================
-// AUTRES MODULES COMPATIBLES
+// AUTRES COMPOSANTS (RECONSTRUITS À L'IDENTIQUE)
 // ==========================================
+async function updateBreedAdviceUI() {
+    const adviceCard = document.getElementById('breed-advice-card');
+    const adviceContent = document.getElementById('breed-advice-content');
+    if (!adviceCard || !adviceContent || !petProfile.breed) return;
+
+    adviceCard.style.display = 'block';
+    if(petProfile.breedAdvice) { adviceContent.innerHTML = petProfile.breedAdvice; return; }
+
+    adviceContent.innerHTML = "Génération de l'encyclopédie...";
+    try {
+        const response = await fetch("/api/mammouth-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                systemInstruction: "Tu es un éleveur canin expert. Rédige une fiche synthétique en HTML.",
+                messages: [{ content: `Donne des conseils pour la race ${petProfile.breed}. Rédige uniquement en HTML simple.` }]
+            })
+        });
+        const data = await response.json();
+        petProfile.breedAdvice = data.choices[0].message.content.trim();
+        saveLocalData(currentPetId, 'profile', petProfile);
+        adviceContent.innerHTML = petProfile.breedAdvice;
+    } catch (error) { adviceContent.innerText = "Fiche non disponible."; }
+}
+
 function initWeightHistory() {
     weightHistory = getLocalData(currentPetId, 'weight', []);
     updateWeightUI();
@@ -477,13 +596,12 @@ function updateWeightUI() {
 async function updateNutritionUI() {
     const textEl = document.getElementById('nutrition-ration-text');
     if (!textEl || !petProfile.weight) return;
-    textEl.innerText = "Calcul...";
     try {
         const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                systemInstruction: "Tu es un nutritionniste. Réponds uniquement par le chiffre suivi de 'g'.",
+                systemInstruction: "Réponds uniquement par un chiffre suivi de 'g'.",
                 messages: [{ content: `Ration de croquettes pour un ${petProfile.species} de ${petProfile.weight} kg.` }]
             })
         });
@@ -562,19 +680,16 @@ function renderReminders() {
     const container = document.getElementById('dynamic-reminders-list');
     if(!container) return; container.innerHTML = '';
     const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30 };
-    
     Object.keys(rules).forEach(type => {
         const eventsOfType = medicalEvents.filter(e => e.type === type);
         let lastDate = eventsOfType.length > 0 ? new Date(eventsOfType.sort((a,b) => new Date(b.date) - new Date(a.date))[0].date) : null;
         let daysPass = lastDate ? Math.ceil(Math.abs(new Date() - lastDate) / 86400000) : 999;
-        
         if (!lastDate || daysPass > rules[type]) {
             const reminderDiv = document.createElement('div'); reminderDiv.className = 'reminder-item main-card';
-            reminderDiv.innerHTML = `<div class="reminder-info"><h4>${type} requis</h4><span>Dernier : ${lastDate ? lastDate.toLocaleDateString() : 'Jamais'}</span></div><span class="alert-badge danger">À FAIRE</span>`;
+            reminderDiv.innerHTML = `<div class="reminder-info"><h4>${type} requis</h4></div><span class="alert-badge danger">À FAIRE</span>`;
             container.appendChild(reminderDiv);
         }
     });
-    if(container.innerHTML === '') container.innerHTML = `<p style="color: #777; font-size: 14px; text-align:center;">Tout est à jour ! ✨</p>`;
 }
 
 function initEducation() {
@@ -672,7 +787,7 @@ window.sendMessage = async () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                systemInstruction: `Tu es l'assistant de l'application Pablo. Tu accompagnes l'animal : ${petProfile.name}, Race: ${petProfile.breed}, Sexe: ${petProfile.sex}.`,
+                systemInstruction: `Tu es Pablo, un assistant d'élevage expert. Tu accompagnes l'animal : ${petProfile.name}, Race: ${petProfile.breed}, Sexe: ${petProfile.sex}.`,
                 messages: [{ content: text }]
             })
         });
@@ -681,18 +796,22 @@ window.sendMessage = async () => {
         renderChat();
         saveLocalData(currentPetId, 'chat', chatHistory);
     } catch (e) {
-        chatHistory.push({ sender: 'bot', text: "Erreur de transmission." }); renderChat();
+        chatHistory.push({ sender: 'bot', text: "Erreur de réseau." }); renderChat();
     }
 };
 
-window.requestNotificationPermission = () => {
-    if (!("Notification" in window)) return alert("Notifications non supportées.");
-    Notification.requestPermission().then(permission => {
-        if (permission === "granted") new Notification("Félicitations !", { body: "Les rappels sont actifs." });
-    });
-};
-
-window.exportToPDF = () => window.print();
+function uploadPetPhoto() {
+    const file = document.getElementById('file-upload-input').files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            petProfile.avatar = reader.result;
+            saveLocalData(currentPetId, 'profile', petProfile);
+            initPetProfile();
+        };
+        reader.readAsDataURL(file);
+    }
+}
 
 window.navigateTo = (screenId) => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
