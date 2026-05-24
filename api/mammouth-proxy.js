@@ -20,15 +20,16 @@ export default async function handler(req, res) {
     const userMessage = messages[messages.length - 1].content;
 
     try {
-        // URL officielle du endpoint de génération de contenu de Gemini 1.5 
-const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+        // URL stable officielle avec le modèle à jour (v1)
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: userMessage }] }],
-                systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+                // Utilisation de system_instruction (avec le sous-tiret) valide pour l'API v1
+                system_instruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
                 generationConfig: {
                     temperature: 0.7,
                     maxOutputTokens: 1000
@@ -42,10 +43,10 @@ const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flas
             return res.status(500).json({ error: data.error });
         }
 
-        // Extraction de la réponse textuelle renvoyée par Google
+        // Extraction sécurisée de la réponse textuelle renvoyée par Google
         const botResponse = data.candidates[0].content.parts[0].text;
 
-        // On formate la réponse pour qu'elle reste compatible avec le reste de ton app.js
+        // On formate la réponse pour qu'elle reste 100% compatible avec ton app.js actuel
         return res.status(200).json({
             choices: [{
                 message: { content: botResponse }
