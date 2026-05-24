@@ -847,6 +847,7 @@ function renderBudgetHistory(expenses) {
     if (!list) return;
     list.innerHTML = '';
     
+    // Correction de syntaxe ici : [ ajouté avant le spread operator
     [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(expense => {
         const item = document.createElement('div');
         item.className = 'budget-item';
@@ -923,13 +924,14 @@ window.sendMessage = async () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                systemInstruction: systemPrompt, // Attribut d'instruction système de Gemini
+                systemInstruction: systemPrompt, // Attribut d'instruction système pour ton proxy
                 messages: [{ content: text }]     // Envoi du message utilisateur
             })
         });
 
         const data = await response.json();
         
+        // Extraction textuelle propre si l'API envoie un objet d'erreur
         if (data.error) {
             const errorMsg = typeof data.error === 'object' ? (data.error.message || JSON.stringify(data.error)) : data.error;
             throw new Error(errorMsg);

@@ -3,7 +3,6 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Méthode non autorisée' });
     }
 
-    // Récupère la clé d'API configurée dans les variables d'environnement de Vercel
     const apiKey = process.env.GEMINI_API_KEY; 
 
     if (!apiKey) {
@@ -16,25 +15,32 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Messages manquants' });
     }
 
-    // Extraction du texte envoyé par l'application
     const userMessage = messages[messages.length - 1].content;
 
     try {
-        // URL stable officielle avec le modèle à jour (v1)
+        // Route stable v1
         const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
+        // Construction du payload selon la documentation stricte de Google v1
+        const payload = {
+            contents: [{ parts: [{ text: userMessage }] }],
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 1000
+            }
+        };
+
+        // Si une consigne système est présente, on l'ajoute au bon format attendu par la v1
+        if (systemInstruction) {
+            payload.system_instruction = {
+                parts: [{ text: systemInstruction }]
+            };
+        }
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: userMessage }] }],
-                // Utilisation de system_instruction (avec le sous-tiret) valide pour l'API v1
-                system_instruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1000
-                }
-            })
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
@@ -43,10 +49,13 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: data.error });
         }
 
-        // Extraction sécurisée de la réponse textuelle renvoyée par Google
+        // Extraction sécurisée de la réponse
+        if (!data.candidates || !data.candidates[0].content.parts[0].text) {
+            throw new Error("Format de réponse Gemini inattendu");
+        }
+
         const botResponse = data.candidates[0].content.parts[0].text;
 
-        // On formate la réponse pour qu'elle reste 100% compatible avec ton app.js actuel
         return res.status(200).json({
             choices: [{
                 message: { content: botResponse }
