@@ -370,7 +370,8 @@ async function updateBreedAdviceUI() {
         <h4>Conseil d'éducation</h4>
         Utilise des paragraphes <p> et des listes <ul><li> pour rendre la lecture agréable. Pas d'introduction bateau ni de conclusion, envoie uniquement le code HTML propre.`;
         
-        const response = await fetch("/.netlify/functions/mammouth-proxy", {
+        // MIGRATION VERCEL ICI
+        const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -492,7 +493,8 @@ async function updateNutritionUI() {
     const promptNutrition = `Calcule la ration de croquettes quotidienne idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, ${petProfile.age || 0} mois, activité ${activityLevel.value}. Réponds UNIQUEMENT par le nombre de grammes suivi de 'g'. Exemple : 420g`;
 
     try {
-        const response = await fetch("/.netlify/functions/mammouth-proxy", {
+        // MIGRATION VERCEL ICI
+        const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -755,7 +757,8 @@ window.sendMessage = async () => {
     const systemPrompt = `Tu es l'assistant vétérinaire de l'application Pablo. Tu aides le maître de : ${petProfile.name}, Espèce: ${petProfile.species}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Sois très concis, bienveillant et finis toujours par un wouf ou un miaou !`;
 
     try {
-        const response = await fetch("/.netlify/functions/mammouth-proxy", {
+        // MIGRATION VERCEL ICI
+        const response = await fetch("/api/mammouth-proxy", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
