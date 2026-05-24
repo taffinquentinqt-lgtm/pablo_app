@@ -376,6 +376,8 @@
             .main-header { padding: 0 15px; }
             .screens-container { padding: 15px; padding-bottom: 85px; }
             .chat-area { height: calc(100vh - 210px); }
+            /* Affiche le sélecteur d'animaux dans le header sur mobile */
+            #mobile-pet-selector { display: block !important; }
         }
     </style>
 </head>
@@ -442,7 +444,10 @@
             
             <div class="main-header">
                 <h1 id="page-title" style="font-size: 18px; font-weight: bold;">Vue d'ensemble</h1>
+                
                 <div style="display: flex; gap: 12px; align-items:center;">
+                    <select id="mobile-pet-selector" style="display: none; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-size: 13px; max-width: 120px;"></select>
+                    
                     <i class="fa-solid fa-bell" style="color: var(--text-muted); cursor:pointer;" onclick="navigateTo('screen-profile')"></i>
                 </div>
             </div>
