@@ -3,7 +3,6 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Méthode non autorisée' });
     }
 
-    // On récupère la clé Groq sur Vercel
     const apiKey = process.env.GROQ_API_KEY; 
 
     if (!apiKey) {
@@ -18,7 +17,6 @@ export default async function handler(req, res) {
 
     const userText = messages[messages.length - 1].content;
 
-    // Préparation du format attendu par Groq
     const formattedMessages = [];
     if (systemInstruction) {
         formattedMessages.push({ role: "system", content: systemInstruction });
@@ -26,7 +24,6 @@ export default async function handler(req, res) {
     formattedMessages.push({ role: "user", content: userText });
 
     try {
-        // Point d'accès officiel de Groq
         const url = "https://api.groq.com/openai/v1/chat/completions";
 
         const response = await fetch(url, {
@@ -36,7 +33,6 @@ export default async function handler(req, res) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                // LE FIX EST ICI : Le tout nouveau modèle gratuit de Meta
                 model: "llama-3.3-70b-versatile",
                 messages: formattedMessages,
                 temperature: 0.7,
@@ -46,15 +42,12 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // Gestion des erreurs renvoyées par Groq
         if (data.error) {
             return res.status(500).json({ error: data.error.message || data.error });
         }
 
-        // Extraction de la réponse
         const botResponse = data.choices[0].message.content;
 
-        // Renvoi au format attendu par ton app.js
         return res.status(200).json({
             choices: [{
                 message: { content: botResponse }
