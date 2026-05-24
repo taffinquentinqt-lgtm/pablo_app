@@ -34,7 +34,7 @@ let medicalEvents = [];
 let dailyTrackers = {};
 let chatHistory = [];
 let budgetExpenses = [];
-let educationData = {}; // Gère les acquis éducation en local
+let educationData = {}; 
 
 let weightChartInstance = null;
 let darkModeActive = false;
@@ -331,6 +331,7 @@ function confirmCreateNewPet() {
     saveLocalData(newId, 'weight', []);
     saveLocalData(newId, 'medical', []);
     saveLocalData(newId, 'education', {});
+    saveLocalData(newId, 'custom_exercises', []);
     saveLocalData(newId, 'daily', {water: 0, walk: 0, date: new Date().toISOString().split('T')[0]});
     saveLocalData(newId, 'chat', [{sender: 'bot', text: `Wouf ! Je suis l'assistant de ${name}.`}]);
     saveLocalData(newId, 'budget', []);
@@ -352,7 +353,7 @@ function loadCurrentPetData() {
 function deleteCurrentPet() {
     if (!confirm(`⚠️ Êtes-vous sûr de vouloir supprimer ${petProfile.name} ?`)) return;
 
-    const keys = ['profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget'];
+    const keys = ['profile', 'weight', 'medical', 'education', 'custom_exercises', 'daily', 'chat', 'budget'];
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
 
     petsList = petsList.filter(pet => pet.id !== currentPetId);
@@ -404,6 +405,23 @@ function initPetProfile() {
     setVal('profile-age', petProfile.age);
     setVal('profile-size', petProfile.size);
     setVal('profile-weight', petProfile.weight);
+
+    // GESTION DYNAMIQUE DE L'ONGLET ÉDUCATION (CHIEN UNIQUEMENT)
+    const mobileEduBtn = document.querySelector('.mobile-nav .nav-item[onclick*="screen-edu"]');
+    const sidebarEduBtn = document.getElementById('sidebar-nav-edu');
+    const isChien = (petProfile.species === "Chien");
+
+    if (isChien) {
+        if (mobileEduBtn) mobileEduBtn.style.display = 'flex';
+        if (sidebarEduBtn) sidebarEduBtn.style.display = 'flex';
+    } else {
+        if (mobileEduBtn) mobileEduBtn.style.display = 'none';
+        if (sidebarEduBtn) sidebarEduBtn.style.display = 'none';
+        const currentScreen = document.querySelector('.screen.active');
+        if (currentScreen && currentScreen.id === 'screen-edu') {
+            navigateTo('screen-home');
+        }
+    }
 
     updateBreedAdviceUI();
 }
@@ -660,9 +678,10 @@ function updateTrackersUI() {
     if(walkEl) walkEl.innerText = `${dailyTrackers.walk} min`;
 }
 
-function addWater() { dailyTrackers.water += 250; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); }
-function addWalk() { dailyTrackers.walk += 15; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); }
-function resetDailyTrackers() { dailyTrackers.water = 0; dailyTrackers.walk = 0; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); }
+// Éléments du tracker
+window.addWater = function() { dailyTrackers.water += 250; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); };
+window.addWalk = function() { dailyTrackers.walk += 15; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); };
+window.resetDailyTrackers = function() { dailyTrackers.water = 0; dailyTrackers.walk = 0; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); };
 
 // ==========================================
 // CARNET & RAPPELS
@@ -673,7 +692,7 @@ function initMedicalRecords() {
     renderReminders();
 }
 
-function addMedicalEvent() {
+window.addMedicalEvent = function() {
     const type = document.getElementById('event-type').value;
     const date = document.getElementById('event-date').value;
     if (!date) return alert("Sélectionnez une date.");
@@ -681,7 +700,7 @@ function addMedicalEvent() {
     saveLocalData(currentPetId, 'medical', medicalEvents);
     renderMedicalHistory(); renderReminders();
     document.getElementById('event-date').value = '';
-}
+};
 
 function renderMedicalHistory() {
     const list = document.getElementById('medical-history-list');
@@ -694,13 +713,13 @@ function renderMedicalHistory() {
     });
 }
 
-function clearMedicalHistory() {
+window.clearMedicalHistory = function() {
     if(confirm(`Vider l'historique de ${petProfile.name} ?`)) { 
         medicalEvents = []; 
         saveLocalData(currentPetId, 'medical', medicalEvents); 
         renderMedicalHistory(); renderReminders(); 
     }
-}
+};
 
 function renderReminders() {
     const container = document.getElementById('dynamic-reminders-list');
@@ -722,6 +741,8 @@ function renderReminders() {
 }
 
 // ==========================================
+// 🔥 MODULE : CARNET D'ÉDUCATION PERSONALISÉ
+// ==========================================
 function initEducation() {
     educationData = getLocalData(currentPetId, 'education', {});
     renderEducation();
@@ -732,18 +753,11 @@ function renderEducation() {
     if (!container) return;
     container.innerHTML = '';
     
-    // 1. Récupérer la liste des exercices (les basiques + les personnalisés s'il y en a)
-    // On stocke les exercices personnalisés dans le profil sous la clé 'custom_exercises'
     const customExercises = getLocalData(currentPetId, 'custom_exercises', []);
     const allExercises = [...DEFAULT_EDU_EXERCISES, ...customExercises];
     
-    if (allExercises.length === 0) {
-        container.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">Aucun exercice disponible.</p>`;
-        return;
-    }
-
     allExercises.forEach(ex => {
-        const currentLevel = educationData[ex.id] || 0; // 0: À commencer, 1: En cours, 2: Acquis, 3: Maîtrisé
+        const currentLevel = educationData[ex.id] || 0; 
         
         const card = document.createElement('div');
         card.style.display = 'flex';
@@ -780,7 +794,6 @@ window.updateEduLevel = async function(exerciseId, levelValue) {
     console.log(`Exercice ${exerciseId} synchronisé au niveau ${levelValue}`);
 };
 
-// Nouvelle fonction pour ajouter un exercice personnalisé créé par l'utilisateur
 window.addCustomExercise = async function() {
     const input = document.getElementById('new-custom-exercise-input');
     if (!input) return;
@@ -788,23 +801,16 @@ window.addCustomExercise = async function() {
     const exerciseName = input.value.trim();
     if (!exerciseName) return alert("Veuillez entrer le nom d'un exercice. 🐾");
     
-    // Génère un ID unique propre à l'exercice
     const exerciseId = 'custom_' + Date.now();
-    
-    // Récupère les anciens exercices customisés de cet animal
     const customExercises = getLocalData(currentPetId, 'custom_exercises', []);
     
-    // Ajoute le nouveau
     customExercises.push({
         id: exerciseId,
         name: exerciseName,
-        icon: 'fa-star' // Une étoile par défaut pour repérer les ordres personnalisés
+        icon: 'fa-star' 
     });
     
-    // Sauvegarde de manière hybride (Local + Firestore Cloud)
     await saveLocalData(currentPetId, 'custom_exercises', customExercises);
-    
-    // Nettoie le champ de saisie et rafraîchit la liste
     input.value = '';
     renderEducation();
 };
@@ -842,7 +848,7 @@ function renderBudgetHistory(expenses) {
     if (!list) return;
     list.innerHTML = '';
     
-    // Correction ici : Ajout du crochet [ avant les trois points
+    // Correction de syntaxe ici : [ ajouté avant ...
     [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(expense => {
         const item = document.createElement('div');
         item.className = 'budget-item';
@@ -853,7 +859,7 @@ function renderBudgetHistory(expenses) {
     });
 }
 
-function addBudgetExpense() {
+window.addBudgetExpense = function() {
     const title = document.getElementById('budget-title').value.trim();
     const amount = parseFloat(document.getElementById('budget-amount').value);
     if (!title || !amount || amount <= 0) return alert("Valeurs invalides.");
@@ -863,10 +869,10 @@ function addBudgetExpense() {
     updateBudgetUI();
     document.getElementById('budget-title').value = '';
     document.getElementById('budget-amount').value = '';
-}
+};
 
 // ==========================================
-// CHAT - SÉCURISÉ (VERCEL)
+// CHAT - SÉCURISÉ AVEC CAPTURE TEXTUELLE DES ERREURS
 // ==========================================
 function initChat() {
     chatHistory = getLocalData(currentPetId, 'chat', [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petProfile.name}. Comment puis-je aider ?` }]);
@@ -895,7 +901,7 @@ function renderChat() {
 
 window.askPreset = (questionText) => {
     document.getElementById('chat-input-field').value = questionText;
-    sendMessage();
+    window.sendMessage();
 };
 
 window.sendMessage = async () => {
@@ -927,7 +933,12 @@ window.sendMessage = async () => {
         });
 
         const data = await response.json();
-        if (data.error) throw new Error(data.error);
+        
+        // Extraction textuelle propre si l'API envoie un objet d'erreur
+        if (data.error) {
+            const errorMsg = typeof data.error === 'object' ? (data.error.message || JSON.stringify(data.error)) : data.error;
+            throw new Error(errorMsg);
+        }
         
         chatHistory = chatHistory.filter(msg => msg.id !== botLoadingMsgId);
         chatHistory.push({ sender: 'bot', text: data.choices[0].message.content });
@@ -937,7 +948,9 @@ window.sendMessage = async () => {
     } catch (e) {
         console.error("❌ Erreur proxy:", e);
         chatHistory = chatHistory.filter(msg => msg.id !== botLoadingMsgId);
-        chatHistory.push({ sender: 'bot', text: `Wouf... Erreur de connexion avec le serveur sécurisé. (${e.message})` });
+        
+        // Injection de l'erreur brute et lisible pour l'utilisateur
+        chatHistory.push({ sender: 'bot', text: `Wouf... Problème de communication avec le serveur sécurisé : ${e.message}` });
         renderChat();
     }
 };
@@ -968,7 +981,6 @@ window.navigateTo = (screenId) => {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     
-    // Support de la synchronisation de classe active sidebar desktop + barre basse mobile
     const navBtns = document.querySelectorAll(`[onclick="navigateTo('${screenId}')"]`);
     navBtns.forEach(btn => btn.classList.add('active'));
 
@@ -992,13 +1004,7 @@ window.confirmCreateNewPet = confirmCreateNewPet;
 window.closePetModal = closePetModal;
 window.toggleDarkMode = toggleDarkMode;
 window.updateNutritionUI = updateNutritionUI;
-window.addWater = addWater;
-window.addWalk = addWalk;
-window.resetDailyTrackers = resetDailyTrackers;
 window.addNewWeight = addNewWeight;
-window.addMedicalEvent = addMedicalEvent;
-window.clearMedicalHistory = clearMedicalHistory;
-window.addBudgetExpense = addBudgetExpense;
 window.uploadPetPhoto = uploadPetPhoto;
 window.savePetProfile = savePetProfile;
 window.deleteCurrentPet = deleteCurrentPet;
