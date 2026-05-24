@@ -1,412 +1,651 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Pablo - L'application intelligente pour votre chien</title>
-    
-    <link rel="manifest" href="/manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Pablo">
-    <link rel="apple-touch-icon" href="/pablo.jpg">
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Lato:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pablo - Compagnon Santé</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ==========================================
+           VARIABLES DE THÈME & POLICES
+           ========================================== */
+        :root {
+            --bg-color: #faf8f5;
+            --main-card-bg: #ffffff;
+            --text-color: #2c2520;
+            --text-muted: #7d756e;
+            --accent: #d4a373;
+            --accent-light: #f4eae1;
+            --border-color: #eadfc9;
+            --danger: #e63946;
+            --success: #47d175;
+        }
+
+        .dark-mode {
+            --bg-color: #121212;
+            --main-card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --accent: #d4a373;
+            --accent-light: #2a2420;
+            --border-color: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ==========================================
+           ÉCRANS DE BIENVENUE & AUTHENTIFICATION
+           ========================================== */
+        .full-screen-page {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #2c2520 0%, #1a1512 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            z-index: 9999;
+            text-align: center;
+        }
+
+        .auth-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--main-card-bg);
+            color: var(--text-color);
+            font-size: 15px;
+        }
+
+        .auth-container input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* ==========================================
+           BOUTONS
+           ========================================== */
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-size: 15px;
+            transition: opacity 0.2s;
+        }
+        .btn-primary:opacity { opacity: 0.8; }
+
+        .btn-secondary-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .auth-switch {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #ccc;
+        }
+        .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+        /* ==========================================
+           ARCHITECTURE GLOBAL DE L'APPLICATION
+           ========================================== */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar ordinateur */
+        .sidebar {
+            width: 280px;
+            background-color: #2c2520;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sidebar h2 { font-size: 22px; letter-spacing: 1px; margin-bottom: 25px; color: white; }
+        .sidebar h2 span { color: var(--accent); }
+
+        .pet-selector-wrapper {
+            margin-bottom: 25px;
+        }
+        .pet-selector-wrapper select {
+            width: 100%;
+            padding: 10px;
+            background: #3d352e;
+            color: white;
+            border: 1px solid #4a4037;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .sidebar-menu { list-style: none; flex: 1; }
+        .sidebar-menu li {
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #ccc;
+            transition: all 0.2s;
+        }
+        .sidebar-menu li:hover, .sidebar-menu li.active {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        /* Zone de contenu principale */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: var(--bg-color);
+        }
+
+        .main-header {
+            height: 60px;
+            background-color: var(--main-card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        /* Conteneur des écrans navigables */
+        .screens-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* Barre de navigation basse pour le Mobile */
+        .mobile-nav {
+            display: none;
+            height: 65px;
+            background-color: var(--main-card-bg);
+            border-top: 1px solid var(--border-color);
+            justify-content: space-around;
+            align-items: center;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 999;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            cursor: pointer;
+            gap: 4px;
+        }
+        .nav-item.active { color: var(--accent); }
+        .nav-item i { font-size: 20px; }
+
+        /* ==========================================
+           COMPOSANTS UI (CARDS, GRIDS, MESSAGES)
+           ========================================== */
+        .main-card {
+            background-color: var(--main-card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .dashboard-layout-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-flex-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .big-stat-number { font-size: 28px; font-weight: bold; color: var(--text-color); margin: 5px 0; }
+
+        /* Historiques et Listes */
+        .health-log-item, .budget-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .health-log-item:last-child, .budget-item:last-child { border-bottom: none; }
+
+        /* Rappels */
+        .reminder-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .alert-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .alert-badge.danger { background-color: #ffe3e5; color: var(--danger); }
+
+        /* Chat */
+        .chat-area {
+            height: calc(100vh - 240px);
+            display: flex;
+            flex-direction: column;
+            background: var(--main-card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .messages-box { flex: 1; padding: 15px; overflow-y: auto; }
+        .msg { display: flex; margin-bottom: 12px; max-width: 80%; align-items: flex-end; gap: 8px; }
+        .msg-bot { margin-right: auto; }
+        .msg-user { margin-left: auto; flex-direction: row-reverse; }
+        .msg-content { padding: 12px; border-radius: 12px; font-size: 14px; line-height: 1.4; }
+        .msg-bot .msg-content { background-color: var(--bg-color); color: var(--text-color); }
+        .msg-user .msg-content { background-color: var(--accent); color: white; }
+
+        .chat-avatar-container {
+            width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+            color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;
+        }
+
+        .chat-input-row { padding: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; }
+
+        /* Modales floues */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;
+        }
+        .modal-card { width: 100%; max-width: 450px; margin-bottom: 0; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; }
+        .btn-close-modal { background: transparent; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
+
+        /* Avatar de profil */
+        .avatar-circle-uploader {
+            width: 90px; height: 90px; border-radius: 50%; background: var(--accent-light);
+            border: 2px dashed var(--accent); display: flex; align-items: center; justify-content: center;
+            font-size: 24px; color: var(--accent); cursor: pointer; position: relative; overflow: hidden; margin: 0 auto 20px;
+        }
+        .avatar-circle-uploader img { width: 100%; height: 100%; object-fit: cover; position: absolute; }
+
+        /* Espacements utiles */
+        .mt-10 { margin-top: 10px; }
+        .mt-15 { margin-top: 15px; }
+        .mt-20 { margin-top: 20px; }
+        .mb-20 { margin-bottom: 20px; }
+
+        /* Responsive Mobile */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .mobile-nav { display: flex; }
+            .main-header { padding: 0 15px; }
+            .screens-container { padding: 15px; padding-bottom: 85px; }
+            .chat-area { height: calc(100vh - 210px); }
+        }
+    </style>
 </head>
 <body>
 
-    <div id="landing-page" class="landing-container">
-        <header class="landing-header">
-            <div class="landing-brand">
-                <i class="fa-solid fa-paw"></i><span>PABLO</span>
-            </div>
-            <button class="btn-primary" onclick="enterApp()">Ouvrir l'application</button>
-        </header>
-
-        <main class="landing-hero">
-            <h1>Hey pablo l'assistant ultime pour la santé de votre <span>chien</span>.</h1>
-            <p>Suivez le poids de votre compagnon, maîtrisez votre budget, gérez ses rappels de soins et discutez en temps réel avec <strong>Hey Pablo</strong>, notre intelligence artificielle vétérinaire sur-mesure.</p>
-            
-            <div class="hero-actions">
-                <button class="btn-hero-main" onclick="enterApp()">Lancer le Dashboard <i class="fa-solid fa-arrow-right"></i></button>
-            </div>
-
-            <div class="landing-features-grid">
-                <div class="feature-box">
-                    <i class="fa-solid fa-brain"></i>
-                    <h3>Hey Pablo IA</h3>
-                    <p>Calcul de rations selon la race et réponses instantanées à toutes vos questions santé.</p>
-                </div>
-                <div class="feature-box">
-                    <i class="fa-solid fa-chart-line"></i>
-                    <h3>Suivi de Croissance</h3>
-                    <p>Visualisez l'évolution du poids de votre toutou sur des graphiques dynamiques épurés.</p>
-                </div>
-                <div class="feature-box">
-                    <i class="fa-solid fa-wallet"></i>
-                    <h3>Budget & Soins</h3>
-                    <p>Gardez l'œil sur les dépenses du mois et ne loupez plus aucun vaccin ou vermifuge.</p>
-                </div>
-            </div>
-        </main>
+    <div id="landing-page" class="full-screen-page">
+        <i class="fa-solid fa-shield-dog" style="font-size: 60px; color: var(--accent); margin-bottom: 20px;"></i>
+        <h1 style="font-size: 32px; margin-bottom: 10px;">PABLO<span>.</span></h1>
+        <p style="color: #bbb; max-width: 280px; margin-bottom: 30px; font-size: 15px;">Le carnet de santé intelligent connecté à votre vétérinaire IA.</p>
+        <button class="btn-primary" onclick="enterApp()" style="max-width: 260px;">Rejoindre la meute</button>
     </div>
 
-    <div id="auth-page" class="auth-container" style="display: none;">
-        <div class="auth-card main-card">
-            <div class="auth-header">
-                <div class="logo-circle" style="margin: 0 auto 15px auto;">
-                    <i class="fa-solid fa-paw" style="font-size: 24px; color: var(--accent);"></i>
-                </div>
-                <h2>Bienvenue sur Pablo</h2>
-                <p id="auth-subtitle">Connectez-vous pour retrouver votre compagnon.</p>
-            </div>
-
-            <div class="form-group mt-20">
-                <label>Adresse Email</label>
-                <input type="email" id="auth-email" placeholder="maitre@email.com">
-            </div>
+    <div id="auth-page" class="full-screen-page" style="display: none;">
+        <div class="auth-container">
+            <h2 id="auth-title" style="margin-bottom: 5px; font-size: 22px;">Bienvenue</h2>
+            <p id="auth-subtitle" style="color: #bbb; font-size: 13px; margin-bottom: 20px;">Connectez-vous pour retrouver votre compagnon.</p>
             
-            <div class="form-group mt-15">
+            <div class="form-group">
+                <label>Adresse Email</label>
+                <input type="email" id="auth-email" placeholder="pablo@exemple.com">
+            </div>
+            <div class="form-group">
                 <label>Mot de passe</label>
                 <input type="password" id="auth-password" placeholder="••••••••">
             </div>
 
-            <button class="btn-primary full-width mt-25" id="auth-action-btn" onclick="processAuth()">Se connecter</button>
+            <button class="btn-primary mt-10" id="auth-action-btn" onclick="processAuth()">Se connecter</button>
             
-            <div class="auth-switch">
-                <span id="auth-switch-text">Pas encore de compte ?</span>
-                <a href="#" onclick="toggleAuthMode()">Créer un compte</a>
-            </div>
-
-            <div style="margin: 20px 0; color: var(--text-muted); font-size: 13px; position: relative;">
-                <span style="background: var(--card-bg); padding: 0 10px; position: relative; z-index: 1;">ou</span>
-                <div style="border-top: 1px dashed var(--border-color); position: absolute; top: 50%; width: 100%; z-index: 0;"></div>
-            </div>
-
-            <button class="btn-secondary-outline full-width" onclick="processGoogleAuth()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; color: #222;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 18px; height: 18px;">
-                Continuer avec Google
+            <button class="btn-secondary-outline mt-10" onclick="processGoogleAuth()" style="width:100%; color: white; border-color: rgba(255,255,255,0.2);">
+                <i class="fa-brands fa-google" style="margin-right: 8px;"></i> Continuer avec Google
             </button>
+
+            <p class="auth-switch"><span id="auth-switch-text">Pas encore de compte ?</span> <a onclick="toggleAuthMode()">Créer un compte</a></p>
         </div>
     </div>
 
-    <div id="main-app-layout" class="app-container light-mode" style="display: none;">
+    <div id="main-app-layout" class="app-container" style="display: none;">
         
-        <div class="sidebar no-print">
-            <div class="brand-area">
-                <div class="logo-circle">
-                    <img id="sidebar-pet-image" src="pablo.jpg" alt="Logo">
-                    <div class="logo-placeholder" id="sidebar-placeholder">?</div>
-                </div>
-                <h1 id="header-pet-name">PABLO<span>.</span></h1>
+        <div class="sidebar">
+            <h2 id="header-pet-name">PABLO<span>.</span></h2>
+            <div id="header-pet-breed" style="font-size:12px; color:var(--accent); margin-top:-20px; margin-bottom:20px; text-transform:uppercase; letter-spacing:1px;">Race non définie</div>
+            
+            <div class="pet-selector-wrapper">
+                <label style="font-size:11px; text-transform:uppercase; color:#888; display:block; margin-bottom:5px;">Changer de profil :</label>
+                <select id="pet-selector"></select>
+                <button onclick="createNewPet()" class="btn-primary mt-10" style="padding: 6px; font-size:12px;"><i class="fa-solid fa-plus"></i> Ajouter un animal</button>
             </div>
 
-            <div class="pet-switch-area">
-                <select id="pet-selector" onchange="switchPet(this.value)"></select>
-                <button class="btn-add-pet" onclick="createNewPet()" title="Ajouter un animal"><i class="fa-solid fa-plus"></i></button>
-            </div>
+            <ul class="sidebar-menu">
+                <li class="active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i> Accueil</li>
+                <li onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i> Santé & Courbe</li>
+                <li onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i> Budget</li>
+                <li onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i> Hey Pablo (IA)</li>
+                <li onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i> Configuration</li>
+            </ul>
 
-            <div class="sidebar-nav">
-                <div class="nav-item active" id="btn-home" onclick="navigateTo('screen-home')">
-                    <i class="fa-solid fa-chart-pie"></i><span>Vue d'ensemble</span>
-                </div>
-                <div class="nav-item" id="btn-health" onclick="navigateTo('screen-health')">
-                    <i class="fa-solid fa-heartbeat"></i><span>Poids & Santé</span>
-                </div>
-                <div class="nav-item" id="btn-budget" onclick="navigateTo('screen-budget')">
-                    <i class="fa-solid fa-wallet"></i><span>Suivi Budget</span>
-                </div>
-                <div class="nav-item" id="btn-chat" onclick="navigateTo('screen-chat')">
-                    <i class="fa-solid fa-paw"></i><span>Hey Pablo</span>
-                </div>
-                <div class="nav-item" id="btn-profile" onclick="navigateTo('screen-profile')">
-                    <i class="fa-solid fa-cog"></i><span>Configuration</span>
-                </div>
-                
-                <button class="logout-btn" onclick="logoutApp()" style="margin-top: 15px;">
-                    <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
-                </button>
-            </div>
-
-            <div class="sidebar-footer">
-                <div class="dog-badge" id="header-pet-breed">--</div>
-                <div class="theme-switch" onclick="toggleDarkMode()">
-                    <i class="fa-solid fa-sun" id="theme-icon-light"></i>
-                    <i class="fa-solid fa-moon" id="theme-icon-dark"></i>
-                </div>
+            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                <span id="current-pet-display-top" style="font-size:13px; color:#aaa;">Pablo</span>
+                <button onclick="logoutApp()" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fa-solid fa-power-off"></i></button>
             </div>
         </div>
 
         <div class="main-content">
             
-            <div class="top-bar no-print">
-                <h2 id="page-title">Tableau de bord</h2>
-                <div class="top-bar-right">
-                    <span class="status-indicator"></span>
-                    <span id="current-pet-display-top">Pablo</span>
+            <div class="main-header">
+                <h1 id="page-title" style="font-size: 18px; font-weight: bold;">Vue d'ensemble</h1>
+                <div style="display: flex; gap: 12px; align-items:center;">
+                    <i class="fa-solid fa-bell" style="color: var(--text-muted); cursor:pointer;" onclick="navigateTo('screen-profile')"></i>
                 </div>
             </div>
 
-            <div class="screen-container">
-                
-                <div class="print-only-header">
-                    <h1>DOSSIER MÉDICAL K9</h1>
-                    <p>Généré par l'application Pablo</p>
-                </div>
+            <div class="screens-container">
 
                 <div id="screen-home" class="screen active">
-                    <div class="dashboard-layout-grid">
-                        
-                        <div class="welcome-widget main-card">
-                            <h2>Bonjour ! 👋</h2>
-                            <p>Les constantes de <strong id="welcome-pet-name">Pablo</strong> sont analysées.</p>
-                        </div>
+                    <h2 style="font-size: 20px; margin-bottom: 4px;">Bonjour, Maître de <span id="welcome-pet-name">Pablo</span> ! 👋</h2>
+                    <p style="color: var(--text-muted); font-size: 14px;">Voici les stats de votre compagnon aujourd'hui.</p>
 
-                        <div class="home-column-left">
-                            <h3 class="section-subtitle">Alertes & Rappels</h3>
-                            <div id="dynamic-reminders-list"></div>
-
-                            <h3 class="section-subtitle" style="margin-top: 25px;">Objectifs Jour</h3>
-                            <div class="health-status-card tracker-card main-card">
-                                <div class="tracker-item">
-                                    <div class="tracker-info">
-                                        <h4>Hydratation quotidienne</h4>
-                                        <span id="water-target-text">Objectif : 1800 ml</span>
-                                    </div>
-                                    <div class="tracker-controls">
-                                        <span id="water-current-text" class="tracker-value">0 ml</span>
-                                        <button class="btn-icon" onclick="addWater()"><i class="fa-solid fa-glass-water"></i> +250</button>
-                                    </div>
-                                </div>
-                                <div class="tracker-item divider-top">
-                                    <div class="tracker-info">
-                                        <h4>Activité physique</h4>
-                                        <span>Recommandé : 60 min</span>
-                                    </div>
-                                    <div class="tracker-controls">
-                                        <span id="walk-current-text" class="tracker-value">0 min</span>
-                                        <button class="btn-icon" onclick="addWalk()"><i class="fa-solid fa-running"></i> +15</button>
-                                    </div>
-                                </div>
-                                <button class="btn-secondary-outline full-width" onclick="resetDailyTrackers()">Reset Journée</button>
-                            </div>
-                        </div>
-
-                        <div class="home-column-right">
-                            <div class="home-budget-summary main-card">
-                                <h3>Budget du mois 💶</h3>
-                                <div class="budget-total" id="home-budget-total">0,00 €</div>
-                                <p>dépensés pour <span id="home-budget-pet-name">Pablo</span></p>
-                            </div>
-                            
-                            <div class="health-status-card nutrition-card main-card">
-                                <h4>Nutrition Dynamique 🍖</h4>
-                                <div class="nutrition-paramsDivider">
-                                    <span>Poids : <strong id="nutrition-weight-text">-- kg</strong></span>
-                                    <select id="activity-level-selector" onchange="updateNutritionUI()">
-                                        <option value="calm">Calme</option>
-                                        <option value="normal" selected>Normal</option>
-                                        <option value="active">Actif</option>
-                                    </select>
-                                </div>
-                                <div class="ration-value" id="nutrition-ration-text">-- g</div>
-                                <span class="ration-sub">Portion/jour (Estimation)</span>
-                            </div>
+                    <div class="main-card mt-20 mb-20" id="breed-advice-card" style="display: none; border-left: 4px solid var(--accent);">
+                        <h3 style="margin-top:0; font-size: 16px; display:flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-book-open" style="color: var(--accent);"></i> 
+                            Guide express : <span id="advice-breed-name"></span>
+                        </h3>
+                        <div id="breed-advice-content" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);">
+                            Chargement des conseils...
                         </div>
                     </div>
 
-                    <div class="chat-teaser no-print" onclick="navigateTo('screen-chat')">
-                        <div class="teaser-text">
-                            <h4>Besoin d'un conseil d'éducation ou de santé ?</h4>
-                            <p>Discutez avec l'IA avancée pour une réponse sur-mesure.</p>
+                    <div class="dashboard-layout-grid mt-20">
+                        <div class="main-card stat-flex-row">
+                            <div>
+                                <span>Hydratation</span>
+                                <div class="big-stat-number" id="water-current-text">0 ml</div>
+                                <span style="font-size: 12px; color: var(--text-muted);">Aujourd'hui</span>
+                            </div>
+                            <button onclick="addWater()" class="btn-primary" style="width: auto; padding: 10px 14px;"><i class="fa-solid fa-glass-water"></i></button>
                         </div>
-                        <i class="fa-solid fa-chevron-right"></i>
+                        <div class="main-card stat-flex-row">
+                            <div>
+                                <span>Promenade</span>
+                                <div class="big-stat-number" id="walk-current-text">0 min</div>
+                                <span style="font-size: 12px; color: var(--text-muted);">Aujourd'hui</span>
+                            </div>
+                            <button onclick="addWalk()" class="btn-primary" style="width: auto; padding: 10px 14px;"><i class="fa-solid fa-shoe-prints"></i></button>
+                        </div>
+                        <div class="main-card stat-flex-row">
+                            <div>
+                                <span>Budget Mensuel</span>
+                                <div class="big-stat-number" id="home-budget-total">0,00 €</div>
+                                <span style="font-size: 12px; color: var(--text-muted);">Dépenses de <span id="home-budget-pet-name">Pablo</span></span>
+                            </div>
+                            <i class="fa-solid fa-chart-line" style="font-size: 26px; color: var(--border-color);"></i>
+                        </div>
                     </div>
+                    <button class="btn-secondary-outline mt-10" onclick="resetDailyTrackers()" style="width: 100%; font-size: 13px; padding: 8px;">Réinitialiser l'eau & les marches du jour</button>
                 </div>
 
                 <div id="screen-health" class="screen">
                     <div class="dashboard-layout-grid">
-                        
-                        <div class="left-column no-print">
-                            <div class="health-status-card main-card">
-                                <h3><i class="fa-solid fa-weight"></i> Nouvelle pesée</h3>
-                                <div class="weight-input-area">
-                                    <input type="number" id="weight-input" step="0.1" placeholder="Poids (kg)">
-                                    <input type="date" id="weight-date">
-                                    <button class="btn-primary" onclick="addNewWeight()">Ajouter</button>
-                                </div>
-                            </div>
-
-                            <div class="health-status-card main-card">
-                                <h3><i class="fa-solid fa-syringe"></i> Ajouter un soin</h3>
-                                <div class="form-group">
-                                    <select id="event-type">
-                                        <option value="Vaccin">Vaccin</option>
-                                        <option value="Vermifuge">Vermifuge</option>
-                                        <option value="Anti-puces">Anti-puces / Tiques</option>
-                                        <option value="Vétérinaire">Consultation Véto</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <input type="date" id="event-date">
-                                </div>
-                                <button class="btn-primary full-width" onclick="addMedicalEvent()">Ajouter</button>
-                            </div>
-
-                            <button class="btn-export-pdf" onclick="exportToPDF()">
-                                <i class="fa-solid fa-file-pdf"></i> Exporter PDF
-                            </button>
+                        <div class="main-card">
+                            <span>Poids actuel</span>
+                            <div class="big-stat-number" id="nutrition-weight-text">-- kg</div>
                         </div>
-
-                        <div class="right-column">
-                            <div class="health-status-card chart-card-wrapper main-card">
-                                <h3>Courbe de croissance</h3>
-                                <div class="chart-container">
-                                    <canvas id="weightChart"></canvas>
-                                </div>
-                            </div>
-
-                            <div class="health-status-card main-card">
-                                <div class="card-header-actions">
-                                    <h3>Historique des événements</h3>
-                                    <button class="btn-danger-outline btn-sm no-print" onclick="clearMedicalHistory()">Vider</button>
-                                </div>
-                                <div id="medical-history-list"></div>
-                            </div>
+                        <div class="main-card">
+                            <span style="display:flex; justify-content:space-between;">Ration recommandée <select id="activity-level-selector" onchange="updateNutritionUI()" style="width:auto; padding:2px; font-size:12px; border:none; background:transparent; color:var(--accent); font-weight:bold;"><option value="normal">Activité Normale</option><option value="calm">Calme / Canapé</option><option value="active">Très Sportif</option></select></span>
+                            <div class="big-stat-number" id="nutrition-ration-text">-- g</div>
+                            <span id="water-target-text" style="font-size: 12px; color: var(--text-muted);">Objectif eau : -- ml</span>
                         </div>
+                    </div>
 
+                    <div class="main-card mt-15">
+                        <h3>Suivi de croissance</h3>
+                        <div style="height: 200px; width: 100%; margin-top: 15px;">
+                            <canvas id="weightChart"></canvas>
+                        </div>
+                        <div style="display: flex; gap: 10px;" class="mt-15">
+                            <input type="number" step="0.1" id="weight-input" placeholder="Poids (kg)" style="flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <input type="date" id="weight-date" style="flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <button onclick="addNewWeight()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+
+                    <h3 class="mt-20 mb-10">Rappels urgents</h3>
+                    <div id="dynamic-reminders-list"></div>
+
+                    <div class="main-card mt-20">
+                        <div style="display: flex; justify-content:space-between; align-items:center;">
+                            <h3>Actes & Soins réalisés</h3>
+                            <button onclick="clearMedicalHistory()" style="background:transparent; border:none; color:var(--danger); font-size:12px; cursor:pointer;">Tout effacer</button>
+                        </div>
+                        <div style="display: flex; gap:10px;" class="mt-10 mb-15">
+                            <select id="event-type" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                                <option value="Vaccin">Vaccination 💉</option>
+                                <option value="Vermifuge">Vermifuge 💊</option>
+                                <option value="Anti-puces">Anti-puces 🛡️</option>
+                                <option value="Vétérinaire">Consultation Vet 🩺</option>
+                            </select>
+                            <input type="date" id="event-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <button onclick="addMedicalEvent()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="medical-history-list"></div>
                     </div>
                 </div>
 
                 <div id="screen-budget" class="screen">
-                    <div class="dashboard-layout-grid">
-                        <div class="left-column">
-                            <div class="main-card p-25">
-                                <h3>Nouvelle dépense</h3>
-                                <div class="form-row">
-                                    <div class="form-group flex-2">
-                                        <input type="text" id="budget-title" placeholder="Titre (ex: Croquettes, Jouet)">
-                                    </div>
-                                    <div class="form-group flex-1">
-                                        <input type="number" id="budget-amount" step="0.01" placeholder="Montant (€)">
-                                    </div>
-                                </div>
-                                <button class="btn-primary full-width" onclick="addBudgetExpense()">Ajouter la dépense</button>
-                            </div>
-                        </div>
-                        <div class="right-column">
-                            <div class="main-card p-25">
-                                <div class="card-header-actions">
-                                    <h3>Liste des dépenses (Ce mois)</h3>
-                                    <div class="budget-total" id="budget-screen-total">0,00 €</div>
-                                </div>
-                                <div id="budget-history-list" class="budget-list"></div>
-                            </div>
+                    <div class="main-card">
+                        <span>Dépenses du mois</span>
+                        <div class="big-stat-number" id="budget-screen-total">0,00 €</div>
+                    </div>
+
+                    <div class="main-card mt-15">
+                        <h3>Ajouter un achat (Croquettes, Véto...)</h3>
+                        <div style="display: flex; gap:10px;" class="mt-10">
+                            <input type="text" id="budget-title" placeholder="Ex: Sac de Croquettes" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <input type="number" step="0.01" id="budget-amount" placeholder="Prix (€)" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <button onclick="addBudgetExpense()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-check"></i></button>
                         </div>
                     </div>
+
+                    <h3 class="mt-20 mb-10">Historique mensuel</h3>
+                    <div class="main-card" id="budget-history-list"></div>
+                    <button class="btn-secondary-outline mt-15" onclick="exportToPDF()" style="width:100%;"><i class="fa-solid fa-print"></i> Exporter la fiche de frais</button>
                 </div>
 
                 <div id="screen-chat" class="screen">
-                    <div class="chat-box main-card">
-                        <div class="chat-messages" id="chat-messages-container"></div>
-                        
-                        <div class="chat-suggestions" id="chat-suggestions">
-                            <button onclick="askPreset('Calcule la ration croquette idéale')">🐾 Ration idéale</button>
-                            <button onclick="askPreset('Quand faire le vermifuge ?')">🪱 Vermifuge</button>
-                            <button onclick="askPreset('Il boite légèrement, que faire ?')">🐕 Boiterie</button>
+                    <div class="chat-area">
+                        <div class="messages-box" id="chat-messages-container"></div>
+                        <div class="chat-input-row">
+                            <input type="text" id="chat-input-field" placeholder="Posez une question sur l'éducation ou la santé..." style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <button onclick="sendMessage()" class="btn-primary" style="width:auto; padding:10px 18px;"><i class="fa-solid fa-paper-plane"></i></button>
                         </div>
-
-                        <div class="chat-input-area">
-                            <input type="text" id="chat-input-field" placeholder="Posez votre question à l'IA avancée...">
-                            <button class="send-btn" id="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
-                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; overflow-x:auto; padding:10px 0; -webkit-overflow-scrolling:touch;">
+                        <button onclick="askPreset('Quels fruits sont toxiques pour les chiens ?')" style="background:var(--main-card-bg); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer;">Fruits toxiques ? 🍇</button>
+                        <button onclick="askPreset('Comment calculer la ration idéale de mon animal ?')" style="background:var(--main-card-bg); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer;">Calcul de ration 🍖</button>
+                        <button onclick="askPreset('Faut-il vermifuger à chaque changement de saison ?')" style="background:var(--main-card-bg); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer;">Vermifuge & Saison 🍂</button>
                     </div>
                 </div>
 
                 <div id="screen-profile" class="screen">
-                    <h2 class="screen-title">Modifier le profil</h2>
-                    <div class="health-status-card main-card" style="max-width: 650px; margin: 0 auto;">
-                        <div class="avatar-upload-container">
-                            <img id="profile-pet-image" src="" alt="Photo" style="display: none;">
-                            <div class="profile-avatar" id="profile-avatar-placeholder">?</div>
-                            <label for="file-upload-input" class="custom-file-upload">
-                                <i class="fa-solid fa-camera"></i>
-                            </label>
-                            <input id="file-upload-input" type="file" accept="image/*" onchange="uploadPetPhoto()"/>
+                    <div class="main-card">
+                        <div class="avatar-circle-uploader" onclick="document.getElementById('file-upload-input').click()">
+                            <i class="fa-solid fa-camera"></i>
+                            <div id="profile-avatar-placeholder" style="position:absolute; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--accent); color:white; font-weight:bold;">P</div>
+                            <img id="profile-pet-image" style="display: none;" src="" alt="Avatar">
+                        </div>
+                        <input type="file" id="file-upload-input" style="display: none;" accept="image/*" onchange="uploadPetPhoto()">
+
+                        <div class="form-group">
+                            <label>Nom du compagnon</label>
+                            <input type="text" id="profile-name">
+                        </div>
+                        <div class="form-group">
+                            <label>Race</label>
+                            <input type="text" id="profile-breed">
+                        </div>
+                        <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                            <div class="form-group">
+                                <label>Âge (mois)</label>
+                                <input type="number" id="profile-age">
+                            </div>
+                            <div class="form-group">
+                                <label>Taille (cm)</label>
+                                <input type="number" id="profile-size">
+                            </div>
+                            <div class="form-group">
+                                <label>Poids (kg)</label>
+                                <input type="number" id="profile-weight">
+                            </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group flex-1">
-                                <label for="profile-name">Nom</label>
-                                <input type="text" id="profile-name" placeholder="Pablo">
-                            </div>
-                            <div class="form-group flex-1">
-                                <label for="profile-breed">Race</label>
-                                <input type="text" id="profile-breed" placeholder="Berger Allemand">
-                            </div>
-                        </div>
+                        <button class="btn-primary mt-15" onclick="savePetProfile()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications</button>
+                    </div>
 
-                        <div class="form-row mt-20">
-                            <div class="form-group flex-1">
-                                <label for="profile-age">Âge (mois)</label>
-                                <input type="number" id="profile-age" placeholder="14">
-                            </div>
-                            <div class="form-group flex-1">
-                                <label for="profile-size">Taille (cm)</label>
-                                <input type="number" id="profile-size" placeholder="65">
-                            </div>
-                            <div class="form-group flex-1">
-                                <label for="profile-weight">Poids (kg)</label>
-                                <input type="number" id="profile-weight" step="0.1" placeholder="31.5">
-                            </div>
-                        </div>
-<div class="card mt-20 p-15" style="border: 1px solid var(--border-color); background: rgba(var(--accent-rgb), 0.02);">
-        <h4 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-bell" style="color: var(--accent);"></i> Rappels automatiques
-        </h4>
-        <p style="font-size: 13px; color: #777; margin: 5px 0 15px 0;">
-            Recevez des alertes directement sur cet appareil lorsque la date d'un vaccin approche.
-        </p>
-        <button id="btn-enable-notifications" class="btn-secondary-outline full-width p-10" onclick="requestNotificationPermission()">
-            <i class="fa-regular fa-bell"></i> Activer les notifications de rappel
-        </button>
-    </div>
-                        <button class="btn-primary full-width mt-25 p-15" onclick="savePetProfile()">Sauvegarder</button>
-                        <button class="btn-danger-outline full-width mt-10 btn-sm" onclick="deleteCurrentPet()">Supprimer cet animal</button>
+                    <div class="main-card mt-20">
+                        <h3>Options Système & Sécurité</h3>
+                        <button class="btn-secondary-outline mt-10" onclick="toggleDarkMode()" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                            <span>Mode Sombre graphique</span><i class="fa-solid fa-moon"></i>
+                        </button>
+                        <button id="btn-enable-notifications" class="btn-secondary-outline mt-10" onclick="requestNotificationPermission()" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                            <span>Activer les rappels push de vaccins</span><i class="fa-solid fa-bell"></i>
+                        </button>
+                        <button class="btn-secondary-outline mt-10" onclick="deleteCurrentPet()" style="width:100%; border-color:var(--danger); color:var(--danger); text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                            <span>Supprimer définitivement ce profil</span><i class="fa-solid fa-trash-can"></i>
+                        </button>
                     </div>
                 </div>
-                <button class="btn-primary full-width mt-25 p-15" onclick="savePetProfile()">Sauvegarder</button>
-    <button class="btn-danger-outline full-width mt-10 btn-sm" onclick="deleteCurrentPet()">Supprimer cet animal</button>
-    
-    <button class="btn-secondary-outline full-width mt-20 no-print" onclick="logoutApp()" style="color: #e65c5c; border-color: rgba(230,92,92,0.3);">
-        <i class="fa-solid fa-right-from-bracket"></i> Se déconnecter du compte
-    </button>
 
             </div>
+
+            <div class="mobile-nav">
+                <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
+                <div class="nav-item" onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i>Santé</div>
+                <div class="nav-item" onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i>Budget</div>
+                <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo IA</div>
+                <div class="nav-item" onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i>Config</div>
+            </div>
+
         </div>
     </div>
 
-    <script type="module" src="/app.js"></script>
-</body>
-</html>
-<div id="add-pet-modal" class="modal-overlay" style="display: none;">
+    <div id="add-pet-modal" class="modal-overlay" style="display: none;">
         <div class="modal-card main-card">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-dog" style="color: var(--accent);"></i> Ajouter un compagnon</h3>
+                <h3><i class="fa-solid fa-paw" style="color: var(--accent);"></i> Nouveau compagnon</h3>
                 <button class="btn-close-modal" onclick="closePetModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
+            
             <div class="form-group mt-15">
                 <label for="new-pet-name-input">Quel est son nom ?</label>
                 <input type="text" id="new-pet-name-input" placeholder="Ex: Rooky, Bella...">
             </div>
-            <div class="modal-actions mt-20">
+            
+            <div class="form-group mt-10">
+                <label for="new-pet-species-input">Espèce</label>
+                <select id="new-pet-species-input">
+                    <option value="Chien">Chien 🐶</option>
+                    <option value="Chat">Chat 🐱</option>
+                    <option value="Autre">Autre 🐾</option>
+                </select>
+            </div>
+
+            <div class="form-group mt-10">
+                <label for="new-pet-breed-input">Race (facultatif)</label>
+                <input type="text" id="new-pet-breed-input" placeholder="Ex: Border Collie, Persan...">
+            </div>
+
+            <div class="modal-actions mt-20" style="display:flex; gap:10px; justify-content:flex-end;">
                 <button class="btn-secondary-outline" onclick="closePetModal()">Annuler</button>
-                <button class="btn-primary" onclick="confirmCreateNewPet()">Ajouter le toutou</button>
+                <button class="btn-primary" onclick="confirmCreateNewPet()" style="width:auto;">Ajouter !</button>
             </div>
         </div>
     </div>
+
+    <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -181,7 +181,7 @@ function initApp() {
         petsList.push({ id: defaultId, name: 'Pablo' });
         localStorage.setItem('app_pets_list', JSON.stringify(petsList));
         
-        petProfile = { name: "Pablo", breed: "Berger Allemand", age: 14, size: 65, weight: 31.5, avatar: "" };
+        petProfile = { name: "Pablo", species: "Chien", breed: "Berger Allemand", age: 14, size: 65, weight: 31.5, avatar: "", breedAdvice: "" };
         saveLocalData(defaultId, 'profile', petProfile);
         saveLocalData(defaultId, 'weight', [{ date: new Date().toISOString().split('T')[0], weight: 31.5 }]);
         
@@ -195,7 +195,6 @@ function initApp() {
     loadCurrentPetData();
 }
 
-// Fonction utilitaire pour centraliser les sauvegardes
 function saveLocalData(petId, key, data) {
     localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
 }
@@ -228,10 +227,12 @@ function switchPet(petId) {
 function createNewPet() {
     const modal = document.getElementById('add-pet-modal');
     const input = document.getElementById('new-pet-name-input');
+    const breedInput = document.getElementById('new-pet-breed-input');
     if (modal) {
         modal.style.display = 'flex';
         if (input) {
             input.value = '';
+            if(breedInput) breedInput.value = '';
             input.focus();
         }
     }
@@ -243,17 +244,24 @@ function closePetModal() {
 }
 
 function confirmCreateNewPet() {
-    const input = document.getElementById('new-pet-name-input');
-    if (!input) return;
+    const inputName = document.getElementById('new-pet-name-input');
+    const inputSpecies = document.getElementById('new-pet-species-input');
+    const inputBreed = document.getElementById('new-pet-breed-input');
+
+    if (!inputName) return;
+    const name = inputName.value.trim();
+    const species = inputSpecies ? inputSpecies.value : "Chien";
+    const breed = inputBreed ? inputBreed.value.trim() : "";
     
-    const name = input.value.trim();
-    if (!name) return alert("Le nom du chien ne peut pas être vide ! 🐾");
+    if (!name) return alert("Le nom ne peut pas être vide ! 🐾");
     
     const newId = 'pet_' + Date.now();
     petsList.push({ id: newId, name: name });
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
     
-    saveLocalData(newId, 'profile', { name: name, breed: "", age: 0, size: 0, weight: 0, avatar: "" });
+    const newProfile = { name: name, species: species, breed: breed, age: 0, size: 0, weight: 0, avatar: "", breedAdvice: "" };
+    
+    saveLocalData(newId, 'profile', newProfile);
     saveLocalData(newId, 'weight', []);
     saveLocalData(newId, 'medical', []);
     saveLocalData(newId, 'daily', {water: 0, walk: 0, date: new Date().toISOString().split('T')[0]});
@@ -292,7 +300,7 @@ function deleteCurrentPet() {
 }
 
 // ==========================================
-// PROFIL
+// PROFIL ET CONSEILS IA
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
@@ -326,6 +334,56 @@ function initPetProfile() {
     setVal('profile-age', petProfile.age);
     setVal('profile-size', petProfile.size);
     setVal('profile-weight', petProfile.weight);
+
+    // Déclenche la carte de conseil dynamique sur l'accueil
+    updateBreedAdviceUI();
+}
+
+async function updateBreedAdviceUI() {
+    const adviceCard = document.getElementById('breed-advice-card');
+    const adviceBreedName = document.getElementById('advice-breed-name');
+    const adviceContent = document.getElementById('breed-advice-content');
+
+    if (!adviceCard) return;
+
+    if (!petProfile.breed || petProfile.breed.trim() === "") {
+        adviceCard.style.display = 'none';
+        return;
+    }
+
+    adviceCard.style.display = 'block';
+    adviceBreedName.innerText = petProfile.breed;
+
+    if (petProfile.breedAdvice && petProfile.breedAdvice !== "") {
+        adviceContent.innerHTML = petProfile.breedAdvice;
+        return;
+    }
+
+    adviceContent.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Génération du guide par l'IA en cours...";
+
+    try {
+        const prompt = `Génère un court guide très concis (3 puces courtes maximum) pour un propriétaire de ${petProfile.species || 'chien'} de race ${petProfile.breed}. Donne un conseil sur son éducation et un trait de caractère dominant. Formate la réponse directement en HTML (utilise <ul> et <li>). Pas d'introduction, va droit au but.`;
+        
+        const response = await fetch("/.netlify/functions/mammouth-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "gpt-4.1",
+                messages: [{ role: "user", content: prompt }]
+            })
+        });
+        
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        petProfile.breedAdvice = data.choices[0].message.content.trim();
+        saveLocalData(currentPetId, 'profile', petProfile);
+        
+        adviceContent.innerHTML = petProfile.breedAdvice;
+    } catch (error) {
+        console.error("Erreur génération conseils:", error);
+        adviceContent.innerText = "Conseils non disponibles. Demandez à l'assistant dans l'onglet IA !";
+    }
 }
 
 function savePetProfile() {
@@ -333,9 +391,15 @@ function savePetProfile() {
     if (!name) return alert("Le nom est obligatoire.");
 
     const weight = parseFloat(document.getElementById('profile-weight').value);
+    const newBreed = document.getElementById('profile-breed').value.trim();
     
+    // Si la race a changé, on réinitialise le conseil IA pour en générer un nouveau
+    if (petProfile.breed !== newBreed) {
+        petProfile.breedAdvice = "";
+    }
+
     petProfile.name = name;
-    petProfile.breed = document.getElementById('profile-breed').value.trim();
+    petProfile.breed = newBreed;
     petProfile.age = parseInt(document.getElementById('profile-age').value) || 0;
     petProfile.size = parseInt(document.getElementById('profile-size').value) || 0;
     
@@ -419,7 +483,7 @@ async function updateNutritionUI() {
     if (activityLevel.value === 'calm') baseRation *= 0.85;
     if (activityLevel.value === 'active') baseRation *= 1.15;
 
-    const promptNutrition = `Calcule la ration de croquettes quotidienne idéale pour un chien de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, ${petProfile.age || 0} mois, activité ${activityLevel.value}. Réponds UNIQUEMENT par le nombre de grammes suivi de 'g'. Exemple : 420g`;
+    const promptNutrition = `Calcule la ration de croquettes quotidienne idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, ${petProfile.age || 0} mois, activité ${activityLevel.value}. Réponds UNIQUEMENT par le nombre de grammes suivi de 'g'. Exemple : 420g`;
 
     try {
         const response = await fetch("/.netlify/functions/mammouth-proxy", {
@@ -682,7 +746,7 @@ window.sendMessage = async () => {
     chatHistory.push({ sender: 'bot', text: '...', id: botLoadingMsgId });
     renderChat();
 
-    const systemPrompt = `Tu es l'assistant vétérinaire de l'application Pablo. Tu aides le maître de : ${petProfile.name}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Sois très concis, bienveillant et finis toujours par un wouf !`;
+    const systemPrompt = `Tu es l'assistant vétérinaire de l'application Pablo. Tu aides le maître de : ${petProfile.name}, Espèce: ${petProfile.species}, Race: ${petProfile.breed}, Âge: ${petProfile.age} mois, Poids: ${petProfile.weight} kg. Sois très concis, bienveillant et finis toujours par un wouf ou un miaou !`;
 
     try {
         const response = await fetch("/.netlify/functions/mammouth-proxy", {
