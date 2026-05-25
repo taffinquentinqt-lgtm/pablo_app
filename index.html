@@ -59,6 +59,23 @@
         }
 
         /* ==========================================
+           ANIMATION CHIEN QUI COURT
+           ========================================== */
+        @keyframes dog-run {
+            0% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-4px) rotate(-15deg); }
+            50% { transform: translateY(0) rotate(0deg); }
+            75% { transform: translateY(-4px) rotate(15deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+        .running-dog {
+            display: inline-block;
+            animation: dog-run 0.5s infinite linear;
+            color: var(--accent);
+            font-size: 18px;
+        }
+
+        /* ==========================================
            ÉCRANS DE BIENVENUE & AUTHENTIFICATION
            ========================================== */
         .full-screen-page {
@@ -116,9 +133,6 @@
             color: white;
         }
 
-        /* ==========================================
-           BOUTONS
-           ========================================== */
         .btn-primary {
             background-color: var(--accent);
             color: white;
@@ -158,7 +172,6 @@
             width: 100vw;
         }
 
-        /* Sidebar ordinateur */
         .sidebar {
             width: 280px;
             background-color: #2c2520;
@@ -203,7 +216,6 @@
             color: white;
         }
 
-        /* Zone de contenu principale */
         .main-content {
             flex: 1;
             display: flex;
@@ -222,7 +234,6 @@
             padding: 0 20px;
         }
 
-        /* Conteneur des écrans navigables */
         .screens-container {
             flex: 1;
             overflow-y: auto;
@@ -233,7 +244,7 @@
         .screen { display: none; }
         .screen.active { display: block; }
 
-        /* Barre de navigation basse pour le Mobile */
+        /* Barre de navigation basse pour le Mobile (5 onglets max) */
         .mobile-nav {
             display: none;
             height: 65px;
@@ -244,9 +255,6 @@
             position: fixed;
             bottom: 0; left: 0; right: 0;
             z-index: 999;
-            overflow-x: auto;
-            white-space: nowrap;
-            padding: 0 10px;
         }
 
         .nav-item {
@@ -257,14 +265,13 @@
             color: var(--text-muted);
             cursor: pointer;
             gap: 4px;
-            min-width: 60px;
-            padding: 0 5px;
+            flex: 1;
         }
         .nav-item.active { color: var(--accent); }
         .nav-item i { font-size: 20px; }
 
         /* ==========================================
-           COMPOSANTS UI (CARDS, GRIDS, MESSAGES)
+           COMPOSANTS UI
            ========================================== */
         .main-card {
             background-color: var(--main-card-bg);
@@ -272,6 +279,16 @@
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 15px;
+        }
+        .section-divider {
+            margin: 30px 0 15px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--accent-light);
+            color: var(--text-color);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .dashboard-layout-grid {
@@ -288,7 +305,6 @@
 
         .big-stat-number { font-size: 28px; font-weight: bold; color: var(--text-color); margin: 5px 0; }
 
-        /* Historiques et Listes */
         .health-log-item, .budget-item {
             display: flex;
             justify-content: space-between;
@@ -298,7 +314,6 @@
         }
         .health-log-item:last-child, .budget-item:last-child { border-bottom: none; }
 
-        /* Rappels */
         .reminder-item {
             display: flex;
             justify-content: space-between;
@@ -313,7 +328,6 @@
         }
         .alert-badge.danger { background-color: #ffe3e5; color: var(--danger); }
 
-        /* Chat */
         .chat-area {
             height: calc(100vh - 240px);
             display: flex;
@@ -338,7 +352,6 @@
 
         .chat-input-row { padding: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; }
 
-        /* Modales floues */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
@@ -349,7 +362,6 @@
         .modal-header { display: flex; justify-content: space-between; align-items: center; }
         .btn-close-modal { background: transparent; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
 
-        /* Avatar de profil */
         .avatar-circle-uploader {
             width: 90px; height: 90px; border-radius: 50%; background: var(--accent-light);
             border: 2px dashed var(--accent); display: flex; align-items: center; justify-content: center;
@@ -357,25 +369,12 @@
         }
         .avatar-circle-uploader img { width: 100%; height: 100%; object-fit: cover; position: absolute; }
 
-        /* Espacements utiles */
         .mt-10 { margin-top: 10px; }
         .mt-15 { margin-top: 15px; }
         .mt-20 { margin-top: 20px; }
         .mb-10 { margin-bottom: 10px; }
         .mb-20 { margin-bottom: 20px; }
 
-        #breed-advice-content h4 {
-            margin-top: 15px;
-            margin-bottom: 5px;
-            color: var(--accent);
-            font-size: 15px;
-        }
-        #breed-advice-content ul {
-            margin-left: 20px;
-            margin-bottom: 10px;
-        }
-
-        /* Responsive Mobile */
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .mobile-nav { display: flex; }
@@ -410,11 +409,9 @@
             </div>
 
             <button class="btn-primary mt-10" id="auth-action-btn" onclick="processAuth()">Se connecter</button>
-            
             <button class="btn-secondary-outline mt-10" onclick="processGoogleAuth()" style="width:100%; color: white; border-color: rgba(255,255,255,0.2);">
                 <i class="fa-brands fa-google" style="margin-right: 8px;"></i> Continuer avec Google
             </button>
-
             <p class="auth-switch"><span id="auth-switch-text">Pas encore de compte ?</span> <a onclick="toggleAuthMode()">Créer un compte</a></p>
         </div>
     </div>
@@ -433,13 +430,10 @@
 
             <ul class="sidebar-menu">
                 <li class="active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i> Accueil</li>
-                <li onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i> Santé & Nutrition</li>
-                <li onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i> Éducation</li>
-                <li onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i> Budget</li>
+                <li onclick="navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i> Carnet de Suivi</li>
                 <li onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i> Hey Pablo</li>
-                <li onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i> Officiel & Élevage</li>
+                <li onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i> Élevage & Officiel</li>
                 <li onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i> Outils & Souvenirs</li>
-                <li onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i> Configuration</li>
             </ul>
 
             <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
@@ -453,16 +447,17 @@
             <div class="main-header">
                 <h1 id="page-title" style="font-size: 18px; font-weight: bold;">Vue d'ensemble</h1>
                 
-                <div style="display: flex; gap: 12px; align-items:center;">
+                <div style="display: flex; gap: 15px; align-items:center;">
                     <select id="mobile-pet-selector" style="display: none; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-size: 13px; max-width: 120px;"></select>
-                    <i class="fa-solid fa-bell" style="color: var(--text-muted); cursor:pointer;" onclick="navigateTo('screen-profile')"></i>
+                    <!-- Icone de Configuration ramenée ici pour purger les onglets -->
+                    <i class="fa-solid fa-gear" style="color: var(--text-muted); cursor:pointer; font-size: 20px;" onclick="navigateTo('screen-profile')"></i>
                 </div>
             </div>
 
             <div class="screens-container">
 
                 <!-- ========================================== -->
-                <!-- ACCUEIL -->
+                <!-- 1. ACCUEIL -->
                 <!-- ========================================== -->
                 <div id="screen-home" class="screen active">
                     
@@ -472,7 +467,7 @@
 
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <h2 style="font-size: 20px; margin-bottom: 4px;">Bonjour, Maître de <span id="welcome-pet-name">Pablo</span> ! 👋</h2>
+                            <h2 style="font-size: 20px; margin-bottom: 4px;">Bonjour, Maître ! 👋</h2>
                             <p style="color: var(--text-muted); font-size: 14px;">Série actuelle : <span id="streak-counter" style="color: #ff9f1c; font-weight: bold; font-size: 16px;">🔥 0 Jours</span></p>
                         </div>
                         <div id="badges-container" style="display: flex; gap: 5px; font-size: 24px;"></div>
@@ -493,7 +488,6 @@
                             <div>
                                 <span>Hydratation</span>
                                 <div class="big-stat-number" id="water-current-text">0 ml</div>
-                                <span style="font-size: 12px; color: var(--text-muted);">Aujourd'hui</span>
                             </div>
                             <button onclick="addWater()" class="btn-primary" style="width: auto; padding: 10px 14px;"><i class="fa-solid fa-glass-water"></i></button>
                         </div>
@@ -501,17 +495,8 @@
                             <div>
                                 <span>Promenade</span>
                                 <div class="big-stat-number" id="walk-current-text">0 min</div>
-                                <span style="font-size: 12px; color: var(--text-muted);">Aujourd'hui</span>
                             </div>
                             <button onclick="addWalk()" class="btn-primary" style="width: auto; padding: 10px 14px;"><i class="fa-solid fa-shoe-prints"></i></button>
-                        </div>
-                        <div class="main-card stat-flex-row">
-                            <div>
-                                <span>Budget Mensuel</span>
-                                <div class="big-stat-number" id="home-budget-total">0,00 €</div>
-                                <span style="font-size: 12px; color: var(--text-muted);">Dépenses de <span id="home-budget-pet-name">Pablo</span></span>
-                            </div>
-                            <i class="fa-solid fa-chart-line" style="font-size: 26px; color: var(--border-color);"></i>
                         </div>
                     </div>
                     <button class="btn-secondary-outline mt-10" onclick="resetDailyTrackers()" style="width: 100%; font-size: 13px; padding: 8px;">Réinitialiser l'eau & les marches du jour</button>
@@ -521,19 +506,20 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- SANTÉ & NUTRITION -->
+                <!-- 2. CARNET DE SUIVI (Fusion Santé, Édu, Budget) -->
                 <!-- ========================================== -->
-                <div id="screen-health" class="screen">
+                <div id="screen-carnet" class="screen">
+                    
+                    <!-- --- SANTÉ --- -->
+                    <h2 class="section-divider"><i class="fa-solid fa-heart-pulse"></i> Santé & Nutrition</h2>
                     
                     <div id="health-alerts-banner" class="main-card" style="display:none; background-color: #ffe3e5; border-color: var(--danger);">
-                        <h4 style="color: var(--danger); margin-bottom: 5px;"><i class="fa-solid fa-triangle-exclamation"></i> Allergies & Traitements à vie</h4>
+                        <h4 style="color: var(--danger); margin-bottom: 5px;"><i class="fa-solid fa-triangle-exclamation"></i> Allergies & Traitements</h4>
                         <div id="health-alerts-text" style="color: #d62828; font-weight: bold; font-size: 14px;"></div>
                     </div>
 
                     <div class="main-card" style="border-left: 4px solid var(--danger);">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <h3><i class="fa-solid fa-truck-medical" style="color: var(--danger); margin-right:8px;"></i>Contacts d'Urgence</h3>
-                        </div>
+                        <h3><i class="fa-solid fa-truck-medical" style="color: var(--danger); margin-right:8px;"></i>Urgences</h3>
                         <div class="dashboard-layout-grid mt-10">
                             <div>
                                 <input type="text" id="vet-name" placeholder="Nom du Vétérinaire" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:5px; background:var(--bg-color); color:var(--text-color);">
@@ -541,13 +527,13 @@
                             </div>
                             <div style="display:flex; flex-direction:column; gap:5px;">
                                 <button class="btn-primary" onclick="callVet()" style="background-color: var(--success);"><i class="fa-solid fa-phone"></i> Appeler mon Véto</button>
-                                <button class="btn-secondary-outline" onclick="callPoisonControl()" style="color: var(--danger); border-color: var(--danger);"><i class="fa-solid fa-skull-crossbones"></i> Centre Antipoison</button>
+                                <button class="btn-secondary-outline" onclick="callPoisonControl()" style="color: var(--danger); border-color: var(--danger);"><i class="fa-solid fa-skull-crossbones"></i> Antipoison</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="main-card mt-15">
-                        <h3><i class="fa-solid fa-bowl-food" style="color: var(--accent); margin-right:8px;"></i>Nutrition & Réserve</h3>
+                        <h3><i class="fa-solid fa-bowl-food" style="color: var(--accent); margin-right:8px;"></i>Nutrition & Croquettes</h3>
                         <div class="dashboard-layout-grid mt-10">
                             <div>
                                 <span style="font-size: 12px; color: var(--text-muted); display:flex; justify-content:space-between;">Ration <select id="activity-level-selector" onchange="updateNutritionUI()" style="width:auto; padding:0; font-size:12px; border:none; background:transparent; color:var(--accent); font-weight:bold;"><option value="normal">Normale</option><option value="calm">Calme</option><option value="active">Sportif</option></select></span>
@@ -563,24 +549,20 @@
                             <button class="btn-primary" onclick="refillKibbleBag()" style="width:auto;">Ouvrir un sac</button>
                         </div>
                         <div class="mt-15" style="padding-top: 15px; border-top: 1px dashed var(--border-color);">
-                            <h4>Calculateur de Transition (7 jours)</h4>
+                            <h4>Calculateur de Transition</h4>
                             <div id="transition-plan" style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                                <em>Renseignez le poids de votre animal pour voir le plan de transition.</em>
+                                <em>Renseignez le poids de votre animal.</em>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="dashboard-layout-grid">
-                        <div class="main-card">
-                            <span>Poids actuel</span>
-                            <div class="big-stat-number" id="nutrition-weight-text">-- kg</div>
-                            <span id="water-target-text" style="font-size: 12px; color: var(--text-muted);">Objectif eau : -- ml</span>
                         </div>
                     </div>
 
                     <div class="main-card mt-15">
                         <h3>Suivi de croissance</h3>
-                        <div style="height: 200px; width: 100%; margin-top: 15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                            <span style="font-size: 12px; color: var(--text-muted);">Poids Actuel: <strong id="nutrition-weight-text" style="font-size:16px; color:var(--text-color);">-- kg</strong></span>
+                            <span id="water-target-text" style="font-size: 12px; color: var(--text-muted);">Objectif eau : -- ml</span>
+                        </div>
+                        <div style="height: 180px; width: 100%; margin-top: 15px;">
                             <canvas id="weightChart"></canvas>
                         </div>
                         <div style="display: flex; gap: 10px;" class="mt-15">
@@ -590,7 +572,7 @@
                         </div>
                     </div>
 
-                    <div class="main-card mt-20">
+                    <div class="main-card mt-15">
                         <div style="display: flex; justify-content:space-between; align-items:center;">
                             <h3>Actes & Soins réalisés</h3>
                             <button onclick="clearMedicalHistory()" style="background:transparent; border:none; color:var(--danger); font-size:12px; cursor:pointer;">Tout effacer</button>
@@ -611,50 +593,35 @@
                         </div>
                         <div id="medical-history-list"></div>
                     </div>
-                </div>
 
-                <!-- ========================================== -->
-                <!-- ÉDUCATION -->
-                <!-- ========================================== -->
-                <div id="screen-edu" class="screen">
+                    <!-- --- ÉDUCATION --- -->
+                    <h2 class="section-divider"><i class="fa-solid fa-graduation-cap"></i> Apprentissages</h2>
                     <div class="main-card">
-                        <h3 style="margin-bottom:5px;"><i class="fa-solid fa-graduation-cap" style="color: var(--accent); margin-right: 8px;"></i>Carnet d'Éducation</h3>
-                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Pilotez et enregistrez les acquis d'apprentissage de votre compagnon.</p>
-                        
+                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Enregistrez les acquis d'apprentissage.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border-color);">
                             <input type="text" id="new-custom-exercise-input" placeholder="Ajouter un ordre (ex: Patte)" style="flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color); font-size: 14px;">
                             <button onclick="addCustomExercise()" class="btn-primary" style="width:auto; padding: 10px 15px;"><i class="fa-solid fa-plus"></i></button>
                         </div>
-
                         <div id="edu-container" style="display:flex; flex-direction:column; gap:12px;"></div>
                     </div>
-                </div>
 
-                <!-- ========================================== -->
-                <!-- BUDGET -->
-                <!-- ========================================== -->
-                <div id="screen-budget" class="screen">
+                    <!-- --- BUDGET --- -->
+                    <h2 class="section-divider"><i class="fa-solid fa-wallet"></i> Budget du Mois : <span id="budget-screen-total" style="color:var(--accent);">0,00 €</span></h2>
                     <div class="main-card">
-                        <span>Dépenses du mois</span>
-                        <div class="big-stat-number" id="budget-screen-total">0,00 €</div>
-                    </div>
-
-                    <div class="main-card mt-15">
-                        <h3>Ajouter un achat (Croquettes, Jouets...)</h3>
+                        <h3>Ajouter une dépense</h3>
                         <div style="display: flex; gap:10px;" class="mt-10">
-                            <input type="text" id="budget-title" placeholder="Ex: Sac de Croquettes" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <input type="text" id="budget-title" placeholder="Ex: Jouet" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
                             <input type="number" step="0.01" id="budget-amount" placeholder="Prix (€)" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
                             <button onclick="addBudgetExpense()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-check"></i></button>
                         </div>
+                        <div class="mt-20" id="budget-history-list"></div>
+                        <button class="btn-secondary-outline mt-15" onclick="exportToPDF()" style="width:100%;"><i class="fa-solid fa-print"></i> Exporter la fiche de frais</button>
                     </div>
 
-                    <h3 class="mt-20 mb-10">Historique mensuel</h3>
-                    <div class="main-card" id="budget-history-list"></div>
-                    <button class="btn-secondary-outline mt-15" onclick="exportToPDF()" style="width:100%;"><i class="fa-solid fa-print"></i> Exporter la fiche de frais</button>
                 </div>
 
                 <!-- ========================================== -->
-                <!-- CHAT -->
+                <!-- 3. CHAT PABLO -->
                 <!-- ========================================== -->
                 <div id="screen-chat" class="screen">
                     <div class="chat-area">
@@ -672,14 +639,12 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- OFFICIEL & ÉLEVAGE -->
+                <!-- 4. OFFICIEL & ÉLEVAGE -->
                 <!-- ========================================== -->
                 <div id="screen-pro" class="screen">
                     
                     <div class="main-card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                            <h3 style="margin:0;"><i class="fa-solid fa-id-card" style="color: var(--accent); margin-right: 8px;"></i>Documents & Profil</h3>
-                        </div>
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-id-card" style="color: var(--accent); margin-right: 8px;"></i>Documents & Profil</h3>
                         <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr;">
                             <div class="form-group">
                                 <label>Sexe</label>
@@ -690,22 +655,22 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>N° Identification (Puce/Tatouage)</label>
+                                <label>N° Identification (Puce)</label>
                                 <input type="text" id="pro-chip" placeholder="Ex: 250268...">
                             </div>
                             <div class="form-group">
                                 <label>N° LOF / Enregistrement</label>
-                                <input type="text" id="pro-lof" placeholder="Ex: LOF 123456">
+                                <input type="text" id="pro-lof">
                             </div>
                             <div class="form-group">
-                                <label>Généalogie / Pedigree</label>
-                                <input type="text" id="pro-pedigree" placeholder="Affixe ou Lien Pedigree">
+                                <label>Pedigree</label>
+                                <input type="text" id="pro-pedigree" placeholder="Affixe ou Lien">
                             </div>
                             <div class="form-group">
                                 <label>Test ADN</label>
                                 <select id="pro-dna">
                                     <option value="Non fait">Non fait</option>
-                                    <option value="En cours">En cours d'analyse</option>
+                                    <option value="En cours">En cours</option>
                                     <option value="Identifié">Identifié ADN</option>
                                 </select>
                             </div>
@@ -715,7 +680,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Club Canin (Nom)</label>
-                                <input type="text" id="pro-club-name" placeholder="Ex: Club de Paris...">
+                                <input type="text" id="pro-club-name">
                             </div>
                             <div class="form-group">
                                 <label>Date Entrée Club</label>
@@ -725,7 +690,7 @@
                     </div>
 
                     <div class="main-card mt-15">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Historique de Reproduction</h3>
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Suivi de Reproduction</h3>
                         
                         <!-- Chaleurs -->
                         <div id="field-chaleurs-history" style="margin-bottom: 20px;">
@@ -749,7 +714,6 @@
                             <div id="mating-history-list" class="mt-10" style="font-size: 13px;"></div>
                         </div>
 
-                        <!-- Anciens champs pour calculs rapides -->
                         <div class="dashboard-layout-grid mt-15" style="border-top: 1px dashed var(--border-color); padding-top: 15px;">
                             <div class="form-group" id="field-fec-opti">
                                 <label>Fécondation Opti. (+12j)</label>
@@ -797,7 +761,6 @@
                             <input type="text" id="pro-event-details" placeholder="Lieu & Résultat (Ex: Paris - 1er Exc)" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
                             <button class="btn-primary" onclick="addProEvent()" style="width:auto; padding: 10px 15px;"><i class="fa-solid fa-plus"></i></button>
                         </div>
-                        
                         <div id="pro-events-list" style="margin-top: 20px;"></div>
                     </div>
 
@@ -805,21 +768,21 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- OUTILS & SOUVENIRS -->
+                <!-- 5. OUTILS & SOUVENIRS -->
                 <!-- ========================================== -->
                 <div id="screen-tools" class="screen">
                     <div class="main-card">
                         <h3><i class="fa-solid fa-suitcase" style="color: var(--accent); margin-right:8px;"></i>La Valise de <span class="dynamic-pet-name">Pablo</span></h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Cochez avant de partir en vacances :</p>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:14px;">
-                            <label><input type="checkbox"> Carnet de santé / Passeport</label>
-                            <label><input type="checkbox"> Croquettes & Gamelles</label>
-                            <label><input type="checkbox"> Longe & Harnais</label>
+                            <label><input type="checkbox"> Passeport/Carnet</label>
+                            <label><input type="checkbox"> Croquettes & Eau</label>
+                            <label><input type="checkbox"> Laisse & Collier</label>
                             <label><input type="checkbox"> Pince à tiques</label>
-                            <label><input type="checkbox"> Trousse de secours</label>
+                            <label><input type="checkbox"> Trousse secours</label>
                             <label><input type="checkbox"> Médicaments</label>
                             <label><input type="checkbox"> Jouet favori</label>
-                            <label><input type="checkbox"> Sacs à déjections</label>
+                            <label><input type="checkbox"> Sacs à crottes</label>
                         </div>
                     </div>
 
@@ -841,7 +804,7 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- CONFIGURATION -->
+                <!-- CONFIGURATION (Cachée de la nav principale) -->
                 <!-- ========================================== -->
                 <div id="screen-profile" class="screen">
                     <div class="main-card">
@@ -875,7 +838,6 @@
                             </div>
                         </div>
 
-                        <!-- Nouveau champ Allergies lié au Profile -->
                         <div class="form-group mt-10">
                             <label>Allergies & Traitements chroniques (Affiché en rouge dans Santé)</label>
                             <input type="text" id="profile-allergies" placeholder="Ex: Allergie au bœuf, Épileptique...">
@@ -905,13 +867,13 @@
 
             </div>
 
+            <!-- MENU MOBILE (Seulement 5 onglets) -->
             <div class="mobile-nav">
                 <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
-                <div class="nav-item" onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i>Santé</div>
-                <div class="nav-item" onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i>Édu</div>
-                <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Officiel</div>
+                <div class="nav-item" onclick="navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i>Carnet</div>
+                <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>
+                <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Élevage</div>
                 <div class="nav-item" onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i>Outils</div>
-                <div class="nav-item" onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i>Config</div>
             </div>
 
         </div>
@@ -955,7 +917,7 @@
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then(registration => console.log('Service Worker enregistré.'))
-            .catch(error => console.log('Échec de l\'enregistrement du Service Worker :', error));
+            .catch(error => console.log('Échec SW :', error));
         });
       }
     </script>
