@@ -37,6 +37,7 @@ let budgetExpenses = [];
 let educationData = {};
 let proData = {}; // Gère l'onglet Officiel & Élevage
 let proEvents = []; // Gère l'agenda des concours
+let proLitters = []; // Gère l'historique des portées
 
 let weightChartInstance = null;
 let darkModeActive = false;
@@ -338,6 +339,7 @@ function confirmCreateNewPet() {
     saveLocalData(newId, 'budget', []);
     saveLocalData(newId, 'proData', { gender: 'Non spécifié' });
     saveLocalData(newId, 'proEvents', []);
+    saveLocalData(newId, 'proLitters', []);
 
     closePetModal();
     switchPet(newId);
@@ -357,7 +359,7 @@ function loadCurrentPetData() {
 function deleteCurrentPet() {
     if (!confirm(`⚠️ Êtes-vous sûr de vouloir supprimer ${petProfile.name} ?`)) return;
 
-    const keys = ['profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget', 'proData', 'proEvents'];
+    const keys = ['profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget', 'proData', 'proEvents', 'proLitters'];
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
 
     petsList = petsList.filter(pet => pet.id !== currentPetId);
@@ -1030,16 +1032,19 @@ window.navigateTo = (screenId) => {
 function initProData() {
     proData = getLocalData(currentPetId, 'proData', { gender: 'Non spécifié' });
     proEvents = getLocalData(currentPetId, 'proEvents', []);
+    proLitters = getLocalData(currentPetId, 'proLitters', []);
 
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
     
     // Remplissage Officiel
     setVal('pro-gender', proData.gender);
+    setVal('pro-chip', proData.chip);
+    setVal('pro-lof', proData.lof);
     setVal('pro-pedigree', proData.pedigree);
     setVal('pro-dna', proData.dna || 'Non fait');
     setVal('pro-xrays', proData.xrays);
-    setVal('pro-lof-date', proData.lofDate);
-    setVal('pro-csau-date', proData.csauDate);
+    setVal('pro-club-name', proData.clubName);
+    setVal('pro-club-date', proData.clubDate);
 
     // Remplissage Élevage
     setVal('pro-heat-date', proData.heatDate);
@@ -1054,6 +1059,7 @@ function initProData() {
 
     toggleBreederFields(); 
     renderProEvents();
+    renderLitters();
 }
 
 window.toggleBreederFields = () => {
@@ -1085,11 +1091,13 @@ window.autoCalcBreederDates = () => {
 window.saveProData = () => {
     proData = {
         gender: document.getElementById('pro-gender').value,
+        chip: document.getElementById('pro-chip').value,
+        lof: document.getElementById('pro-lof').value,
         pedigree: document.getElementById('pro-pedigree').value,
         dna: document.getElementById('pro-dna').value,
         xrays: document.getElementById('pro-xrays').value,
-        lofDate: document.getElementById('pro-lof-date').value,
-        csauDate: document.getElementById('pro-csau-date').value,
+        clubName: document.getElementById('pro-club-name').value,
+        clubDate: document.getElementById('pro-club-date').value,
         
         heatDate: document.getElementById('pro-heat-date').value,
         optimalDate: document.getElementById('pro-optimal-date').value,
@@ -1105,6 +1113,54 @@ window.saveProData = () => {
     alert("Profil Officiel & Élevage mis à jour ! 🐾");
 };
 
+// PORTÉES
+window.addLitter = () => {
+    const date = document.getElementById('litter-date').value;
+    const partner = document.getElementById('litter-partner').value;
+    const count = document.getElementById('litter-count').value;
+
+    if (!date) return alert("Sélectionnez une date pour la portée.");
+
+    proLitters.push({ id: Date.now(), date, partner, count });
+    saveLocalData(currentPetId, 'proLitters', proLitters);
+    
+    document.getElementById('litter-date').value = '';
+    document.getElementById('litter-partner').value = '';
+    document.getElementById('litter-count').value = '';
+    
+    renderLitters();
+};
+
+function renderLitters() {
+    const list = document.getElementById('litters-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const sorted = [...proLitters].sort((a,b) => new Date(b.date) - new Date(a.date));
+    if(sorted.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center;">Aucune portée enregistrée.</p>';
+        return;
+    }
+
+    sorted.forEach(l => {
+        const item = document.createElement('div');
+        item.className = 'health-log-item main-card';
+        item.style.marginBottom = '10px';
+        item.style.padding = '12px';
+        item.innerHTML = `
+            <div style="flex:1;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <strong>Portée du ${new Date(l.date).toLocaleDateString('fr-FR')}</strong>
+                    <span style="background:var(--accent-light); color:var(--accent); padding:4px 8px; border-radius:6px; font-weight:bold; font-size:12px;">${l.count || '?'} chiot(s)</span>
+                </div>
+                <div style="font-size:13px; color:var(--text-muted);">Partenaire : ${l.partner || 'Non précisé'}</div>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+// ÉVÉNEMENTS & CONCOURS
 window.addProEvent = () => {
     const type = document.getElementById('pro-event-type').value;
     const date = document.getElementById('pro-event-date').value;
@@ -1174,4 +1230,5 @@ window.navigateTo = navigateTo;
 window.autoCalcBreederDates = autoCalcBreederDates;
 window.saveProData = saveProData;
 window.addProEvent = addProEvent;
+window.addLitter = addLitter;
 window.toggleBreederFields = toggleBreederFields;

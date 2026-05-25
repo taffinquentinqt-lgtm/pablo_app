@@ -598,7 +598,7 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- ONGLET OFFICIEL & ÉLEVAGE (ÉPURÉ) -->
+                <!-- ONGLET OFFICIEL & ÉLEVAGE (ÉPURÉ & PRO) -->
                 <!-- ========================================== -->
                 <div id="screen-pro" class="screen">
                     
@@ -617,8 +617,16 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>N° Pedigree / LOF</label>
-                                <input type="text" id="pro-pedigree" placeholder="Ex: LOF 123456">
+                                <label>N° Identification (Puce/Tatouage)</label>
+                                <input type="text" id="pro-chip" placeholder="Ex: 250268...">
+                            </div>
+                            <div class="form-group">
+                                <label>N° LOF / Enregistrement</label>
+                                <input type="text" id="pro-lof" placeholder="Ex: LOF 123456">
+                            </div>
+                            <div class="form-group">
+                                <label>Généalogie / Pedigree</label>
+                                <input type="text" id="pro-pedigree" placeholder="Affixe ou Lien Pedigree">
                             </div>
                             <div class="form-group">
                                 <label>Test ADN</label>
@@ -633,21 +641,21 @@
                                 <input type="text" id="pro-xrays" placeholder="Ex: A/0">
                             </div>
                             <div class="form-group">
-                                <label>Confirmation LOF</label>
-                                <input type="date" id="pro-lof-date">
+                                <label>Club Canin (Nom)</label>
+                                <input type="text" id="pro-club-name" placeholder="Ex: Club de Paris...">
                             </div>
                             <div class="form-group">
-                                <label>Club Canin / CSAU</label>
-                                <input type="date" id="pro-csau-date">
+                                <label>Date Entrée Club</label>
+                                <input type="date" id="pro-club-date">
                             </div>
                         </div>
                     </div>
 
                     <!-- 2. Reproduction (Intelligente) -->
                     <div class="main-card mt-15">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Reproduction</h3>
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Suivi de Reproduction</h3>
+                        
                         <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr;">
-                            
                             <div class="form-group" id="field-chaleurs">
                                 <label>Début des Chaleurs</label>
                                 <input type="date" id="pro-heat-date" onchange="autoCalcBreederDates()">
@@ -682,13 +690,26 @@
                         </div>
                     </div>
 
-                    <!-- 3. Palmarès & Événements -->
+                    <!-- 3. Portées -->
+                    <div class="main-card mt-15">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-baby-carriage" style="color: var(--accent); margin-right: 8px;"></i>Historique des Portées</h3>
+                        <div style="display:flex; gap:10px; margin-bottom: 15px; flex-wrap: wrap;">
+                            <input type="date" id="litter-date" style="flex:1; min-width:120px; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <input type="text" id="litter-partner" placeholder="Avec qui ?" style="flex:1; min-width:120px; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <input type="number" id="litter-count" placeholder="Nb chiots" style="flex:1; max-width:100px; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <button class="btn-primary" onclick="addLitter()" style="width:auto; padding: 10px 15px;"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="litters-list"></div>
+                    </div>
+
+                    <!-- 4. Palmarès & Événements -->
                     <div class="main-card mt-15">
                         <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-trophy" style="color: var(--accent); margin-right: 8px;"></i>Palmarès & Concours</h3>
                         <div style="display:flex; gap:10px; margin-bottom: 15px;">
                             <select id="pro-event-type" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                                <option value="Beauté">Beauté (CACS/CACIB)</option>
+                                <option value="Beauté">Beauté (CACS/CACIB...)</option>
                                 <option value="Sport">Sport (Agility, Ring...)</option>
+                                <option value="CSAU">Obtention CSAU</option>
                                 <option value="Autre">Autre Concours</option>
                             </select>
                             <input type="date" id="pro-event-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
