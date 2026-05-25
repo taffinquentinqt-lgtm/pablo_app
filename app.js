@@ -35,9 +35,13 @@ let dailyTrackers = {};
 let chatHistory = [];
 let budgetExpenses = [];
 let educationData = {};
-let proData = {}; // Gère l'onglet Officiel & Élevage
-let proEvents = []; // Gère l'agenda des concours
-let proLitters = []; // Gère l'historique des portées
+let proData = {}; 
+let proEvents = []; 
+let proLitters = [];
+let healthExtras = {}; 
+let proHistory = { heats: [], matings: [] }; 
+let memoriesList = [];
+let gamification = { streak: 0, lastLogin: null, badges: [] };
 
 let weightChartInstance = null;
 let darkModeActive = false;
@@ -340,6 +344,10 @@ function confirmCreateNewPet() {
     saveLocalData(newId, 'proData', { gender: 'Non spécifié' });
     saveLocalData(newId, 'proEvents', []);
     saveLocalData(newId, 'proLitters', []);
+    saveLocalData(newId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
+    saveLocalData(newId, 'proHistory', { heats: [], matings: [] });
+    saveLocalData(newId, 'memories', []);
+    saveLocalData(newId, 'gamification', { streak: 0, lastLogin: null, badges: [] });
 
     closePetModal();
     switchPet(newId);
@@ -354,12 +362,16 @@ function loadCurrentPetData() {
     initChat();
     initBudgetTracker();
     initProData();
+    initHealthExtras();
+    initProHistory();
+    initMemories();
+    initGamification();
 }
 
 function deleteCurrentPet() {
     if (!confirm(`⚠️ Êtes-vous sûr de vouloir supprimer ${petProfile.name} ?`)) return;
 
-    const keys = ['profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget', 'proData', 'proEvents', 'proLitters'];
+    const keys = ['profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget', 'proData', 'proEvents', 'proLitters', 'healthExtras', 'proHistory', 'memories', 'gamification'];
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
 
     petsList = petsList.filter(pet => pet.id !== currentPetId);
@@ -411,6 +423,11 @@ function initPetProfile() {
     setVal('profile-age', petProfile.age);
     setVal('profile-size', petProfile.size);
     setVal('profile-weight', petProfile.weight);
+    
+    // Allergies input from profile config
+    if(document.getElementById('profile-allergies') && typeof healthExtras !== 'undefined') {
+        document.getElementById('profile-allergies').value = healthExtras.allergies || "";
+    }
 
     updateBreedAdviceUI();
 }
@@ -492,6 +509,12 @@ function savePetProfile() {
 
     saveLocalData(currentPetId, 'profile', petProfile);
     
+    // Save allergies
+    if(document.getElementById('profile-allergies')) {
+        healthExtras.allergies = document.getElementById('profile-allergies').value.trim();
+        saveLocalData(currentPetId, 'healthExtras', healthExtras);
+    }
+    
     const petObj = petsList.find(p => p.id === currentPetId);
     if(petObj) {
         petObj.name = name;
@@ -551,6 +574,7 @@ function updateWeightUI() {
     updateNutritionUI();
 
     if (waterTargetText) waterTargetText.innerText = `Objectif : ${Math.round(latestPesee * 55)} ml`;
+    generateTransitionPlan();
 }
 
 async function updateNutritionUI() {
@@ -716,8 +740,8 @@ function renderReminders() {
     const today = new Date();
     let hasReminders = false;
 
-    // 1. Rappels Médicaux Classiques
-    const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30 };
+    // 1. Rappels Médicaux Classiques & Soins
+    const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30, 'Toilettage': 90, 'Dents': 7, 'Oreilles': 30, 'Griffes': 60 };
     Object.keys(rules).forEach(type => {
         const eventsOfType = medicalEvents.filter(e => e.type === type);
         let lastDate = eventsOfType.length > 0 ? new Date(eventsOfType.sort((a,b) => new Date(b.date) - new Date(a.date))[0].date) : null;
@@ -1018,13 +1042,150 @@ window.navigateTo = (screenId) => {
         'screen-edu': "Carnet d'Éducation", 
         'screen-budget': "Suivi Budget", 
         'screen-chat': "Hey Pablo", 
-        'screen-profile': "Configuration",
-        'screen-pro': "Officiel & Élevage"
+        'screen-pro': "Officiel & Élevage",
+        'screen-tools': "Outils & Souvenirs",
+        'screen-profile': "Configuration"
     };
     const titleEl = document.getElementById('page-title');
     if(titleEl && titles[screenId]) titleEl.innerText = titles[screenId];
     if(screenId === 'screen-health') setTimeout(() => renderWeightChart(), 50);
 };
+
+// ==========================================
+// NOUVEAUTÉ : SANTÉ, URGENCES & CROQUETTES
+// ==========================================
+function initHealthExtras() {
+    healthExtras = getLocalData(currentPetId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
+    
+    const elVetName = document.getElementById('vet-name');
+    const elVetPhone = document.getElementById('vet-phone');
+    if(elVetName) elVetName.value = healthExtras.vetName || '';
+    if(elVetPhone) elVetPhone.value = healthExtras.vetPhone || '';
+
+    const alertsBanner = document.getElementById('health-alerts-banner');
+    const alertsText = document.getElementById('health-alerts-text');
+    if (alertsBanner && alertsText) {
+        if (healthExtras.allergies && healthExtras.allergies.trim() !== '') {
+            alertsBanner.style.display = 'block';
+            alertsText.innerText = healthExtras.allergies;
+        } else {
+            alertsBanner.style.display = 'none';
+        }
+    }
+
+    updateKibbleUI();
+    generateTransitionPlan();
+}
+
+window.callVet = () => { 
+    const vetPhone = document.getElementById('vet-phone').value;
+    if(vetPhone) {
+        healthExtras.vetName = document.getElementById('vet-name').value;
+        healthExtras.vetPhone = vetPhone;
+        saveLocalData(currentPetId, 'healthExtras', healthExtras);
+        window.open(`tel:${vetPhone}`); 
+    } else {
+        alert("Entrez un numéro de téléphone."); 
+    }
+};
+window.callPoisonControl = () => { window.open(`tel:0468315555`); }; 
+
+window.refillKibbleBag = () => {
+    const size = parseFloat(document.getElementById('kibble-bag-size').value);
+    if(size > 0) {
+        healthExtras.kibbleBag = size;
+        healthExtras.kibbleRemaining = size;
+        saveLocalData(currentPetId, 'healthExtras', healthExtras);
+        updateKibbleUI();
+        alert("Nouveau sac entamé ! 🍖");
+    }
+};
+
+function updateKibbleUI() {
+    const textEl = document.getElementById('kibble-remaining-text');
+    if(!textEl) return;
+    
+    let remaining = healthExtras.kibbleRemaining;
+    if(!remaining || remaining <= 0) {
+        textEl.innerText = "-- kg";
+        textEl.style.color = "var(--text-muted)";
+        return;
+    }
+
+    textEl.innerText = `${remaining.toFixed(2)} kg / ${healthExtras.kibbleBag} kg`;
+    
+    if (remaining < 3) {
+        textEl.style.color = "var(--danger)";
+        if(Notification.permission === "granted") {
+            new Notification("Alerte Croquettes ⚠️", { body: `Il ne reste que ${remaining.toFixed(1)}kg pour ${petProfile.name}. Pensez à commander !` });
+        }
+    } else {
+        textEl.style.color = "var(--success)";
+    }
+}
+
+function generateTransitionPlan() {
+    const planEl = document.getElementById('transition-plan');
+    if(!planEl || !petProfile.weight) return;
+    
+    let ration = Math.round(petProfile.weight * 13.5); 
+    
+    planEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Jours 1 & 2 :</span> <strong>75% ancien (${Math.round(ration*0.75)}g) / 25% nouveau (${Math.round(ration*0.25)}g)</strong></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Jours 3 & 4 :</span> <strong>50% ancien (${Math.round(ration*0.50)}g) / 50% nouveau (${Math.round(ration*0.50)}g)</strong></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Jours 5 & 6 :</span> <strong>25% ancien (${Math.round(ration*0.25)}g) / 75% nouveau (${Math.round(ration*0.75)}g)</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>Jour 7 :</span> <strong style="color:var(--success);">100% nouvelles !</strong></div>
+    `;
+}
+
+// ==========================================
+// NOUVEAUTÉ : GAMIFICATION & SÉRIES
+// ==========================================
+function initGamification() {
+    gamification = getLocalData(currentPetId, 'gamification', { streak: 0, lastLogin: null, badges: [] });
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (gamification.lastLogin !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        if (gamification.lastLogin === yesterdayStr) {
+            gamification.streak += 1;
+        } else if (gamification.lastLogin !== null) {
+            gamification.streak = 0; 
+        }
+        gamification.lastLogin = today;
+        saveLocalData(currentPetId, 'gamification', gamification);
+    }
+
+    const streakEl = document.getElementById('streak-counter');
+    if(streakEl) streakEl.innerText = `🔥 ${gamification.streak} Jours`;
+
+    updateBadges();
+    checkBirthday();
+}
+
+function updateBadges() {
+    const container = document.getElementById('badges-container');
+    if(!container) return;
+    container.innerHTML = '';
+    
+    let earned = [];
+    if(gamification.streak >= 7) earned.push({icon: '🔥', title: 'On Fire (7j)'});
+    if(weightHistory.length >= 5) earned.push({icon: '⚖️', title: 'Suivi Parfait'});
+    if(medicalEvents.length >= 3) earned.push({icon: '🩺', title: 'Santé de fer'});
+    
+    earned.forEach(b => {
+        container.innerHTML += `<span title="${b.title}">${b.icon}</span>`;
+    });
+}
+
+function checkBirthday() {
+    // Si la logique d'anniversaire est remplie via l'âge ou une date de naissance dans le profil plus tard
+    // on l'affichera ici.
+}
 
 // ==========================================
 // MODULE OFFICIEL & ÉLEVAGE (ÉPURÉ)
@@ -1036,7 +1197,6 @@ function initProData() {
 
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
     
-    // Remplissage Officiel
     setVal('pro-gender', proData.gender);
     setVal('pro-chip', proData.chip);
     setVal('pro-lof', proData.lof);
@@ -1046,7 +1206,6 @@ function initProData() {
     setVal('pro-club-name', proData.clubName);
     setVal('pro-club-date', proData.clubDate);
 
-    // Remplissage Élevage
     setVal('pro-heat-date', proData.heatDate);
     setVal('pro-optimal-date', proData.optimalDate);
     setVal('pro-partner', proData.partner);
@@ -1064,7 +1223,7 @@ function initProData() {
 
 window.toggleBreederFields = () => {
     const gender = document.getElementById('pro-gender').value;
-    const femaleOnlyElements = ['field-chaleurs', 'field-fec-opti', 'field-naissance-prevue', 'field-mise-a-bas', 'field-rappel-chaleurs'];
+    const femaleOnlyElements = ['field-chaleurs', 'field-fec-opti', 'field-naissance-prevue', 'field-mise-a-bas', 'field-rappel-chaleurs', 'field-chaleurs-history'];
     
     femaleOnlyElements.forEach(id => {
         const el = document.getElementById(id);
@@ -1209,6 +1368,111 @@ function renderProEvents() {
     });
 }
 
+// ==========================================
+// NOUVEAUTÉ : HISTORIQUES PRO (Chaleurs & Saillies)
+// ==========================================
+function initProHistory() {
+    proHistory = getLocalData(currentPetId, 'proHistory', { heats: [], matings: [] });
+    renderHeatHistory();
+    renderMatingHistory();
+}
+
+window.addHeatRecord = () => {
+    const date = document.getElementById('new-heat-date').value;
+    if(!date) return;
+    proHistory.heats.push({ id: Date.now(), date: date });
+    saveLocalData(currentPetId, 'proHistory', proHistory);
+    document.getElementById('new-heat-date').value = '';
+    renderHeatHistory();
+};
+
+function renderHeatHistory() {
+    const list = document.getElementById('heat-history-list');
+    const avgEl = document.getElementById('heat-average');
+    if(!list) return;
+    list.innerHTML = '';
+    
+    const sorted = [...proHistory.heats].sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    if(sorted.length >= 2 && avgEl) {
+        let totalDays = 0;
+        for(let i=0; i < sorted.length - 1; i++) {
+            totalDays += (new Date(sorted[i].date) - new Date(sorted[i+1].date)) / 86400000;
+        }
+        const avgMonths = (totalDays / (sorted.length - 1)) / 30.44;
+        avgEl.innerText = `${avgMonths.toFixed(1)} mois`;
+    }
+
+    sorted.forEach(h => {
+        list.innerHTML += `<div style="padding:8px 0; border-bottom:1px solid var(--border-color);">🩸 Chaleurs : <strong>${new Date(h.date).toLocaleDateString()}</strong></div>`;
+    });
+}
+
+window.addMatingRecord = () => {
+    const date = document.getElementById('mating-date').value;
+    const partner = document.getElementById('mating-partner').value;
+    const coi = document.getElementById('mating-coi').value;
+    if(!date) return;
+    proHistory.matings.push({ id: Date.now(), date, partner, coi });
+    saveLocalData(currentPetId, 'proHistory', proHistory);
+    document.getElementById('mating-date').value = '';
+    document.getElementById('mating-partner').value = '';
+    document.getElementById('mating-coi').value = '';
+    renderMatingHistory();
+};
+
+function renderMatingHistory() {
+    const list = document.getElementById('mating-history-list');
+    if(!list) return; list.innerHTML = '';
+    const sorted = [...proHistory.matings].sort((a,b) => new Date(b.date) - new Date(a.date));
+    sorted.forEach(m => {
+        list.innerHTML += `
+        <div style="padding:8px 0; border-bottom:1px solid var(--border-color);">
+            <div style="display:flex; justify-content:space-between;"><strong>Saillie du ${new Date(m.date).toLocaleDateString()}</strong> <span class="alert-badge" style="background:#eef;">COI: ${m.coi || '?'}%</span></div>
+            <div style="color:var(--text-muted);">Partenaire: ${m.partner || 'Inconnu'}</div>
+        </div>`;
+    });
+}
+
+// ==========================================
+// NOUVEAUTÉ : JOURNAL DES PREMIÈRES FOIS & OUTILS
+// ==========================================
+function initMemories() {
+    memoriesList = getLocalData(currentPetId, 'memories', []);
+    renderMemories();
+    
+    document.querySelectorAll('.dynamic-pet-name').forEach(el => el.innerText = petProfile.name || 'Pablo');
+}
+
+window.addMemory = () => {
+    const date = document.getElementById('memory-date').value;
+    const title = document.getElementById('memory-title').value.trim();
+    if(!date || !title) return;
+    memoriesList.push({ id: Date.now(), date, title });
+    saveLocalData(currentPetId, 'memories', memoriesList);
+    document.getElementById('memory-title').value = '';
+    renderMemories();
+};
+
+function renderMemories() {
+    const timeline = document.getElementById('memories-timeline');
+    if(!timeline) return; timeline.innerHTML = '';
+    const sorted = [...memoriesList].sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    sorted.forEach(m => {
+        timeline.innerHTML += `
+        <div style="position:relative; margin-bottom:15px;">
+            <div style="position:absolute; left:-21px; top:2px; width:12px; height:12px; border-radius:50%; background:var(--accent);"></div>
+            <div style="font-size:12px; color:var(--text-muted);">${new Date(m.date).toLocaleDateString()}</div>
+            <div style="font-weight:bold; color:var(--text-color);">${m.title}</div>
+        </div>`;
+    });
+}
+
+window.generateAvatar = () => {
+    alert("Bientôt disponible ! L'IA analysera la photo de profil pour générer un avatar Disney/Pixar de " + (petProfile.name || "votre chien") + ". 🪄");
+};
+
 // EXPORTS GLOBAUX
 window.switchPet = switchPet;
 window.createNewPet = createNewPet;
@@ -1232,3 +1496,11 @@ window.saveProData = saveProData;
 window.addProEvent = addProEvent;
 window.addLitter = addLitter;
 window.toggleBreederFields = toggleBreederFields;
+window.callVet = callVet;
+window.callPoisonControl = callPoisonControl;
+window.refillKibbleBag = refillKibbleBag;
+window.saveHealthExtras = saveHealthExtras;
+window.addHeatRecord = addHeatRecord;
+window.addMatingRecord = addMatingRecord;
+window.addMemory = addMemory;
+window.generateAvatar = generateAvatar;

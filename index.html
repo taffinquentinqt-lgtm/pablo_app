@@ -185,17 +185,18 @@
             font-size: 14px;
         }
 
-        .sidebar-menu { list-style: none; flex: 1; }
+        .sidebar-menu { list-style: none; flex: 1; margin-bottom: 20px; overflow-y: auto; }
         .sidebar-menu li {
-            padding: 12px 15px;
+            padding: 10px 15px;
             border-radius: 8px;
             cursor: pointer;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 12px;
             color: #ccc;
             transition: all 0.2s;
+            font-size: 14px;
         }
         .sidebar-menu li:hover, .sidebar-menu li.active {
             background-color: var(--accent);
@@ -256,7 +257,8 @@
             color: var(--text-muted);
             cursor: pointer;
             gap: 4px;
-            min-width: 65px;
+            min-width: 60px;
+            padding: 0 5px;
         }
         .nav-item.active { color: var(--accent); }
         .nav-item i { font-size: 20px; }
@@ -431,11 +433,12 @@
 
             <ul class="sidebar-menu">
                 <li class="active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i> Accueil</li>
-                <li onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i> Santé & Courbe</li>
+                <li onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i> Santé & Nutrition</li>
                 <li onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i> Éducation</li>
                 <li onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i> Budget</li>
                 <li onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i> Hey Pablo</li>
                 <li onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i> Officiel & Élevage</li>
+                <li onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i> Outils & Souvenirs</li>
                 <li onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i> Configuration</li>
             </ul>
 
@@ -458,9 +461,22 @@
 
             <div class="screens-container">
 
+                <!-- ========================================== -->
+                <!-- ACCUEIL -->
+                <!-- ========================================== -->
                 <div id="screen-home" class="screen active">
-                    <h2 style="font-size: 20px; margin-bottom: 4px;">Bonjour, Maître de <span id="welcome-pet-name">Pablo</span> ! 👋</h2>
-                    <p style="color: var(--text-muted); font-size: 14px;">Voici les stats de votre compagnon aujourd'hui.</p>
+                    
+                    <div id="birthday-banner" style="display:none; background: linear-gradient(135deg, #ff9a9e, #fecfef); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; color: #d62828; font-weight: bold;">
+                        🎉 Joyeux Anniversaire <span id="bday-pet-name"></span> ! 🎂
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2 style="font-size: 20px; margin-bottom: 4px;">Bonjour, Maître de <span id="welcome-pet-name">Pablo</span> ! 👋</h2>
+                            <p style="color: var(--text-muted); font-size: 14px;">Série actuelle : <span id="streak-counter" style="color: #ff9f1c; font-weight: bold; font-size: 16px;">🔥 0 Jours</span></p>
+                        </div>
+                        <div id="badges-container" style="display: flex; gap: 5px; font-size: 24px;"></div>
+                    </div>
 
                     <div class="main-card mt-20 mb-20" id="breed-advice-card" style="display: none; border-left: 4px solid var(--accent);">
                         <h3 style="margin-top:0; font-size: 16px; display:flex; align-items:center; gap:8px;">
@@ -504,15 +520,60 @@
                     <div id="dynamic-reminders-list"></div>
                 </div>
 
+                <!-- ========================================== -->
+                <!-- SANTÉ & NUTRITION -->
+                <!-- ========================================== -->
                 <div id="screen-health" class="screen">
+                    
+                    <div id="health-alerts-banner" class="main-card" style="display:none; background-color: #ffe3e5; border-color: var(--danger);">
+                        <h4 style="color: var(--danger); margin-bottom: 5px;"><i class="fa-solid fa-triangle-exclamation"></i> Allergies & Traitements à vie</h4>
+                        <div id="health-alerts-text" style="color: #d62828; font-weight: bold; font-size: 14px;"></div>
+                    </div>
+
+                    <div class="main-card" style="border-left: 4px solid var(--danger);">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3><i class="fa-solid fa-truck-medical" style="color: var(--danger); margin-right:8px;"></i>Contacts d'Urgence</h3>
+                        </div>
+                        <div class="dashboard-layout-grid mt-10">
+                            <div>
+                                <input type="text" id="vet-name" placeholder="Nom du Vétérinaire" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:5px; background:var(--bg-color); color:var(--text-color);">
+                                <input type="tel" id="vet-phone" placeholder="Téléphone Vétérinaire" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <button class="btn-primary" onclick="callVet()" style="background-color: var(--success);"><i class="fa-solid fa-phone"></i> Appeler mon Véto</button>
+                                <button class="btn-secondary-outline" onclick="callPoisonControl()" style="color: var(--danger); border-color: var(--danger);"><i class="fa-solid fa-skull-crossbones"></i> Centre Antipoison</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="main-card mt-15">
+                        <h3><i class="fa-solid fa-bowl-food" style="color: var(--accent); margin-right:8px;"></i>Nutrition & Réserve</h3>
+                        <div class="dashboard-layout-grid mt-10">
+                            <div>
+                                <span style="font-size: 12px; color: var(--text-muted); display:flex; justify-content:space-between;">Ration <select id="activity-level-selector" onchange="updateNutritionUI()" style="width:auto; padding:0; font-size:12px; border:none; background:transparent; color:var(--accent); font-weight:bold;"><option value="normal">Normale</option><option value="calm">Calme</option><option value="active">Sportif</option></select></span>
+                                <div class="big-stat-number" id="nutrition-ration-text">-- g</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 12px; color: var(--text-muted);">Sac de croquettes (Reste)</span>
+                                <div class="big-stat-number" id="kibble-remaining-text" style="color: var(--success);">-- kg</div>
+                            </div>
+                        </div>
+                        <div class="mt-15" style="display:flex; gap:10px;">
+                            <input type="number" id="kibble-bag-size" placeholder="Nouveau sac (ex: 12 kg)" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <button class="btn-primary" onclick="refillKibbleBag()" style="width:auto;">Ouvrir un sac</button>
+                        </div>
+                        <div class="mt-15" style="padding-top: 15px; border-top: 1px dashed var(--border-color);">
+                            <h4>Calculateur de Transition (7 jours)</h4>
+                            <div id="transition-plan" style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
+                                <em>Renseignez le poids de votre animal pour voir le plan de transition.</em>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="dashboard-layout-grid">
                         <div class="main-card">
                             <span>Poids actuel</span>
                             <div class="big-stat-number" id="nutrition-weight-text">-- kg</div>
-                        </div>
-                        <div class="main-card">
-                            <span style="display:flex; justify-content:space-between;">Ration recommandée <select id="activity-level-selector" onchange="updateNutritionUI()" style="width:auto; padding:2px; font-size:12px; border:none; background:transparent; color:var(--accent); font-weight:bold;"><option value="normal">Activité Normale</option><option value="calm">Calme / Canapé</option><option value="active">Très Sportif</option></select></span>
-                            <div class="big-stat-number" id="nutrition-ration-text">-- g</div>
                             <span id="water-target-text" style="font-size: 12px; color: var(--text-muted);">Objectif eau : -- ml</span>
                         </div>
                     </div>
@@ -540,6 +601,10 @@
                                 <option value="Vermifuge">Vermifuge 💊</option>
                                 <option value="Anti-puces">Anti-puces 🛡️</option>
                                 <option value="Vétérinaire">Consultation 🩺</option>
+                                <option value="Toilettage">Toilettage ✂️</option>
+                                <option value="Dents">Brossage Dents 🪥</option>
+                                <option value="Oreilles">Nettoyage Oreilles 👂</option>
+                                <option value="Griffes">Coupe Griffes 🐾</option>
                             </select>
                             <input type="date" id="event-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
                             <button onclick="addMedicalEvent()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
@@ -548,6 +613,9 @@
                     </div>
                 </div>
 
+                <!-- ========================================== -->
+                <!-- ÉDUCATION -->
+                <!-- ========================================== -->
                 <div id="screen-edu" class="screen">
                     <div class="main-card">
                         <h3 style="margin-bottom:5px;"><i class="fa-solid fa-graduation-cap" style="color: var(--accent); margin-right: 8px;"></i>Carnet d'Éducation</h3>
@@ -562,6 +630,9 @@
                     </div>
                 </div>
 
+                <!-- ========================================== -->
+                <!-- BUDGET -->
+                <!-- ========================================== -->
                 <div id="screen-budget" class="screen">
                     <div class="main-card">
                         <span>Dépenses du mois</span>
@@ -582,6 +653,9 @@
                     <button class="btn-secondary-outline mt-15" onclick="exportToPDF()" style="width:100%;"><i class="fa-solid fa-print"></i> Exporter la fiche de frais</button>
                 </div>
 
+                <!-- ========================================== -->
+                <!-- CHAT -->
+                <!-- ========================================== -->
                 <div id="screen-chat" class="screen">
                     <div class="chat-area">
                         <div class="messages-box" id="chat-messages-container"></div>
@@ -598,11 +672,10 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- ONGLET OFFICIEL & ÉLEVAGE (ÉPURÉ & PRO) -->
+                <!-- OFFICIEL & ÉLEVAGE -->
                 <!-- ========================================== -->
                 <div id="screen-pro" class="screen">
                     
-                    <!-- 1. Documents & Tests -->
                     <div class="main-card">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                             <h3 style="margin:0;"><i class="fa-solid fa-id-card" style="color: var(--accent); margin-right: 8px;"></i>Documents & Profil</h3>
@@ -651,29 +724,37 @@
                         </div>
                     </div>
 
-                    <!-- 2. Reproduction (Intelligente) -->
                     <div class="main-card mt-15">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Suivi de Reproduction</h3>
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Historique de Reproduction</h3>
                         
-                        <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr;">
-                            <div class="form-group" id="field-chaleurs">
-                                <label>Début des Chaleurs</label>
-                                <input type="date" id="pro-heat-date" onchange="autoCalcBreederDates()">
+                        <!-- Chaleurs -->
+                        <div id="field-chaleurs-history" style="margin-bottom: 20px;">
+                            <h4>Historique des Chaleurs (Moyenne : <span id="heat-average" style="color: var(--accent);">-- mois</span>)</h4>
+                            <div style="display:flex; gap:10px; margin-top:5px;">
+                                <input type="date" id="new-heat-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                                <button class="btn-primary" onclick="addHeatRecord()" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
                             </div>
+                            <div id="heat-history-list" class="mt-10" style="font-size: 13px;"></div>
+                        </div>
+
+                        <!-- Saillies -->
+                        <div>
+                            <h4>Historique des Saillies</h4>
+                            <div class="dashboard-layout-grid mt-5">
+                                <input type="date" id="mating-date" style="padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                                <input type="text" id="mating-partner" placeholder="Partenaire" style="padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                                <input type="number" step="0.1" id="mating-coi" placeholder="COI (%)" style="padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                                <button class="btn-primary" onclick="addMatingRecord()">Ajouter</button>
+                            </div>
+                            <div id="mating-history-list" class="mt-10" style="font-size: 13px;"></div>
+                        </div>
+
+                        <!-- Anciens champs pour calculs rapides -->
+                        <div class="dashboard-layout-grid mt-15" style="border-top: 1px dashed var(--border-color); padding-top: 15px;">
                             <div class="form-group" id="field-fec-opti">
                                 <label>Fécondation Opti. (+12j)</label>
                                 <input type="date" id="pro-optimal-date">
                             </div>
-                            
-                            <div class="form-group">
-                                <label>Partenaire (Saillie)</label>
-                                <input type="text" id="pro-partner" placeholder="Nom...">
-                            </div>
-                            <div class="form-group">
-                                <label>Date de Saillie</label>
-                                <input type="date" id="pro-mating-date" onchange="autoCalcBreederDates()">
-                            </div>
-
                             <div class="form-group" id="field-naissance-prevue">
                                 <label>Naissance Prévue (+63j)</label>
                                 <input type="date" id="pro-expected-birth">
@@ -684,13 +765,12 @@
                             </div>
                         </div>
                         
-                        <div id="field-rappel-chaleurs" style="display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                        <div id="field-rappel-chaleurs" style="display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px;">
                             <input type="checkbox" id="pro-heat-reminder" style="width: auto;">
                             <label for="pro-heat-reminder" style="font-size: 13px; color: var(--text-muted);">Activer le rappel des prochaines chaleurs dans 6 mois</label>
                         </div>
                     </div>
 
-                    <!-- 3. Portées -->
                     <div class="main-card mt-15">
                         <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-baby-carriage" style="color: var(--accent); margin-right: 8px;"></i>Historique des Portées</h3>
                         <div style="display:flex; gap:10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -702,7 +782,6 @@
                         <div id="litters-list"></div>
                     </div>
 
-                    <!-- 4. Palmarès & Événements -->
                     <div class="main-card mt-15">
                         <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-trophy" style="color: var(--accent); margin-right: 8px;"></i>Palmarès & Concours</h3>
                         <div style="display:flex; gap:10px; margin-bottom: 15px;">
@@ -725,6 +804,45 @@
                     <button class="btn-primary mt-15 mb-20" onclick="saveProData()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel</button>
                 </div>
 
+                <!-- ========================================== -->
+                <!-- OUTILS & SOUVENIRS -->
+                <!-- ========================================== -->
+                <div id="screen-tools" class="screen">
+                    <div class="main-card">
+                        <h3><i class="fa-solid fa-suitcase" style="color: var(--accent); margin-right:8px;"></i>La Valise de <span class="dynamic-pet-name">Pablo</span></h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Cochez avant de partir en vacances :</p>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:14px;">
+                            <label><input type="checkbox"> Carnet de santé / Passeport</label>
+                            <label><input type="checkbox"> Croquettes & Gamelles</label>
+                            <label><input type="checkbox"> Longe & Harnais</label>
+                            <label><input type="checkbox"> Pince à tiques</label>
+                            <label><input type="checkbox"> Trousse de secours</label>
+                            <label><input type="checkbox"> Médicaments</label>
+                            <label><input type="checkbox"> Jouet favori</label>
+                            <label><input type="checkbox"> Sacs à déjections</label>
+                        </div>
+                    </div>
+
+                    <div class="main-card mt-15">
+                        <h3><i class="fa-solid fa-camera-retro" style="color: var(--accent); margin-right:8px;"></i>Journal des Premières Fois</h3>
+                        <div style="display:flex; gap:10px; margin-top:10px;">
+                            <input type="date" id="memory-date" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <input type="text" id="memory-title" placeholder="Ex: Première baignade !" style="flex:2; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <button class="btn-primary" onclick="addMemory()" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="memories-timeline" class="mt-15" style="border-left: 2px solid var(--accent); padding-left: 15px;"></div>
+                    </div>
+
+                    <div class="main-card mt-15" style="text-align: center; background: linear-gradient(135deg, #fdfbfb, #ebedee);">
+                        <h3>🎨 Créateur d'Avatar IA</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Transformez la photo de votre chien en personnage Pixar !</p>
+                        <button class="btn-primary" onclick="generateAvatar()" style="background: linear-gradient(90deg, #833ab4, #fd1d1d, #fcb045); border:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Générer la magie</button>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- CONFIGURATION -->
+                <!-- ========================================== -->
                 <div id="screen-profile" class="screen">
                     <div class="main-card">
                         <div class="avatar-circle-uploader" onclick="document.getElementById('file-upload-input').click()">
@@ -757,6 +875,12 @@
                             </div>
                         </div>
 
+                        <!-- Nouveau champ Allergies lié au Profile -->
+                        <div class="form-group mt-10">
+                            <label>Allergies & Traitements chroniques (Affiché en rouge dans Santé)</label>
+                            <input type="text" id="profile-allergies" placeholder="Ex: Allergie au bœuf, Épileptique...">
+                        </div>
+
                         <button class="btn-primary mt-15" onclick="savePetProfile()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications</button>
                     </div>
 
@@ -785,8 +909,8 @@
                 <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
                 <div class="nav-item" onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i>Santé</div>
                 <div class="nav-item" onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i>Édu</div>
-                <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>
                 <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Officiel</div>
+                <div class="nav-item" onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i>Outils</div>
                 <div class="nav-item" onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i>Config</div>
             </div>
 
