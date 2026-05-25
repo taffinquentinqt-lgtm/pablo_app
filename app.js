@@ -11,13 +11,13 @@ const GLOBAL_CONFIG_ID = "pablo_global_config";
 
 // Configuration Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyBuz7iwOzeEFsFDU1G5aAe69JCczaduI44",
-  authDomain: "pablo-app-f6057.firebaseapp.com",
-  projectId: "pablo-app-f6057",
-  storageBucket: "pablo-app-f6057.firebasestorage.app",
-  messagingSenderId: "764832752787",
-  appId: "1:764832752787:web:21948ed789665c531b9966",
-  measurementId: "G-RE0F1KKEK3"
+    apiKey: "AIzaSyBuz7iwOzeEFsFDU1G5aAe69JCczaduI44",
+    authDomain: "pablo-app-f6057.firebaseapp.com",
+    projectId: "pablo-app-f6057",
+    storageBucket: "pablo-app-f6057.firebasestorage.app",
+    messagingSenderId: "764832752787",
+    appId: "1:764832752787:web:21948ed789665c531b9966",
+    measurementId: "G-RE0F1KKEK3"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -26,7 +26,6 @@ const auth = getAuth(app);
 const db = getFirestore(app); 
 
 // Variables d'état globales
-
 let petsList = [];
 let currentPetId = null;
 let petProfile = {};
@@ -35,10 +34,10 @@ let medicalEvents = [];
 let dailyTrackers = {};
 let chatHistory = [];
 let budgetExpenses = [];
-let educationData = {}; // Gère les acquis éducation en local
-let breederData = {};
-let showProfile = {};
-let showEvents = [];
+let educationData = {};
+let proData = {}; // Gère l'onglet Officiel & Élevage
+let proEvents = []; // Gère l'agenda des concours
+
 let weightChartInstance = null;
 let darkModeActive = false;
 let isLoginMode = true;
@@ -337,6 +336,8 @@ function confirmCreateNewPet() {
     saveLocalData(newId, 'daily', {water: 0, walk: 0, date: new Date().toISOString().split('T')[0]});
     saveLocalData(newId, 'chat', [{sender: 'bot', text: `Wouf ! Je suis l'assistant de ${name}.`}]);
     saveLocalData(newId, 'budget', []);
+    saveLocalData(newId, 'proData', { gender: 'Non spécifié' });
+    saveLocalData(newId, 'proEvents', []);
 
     closePetModal();
     switchPet(newId);
@@ -350,14 +351,13 @@ function loadCurrentPetData() {
     initDailyTrackers();
     initChat();
     initBudgetTracker();
-    initBreederData();
-    initShowsData();
+    initProData();
 }
 
 function deleteCurrentPet() {
     if (!confirm(`⚠️ Êtes-vous sûr de vouloir supprimer ${petProfile.name} ?`)) return;
 
-    const keys = ['profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget'];
+    const keys = ['profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget', 'proData', 'proEvents'];
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
 
     petsList = petsList.filter(pet => pet.id !== currentPetId);
@@ -375,7 +375,7 @@ function deleteCurrentPet() {
 }
 
 // ==========================================
-// PROFIL ET ENCYCLOPÉDIE ADVISOR (VERCEL)
+// PROFIL ET ENCYCLOPÉDIE ADVISOR
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
@@ -520,7 +520,7 @@ function uploadPetPhoto() {
 }
 
 // ==========================================
-// POIDS ET NUTRITION (VERCEL)
+// POIDS ET NUTRITION
 // ==========================================
 function initWeightHistory() {
     weightHistory = getLocalData(currentPetId, 'weight', []);
@@ -710,22 +710,72 @@ function clearMedicalHistory() {
 function renderReminders() {
     const container = document.getElementById('dynamic-reminders-list');
     if(!container) return; container.innerHTML = '';
-    const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30 };
     
+    const today = new Date();
+    let hasReminders = false;
+
+    // 1. Rappels Médicaux Classiques
+    const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30 };
     Object.keys(rules).forEach(type => {
         const eventsOfType = medicalEvents.filter(e => e.type === type);
         let lastDate = eventsOfType.length > 0 ? new Date(eventsOfType.sort((a,b) => new Date(b.date) - new Date(a.date))[0].date) : null;
-        let daysPass = lastDate ? Math.ceil(Math.abs(new Date() - lastDate) / 86400000) : 999;
+        let daysPass = lastDate ? Math.ceil(Math.abs(today - lastDate) / 86400000) : 999;
         
         if (!lastDate || daysPass > rules[type]) {
-            const reminderDiv = document.createElement('div'); reminderDiv.className = 'reminder-item main-card';
-            reminderDiv.innerHTML = `<div class="reminder-info"><h4>${type} requis</h4><span>Dernier : ${lastDate ? lastDate.toLocaleDateString() : 'Jamais'}</span></div><span class="alert-badge danger">À FAIRE</span>`;
-            container.appendChild(reminderDiv);
+            hasReminders = true;
+            container.innerHTML += `<div class="reminder-item main-card">
+                <div class="reminder-info"><h4>${type} requis</h4><span style="font-size:12px; color:var(--text-muted);">Dernier : ${lastDate ? lastDate.toLocaleDateString() : 'Jamais'}</span></div>
+                <span class="alert-badge danger">À FAIRE</span>
+            </div>`;
         }
     });
-    if(container.innerHTML === '') container.innerHTML = `<p style="color: #777; font-size: 14px; text-align:center;">Tout est à jour ! ✨</p>`;
+
+    // 2. Rappels Éleveur (Mise à bas - Femelle uniquement)
+    if (typeof proData !== 'undefined' && proData.gender !== 'Mâle' && proData.expectedBirth && !proData.actualBirth) {
+        const birthDate = new Date(proData.expectedBirth);
+        const daysToBirth = Math.ceil((birthDate - today) / 86400000);
+        if (daysToBirth >= -5 && daysToBirth <= 30) { 
+            hasReminders = true;
+            container.innerHTML += `<div class="reminder-item main-card" style="border-left: 4px solid #ffb703;">
+                <div class="reminder-info"><h4>Mise à bas estimée</h4><span style="font-size:12px; color:var(--text-muted);">Prévue le : ${birthDate.toLocaleDateString()}</span></div>
+                <span class="alert-badge" style="background:#fff3cc; color:#ffb703;">J-${daysToBirth}</span>
+            </div>`;
+        }
+    }
+
+    // 3. Rappels Éleveur (Chaleurs - Femelle uniquement)
+    if (typeof proData !== 'undefined' && proData.gender !== 'Mâle' && proData.heatReminder && proData.heatDate) {
+        const nextHeat = new Date(proData.heatDate);
+        nextHeat.setMonth(nextHeat.getMonth() + 6); // +6 mois
+        const daysToHeat = Math.ceil((nextHeat - today) / 86400000);
+        if (daysToHeat >= 0 && daysToHeat <= 30) { 
+            hasReminders = true;
+            container.innerHTML += `<div class="reminder-item main-card" style="border-left: 4px solid #e63946;">
+                <div class="reminder-info"><h4>Prochaines chaleurs</h4><span style="font-size:12px; color:var(--text-muted);">Estimées le : ${nextHeat.toLocaleDateString()}</span></div>
+                <span class="alert-badge danger">ATTENTION</span>
+            </div>`;
+        }
+    }
+
+    // 4. Rappels Concours à venir
+    if (typeof proEvents !== 'undefined') {
+        const upcoming = proEvents.filter(e => new Date(e.date) > today).sort((a,b) => new Date(a.date) - new Date(b.date));
+        if (upcoming.length > 0) {
+            hasReminders = true;
+            const nextShow = upcoming[0];
+            const daysToShow = Math.ceil((new Date(nextShow.date) - today) / 86400000);
+            container.innerHTML += `<div class="reminder-item main-card" style="border-left: 4px solid var(--accent);">
+                <div class="reminder-info"><h4>Concours : ${nextShow.type}</h4><span style="font-size:12px; color:var(--text-muted);">Date : ${new Date(nextShow.date).toLocaleDateString()}</span></div>
+                <span class="alert-badge" style="background:var(--accent-light); color:var(--accent);">J-${daysToShow}</span>
+            </div>`;
+        }
+    }
+
+    if(!hasReminders) container.innerHTML = `<p style="color: #777; font-size: 14px; text-align:center;">Tout est à jour ! ✨</p>`;
 }
 
+// ==========================================
+// ÉDUCATION
 // ==========================================
 function initEducation() {
     educationData = getLocalData(currentPetId, 'education', {});
@@ -737,8 +787,6 @@ function renderEducation() {
     if (!container) return;
     container.innerHTML = '';
     
-    // 1. Récupérer la liste des exercices (les basiques + les personnalisés s'il y en a)
-    // On stocke les exercices personnalisés dans le profil sous la clé 'custom_exercises'
     const customExercises = getLocalData(currentPetId, 'custom_exercises', []);
     const allExercises = [...DEFAULT_EDU_EXERCISES, ...customExercises];
     
@@ -748,7 +796,7 @@ function renderEducation() {
     }
 
     allExercises.forEach(ex => {
-        const currentLevel = educationData[ex.id] || 0; // 0: À commencer, 1: En cours, 2: Acquis, 3: Maîtrisé
+        const currentLevel = educationData[ex.id] || 0;
         
         const card = document.createElement('div');
         card.style.display = 'flex';
@@ -782,10 +830,8 @@ function renderEducation() {
 window.updateEduLevel = async function(exerciseId, levelValue) {
     educationData[exerciseId] = parseInt(levelValue);
     await saveLocalData(currentPetId, 'education', educationData);
-    console.log(`Exercice ${exerciseId} synchronisé au niveau ${levelValue}`);
 };
 
-// Nouvelle fonction pour ajouter un exercice personnalisé créé par l'utilisateur
 window.addCustomExercise = async function() {
     const input = document.getElementById('new-custom-exercise-input');
     if (!input) return;
@@ -793,23 +839,12 @@ window.addCustomExercise = async function() {
     const exerciseName = input.value.trim();
     if (!exerciseName) return alert("Veuillez entrer le nom d'un exercice. 🐾");
     
-    // Génère un ID unique propre à l'exercice
     const exerciseId = 'custom_' + Date.now();
-    
-    // Récupère les anciens exercices customisés de cet animal
     const customExercises = getLocalData(currentPetId, 'custom_exercises', []);
     
-    // Ajoute le nouveau
-    customExercises.push({
-        id: exerciseId,
-        name: exerciseName,
-        icon: 'fa-star' // Une étoile par défaut pour repérer les ordres personnalisés
-    });
-    
-    // Sauvegarde de manière hybride (Local + Firestore Cloud)
+    customExercises.push({ id: exerciseId, name: exerciseName, icon: 'fa-star' });
     await saveLocalData(currentPetId, 'custom_exercises', customExercises);
     
-    // Nettoie le champ de saisie et rafraîchit la liste
     input.value = '';
     renderEducation();
 };
@@ -847,7 +882,6 @@ function renderBudgetHistory(expenses) {
     if (!list) return;
     list.innerHTML = '';
     
-    // Correction ici : Ajout du crochet [ avant les trois points
     [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(expense => {
         const item = document.createElement('div');
         item.className = 'budget-item';
@@ -871,7 +905,7 @@ function addBudgetExpense() {
 }
 
 // ==========================================
-// CHAT - SÉCURISÉ (VERCEL)
+// CHAT - SÉCURISÉ
 // ==========================================
 function initChat() {
     chatHistory = getLocalData(currentPetId, 'chat', [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petProfile.name}. Comment puis-je aider ?` }]);
@@ -948,7 +982,7 @@ window.sendMessage = async () => {
 };
 
 // ==========================================
-// NOTIFICATIONS ET NAVIGATION RETOUCHÉE
+// NOTIFICATIONS ET NAVIGATION
 // ==========================================
 window.requestNotificationPermission = () => {
     if (!("Notification" in window)) return alert("Votre navigateur ne prend pas en charge les notifications.");
@@ -973,7 +1007,6 @@ window.navigateTo = (screenId) => {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     
-    // Support de la synchronisation de classe active sidebar desktop + barre basse mobile
     const navBtns = document.querySelectorAll(`[onclick="navigateTo('${screenId}')"]`);
     navBtns.forEach(btn => btn.classList.add('active'));
 
@@ -984,122 +1017,119 @@ window.navigateTo = (screenId) => {
         'screen-budget': "Suivi Budget", 
         'screen-chat': "Hey Pablo", 
         'screen-profile': "Configuration",
-        'screen-breeder': "Suivi d'Élevage", // Ligne à ajouter
-    'screen-shows': "Concours & Profil Officiel" // Ligne à ajouter
+        'screen-pro': "Officiel & Élevage"
     };
     const titleEl = document.getElementById('page-title');
     if(titleEl && titles[screenId]) titleEl.innerText = titles[screenId];
     if(screenId === 'screen-health') setTimeout(() => renderWeightChart(), 50);
 };
+
 // ==========================================
-// MODULE ÉLEVEUR
+// MODULE OFFICIEL & ÉLEVAGE (ÉPURÉ)
 // ==========================================
-function initBreederData() {
-    breederData = getLocalData(currentPetId, 'breeder', {});
-    
+function initProData() {
+    proData = getLocalData(currentPetId, 'proData', { gender: 'Non spécifié' });
+    proEvents = getLocalData(currentPetId, 'proEvents', []);
+
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
-    setVal('breeder-heat-date', breederData.heatDate);
-    setVal('breeder-optimal-date', breederData.optimalDate);
-    setVal('breeder-partner', breederData.partner);
-    setVal('breeder-mating-date', breederData.matingDate);
-    setVal('breeder-expected-birth', breederData.expectedBirth);
-    setVal('breeder-actual-birth', breederData.actualBirth);
     
-    const reminderCheckbox = document.getElementById('breeder-heat-reminder');
-    if (reminderCheckbox) reminderCheckbox.checked = breederData.heatReminder || false;
+    // Remplissage Officiel
+    setVal('pro-gender', proData.gender);
+    setVal('pro-pedigree', proData.pedigree);
+    setVal('pro-dna', proData.dna || 'Non fait');
+    setVal('pro-xrays', proData.xrays);
+    setVal('pro-lof-date', proData.lofDate);
+    setVal('pro-csau-date', proData.csauDate);
+
+    // Remplissage Élevage
+    setVal('pro-heat-date', proData.heatDate);
+    setVal('pro-optimal-date', proData.optimalDate);
+    setVal('pro-partner', proData.partner);
+    setVal('pro-mating-date', proData.matingDate);
+    setVal('pro-expected-birth', proData.expectedBirth);
+    setVal('pro-actual-birth', proData.actualBirth);
+
+    const reminderCheckbox = document.getElementById('pro-heat-reminder');
+    if (reminderCheckbox) reminderCheckbox.checked = proData.heatReminder || false;
+
+    toggleBreederFields(); 
+    renderProEvents();
 }
+
+window.toggleBreederFields = () => {
+    const gender = document.getElementById('pro-gender').value;
+    const femaleOnlyElements = ['field-chaleurs', 'field-fec-opti', 'field-naissance-prevue', 'field-mise-a-bas', 'field-rappel-chaleurs'];
+    
+    femaleOnlyElements.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.style.display = (gender === 'Mâle') ? 'none' : 'block';
+    });
+};
 
 window.autoCalcBreederDates = () => {
-    // Calcule automatiquement la date de fécondation optimale (+12 jours) et la naissance (+63 jours)
-    const heatDateInput = document.getElementById('breeder-heat-date').value;
+    const heatDateInput = document.getElementById('pro-heat-date').value;
     if (heatDateInput) {
-        const heatDate = new Date(heatDateInput);
-        const optimal = new Date(heatDate);
+        const optimal = new Date(heatDateInput);
         optimal.setDate(optimal.getDate() + 12);
-        document.getElementById('breeder-optimal-date').value = optimal.toISOString().split('T')[0];
+        document.getElementById('pro-optimal-date').value = optimal.toISOString().split('T')[0];
     }
 
-    const matingDateInput = document.getElementById('breeder-mating-date').value;
+    const matingDateInput = document.getElementById('pro-mating-date').value;
     if (matingDateInput) {
-        const mating = new Date(matingDateInput);
-        const birth = new Date(mating);
+        const birth = new Date(matingDateInput);
         birth.setDate(birth.getDate() + 63);
-        document.getElementById('breeder-expected-birth').value = birth.toISOString().split('T')[0];
+        document.getElementById('pro-expected-birth').value = birth.toISOString().split('T')[0];
     }
 };
 
-window.saveBreederData = () => {
-    breederData = {
-        heatDate: document.getElementById('breeder-heat-date').value,
-        optimalDate: document.getElementById('breeder-optimal-date').value,
-        partner: document.getElementById('breeder-partner').value,
-        matingDate: document.getElementById('breeder-mating-date').value,
-        expectedBirth: document.getElementById('breeder-expected-birth').value,
-        actualBirth: document.getElementById('breeder-actual-birth').value,
-        heatReminder: document.getElementById('breeder-heat-reminder').checked
+window.saveProData = () => {
+    proData = {
+        gender: document.getElementById('pro-gender').value,
+        pedigree: document.getElementById('pro-pedigree').value,
+        dna: document.getElementById('pro-dna').value,
+        xrays: document.getElementById('pro-xrays').value,
+        lofDate: document.getElementById('pro-lof-date').value,
+        csauDate: document.getElementById('pro-csau-date').value,
+        
+        heatDate: document.getElementById('pro-heat-date').value,
+        optimalDate: document.getElementById('pro-optimal-date').value,
+        partner: document.getElementById('pro-partner').value,
+        matingDate: document.getElementById('pro-mating-date').value,
+        expectedBirth: document.getElementById('pro-expected-birth').value,
+        actualBirth: document.getElementById('pro-actual-birth').value,
+        heatReminder: document.getElementById('pro-heat-reminder').checked
     };
-    saveLocalData(currentPetId, 'breeder', breederData);
-    renderReminders(); // Met à jour l'accueil
-    alert("Données d'élevage enregistrées ! 🐾");
+    
+    saveLocalData(currentPetId, 'proData', proData);
+    renderReminders();
+    alert("Profil Officiel & Élevage mis à jour ! 🐾");
 };
 
-// ==========================================
-// MODULE CONCOURS & OFFICIEL
-// ==========================================
-function initShowsData() {
-    showProfile = getLocalData(currentPetId, 'showProfile', {});
-    showEvents = getLocalData(currentPetId, 'showEvents', []);
+window.addProEvent = () => {
+    const type = document.getElementById('pro-event-type').value;
+    const date = document.getElementById('pro-event-date').value;
+    const details = document.getElementById('pro-event-details').value;
+
+    if (!date) return alert("Sélectionnez une date pour l'événement.");
+
+    proEvents.push({ id: Date.now(), type, date, details });
+    saveLocalData(currentPetId, 'proEvents', proEvents);
     
-    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
-    setVal('show-pedigree', showProfile.pedigree);
-    setVal('show-club-date', showProfile.clubDate);
-    setVal('show-dna-test', showProfile.dnaTest || 'Non fait');
-    setVal('show-xrays', showProfile.xrays);
-    setVal('show-lof-date', showProfile.lofDate);
-    setVal('show-csau-date', showProfile.csauDate);
-
-    renderShowEvents();
-}
-
-window.saveShowProfile = () => {
-    showProfile = {
-        pedigree: document.getElementById('show-pedigree').value,
-        clubDate: document.getElementById('show-club-date').value,
-        dnaTest: document.getElementById('show-dna-test').value,
-        xrays: document.getElementById('show-xrays').value,
-        lofDate: document.getElementById('show-lof-date').value,
-        csauDate: document.getElementById('show-csau-date').value
-    };
-    saveLocalData(currentPetId, 'showProfile', showProfile);
-    alert("Profil officiel mis à jour ! 🏆");
+    document.getElementById('pro-event-date').value = '';
+    document.getElementById('pro-event-details').value = '';
+    
+    renderProEvents();
+    renderReminders();
 };
 
-window.addShowEvent = () => {
-    const type = document.getElementById('new-show-type').value;
-    const date = document.getElementById('new-show-date').value;
-    const details = document.getElementById('new-show-details').value;
-
-    if (!date) return alert("Sélectionnez une date pour le concours.");
-
-    showEvents.push({ id: Date.now(), type, date, details });
-    saveLocalData(currentPetId, 'showEvents', showEvents);
-    
-    document.getElementById('new-show-date').value = '';
-    document.getElementById('new-show-details').value = '';
-    
-    renderShowEvents();
-    renderReminders(); // Met à jour l'accueil
-};
-
-function renderShowEvents() {
-    const list = document.getElementById('shows-history-list');
+function renderProEvents() {
+    const list = document.getElementById('pro-events-list');
     if (!list) return;
     list.innerHTML = '';
     
-    const sorted = [...showEvents].sort((a,b) => new Date(b.date) - new Date(a.date));
-    
+    const sorted = [...proEvents].sort((a,b) => new Date(b.date) - new Date(a.date));
     if(sorted.length === 0) {
-        list.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">Aucun concours enregistré.</p>';
+        list.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center;">Aucun événement enregistré.</p>';
         return;
     }
 
@@ -1108,19 +1138,21 @@ function renderShowEvents() {
         const item = document.createElement('div');
         item.className = 'health-log-item main-card';
         item.style.marginBottom = '10px';
+        item.style.padding = '12px';
         item.innerHTML = `
             <div style="flex:1;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
                     <strong>${ev.type}</strong>
-                    <span style="color: ${isFuture ? 'var(--accent)' : '#888'};">${new Date(ev.date).toLocaleDateString()}</span>
+                    <span style="color: ${isFuture ? 'var(--accent)' : 'var(--text-muted)'}; font-size: 13px;">${new Date(ev.date).toLocaleDateString()}</span>
                 </div>
-                <div style="font-size:13px; color:var(--text-muted);">${ev.details || 'Aucun détail'}</div>
+                <div style="font-size:13px; color:var(--text-muted);">${ev.details || '...'}</div>
             </div>
             ${isFuture ? '<span class="alert-badge" style="background:var(--accent-light); color:var(--accent); margin-left:10px;">À VENIR</span>' : ''}
         `;
         list.appendChild(item);
     });
 }
+
 // EXPORTS GLOBAUX
 window.switchPet = switchPet;
 window.createNewPet = createNewPet;
@@ -1139,3 +1171,7 @@ window.uploadPetPhoto = uploadPetPhoto;
 window.savePetProfile = savePetProfile;
 window.deleteCurrentPet = deleteCurrentPet;
 window.navigateTo = navigateTo;
+window.autoCalcBreederDates = autoCalcBreederDates;
+window.saveProData = saveProData;
+window.addProEvent = addProEvent;
+window.toggleBreederFields = toggleBreederFields;

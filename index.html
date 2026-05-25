@@ -131,7 +131,7 @@
             font-size: 15px;
             transition: opacity 0.2s;
         }
-        .btn-primary:opacity { opacity: 0.8; }
+        .btn-primary:active { opacity: 0.8; }
 
         .btn-secondary-outline {
             background: transparent;
@@ -243,6 +243,9 @@
             position: fixed;
             bottom: 0; left: 0; right: 0;
             z-index: 999;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 0 10px;
         }
 
         .nav-item {
@@ -253,6 +256,7 @@
             color: var(--text-muted);
             cursor: pointer;
             gap: 4px;
+            min-width: 65px;
         }
         .nav-item.active { color: var(--accent); }
         .nav-item i { font-size: 20px; }
@@ -355,6 +359,7 @@
         .mt-10 { margin-top: 10px; }
         .mt-15 { margin-top: 15px; }
         .mt-20 { margin-top: 20px; }
+        .mb-10 { margin-bottom: 10px; }
         .mb-20 { margin-bottom: 20px; }
 
         #breed-advice-content h4 {
@@ -430,14 +435,9 @@
                 <li onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i> Éducation</li>
                 <li onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i> Budget</li>
                 <li onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i> Hey Pablo</li>
+                <li onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i> Officiel & Élevage</li>
                 <li onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i> Configuration</li>
-                <li onclick="navigateTo('screen-breeder')"><i class="fa-solid fa-mars-and-venus"></i> Éleveur</li>
-<li onclick="navigateTo('screen-shows')"><i class="fa-solid fa-trophy"></i> Concours</li>
-
-<div class="nav-item" onclick="navigateTo('screen-breeder')"><i class="fa-solid fa-mars-and-venus"></i>Élevage</div>
-<div class="nav-item" onclick="navigateTo('screen-shows')"><i class="fa-solid fa-trophy"></i>Concours</div>
             </ul>
-            
 
             <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
                 <span id="current-pet-display-top" style="font-size:13px; color:#aaa;">Pablo</span>
@@ -471,116 +471,6 @@
                             Chargement de la documentation...
                         </div>
                     </div>
-                    <div id="screen-breeder" class="screen">
-    <div class="main-card">
-        <h3><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Suivi de Reproduction</h3>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Enregistrez les cycles et programmez les rappels de mise à bas.</p>
-        
-        <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="form-group">
-                <label>Début des Chaleurs</label>
-                <input type="date" id="breeder-heat-date" onchange="autoCalcBreederDates()">
-            </div>
-            <div class="form-group">
-                <label>Fécondation Optimale (estimée)</label>
-                <input type="date" id="breeder-optimal-date">
-            </div>
-            <div class="form-group">
-                <label>Accouplement avec (Nom)</label>
-                <input type="text" id="breeder-partner" placeholder="Nom du mâle/femelle">
-            </div>
-            <div class="form-group">
-                <label>Date de Saillie</label>
-                <input type="date" id="breeder-mating-date" onchange="autoCalcBreederDates()">
-            </div>
-            <div class="form-group">
-                <label>Naissance Prévue (Saillie + 63j)</label>
-                <input type="date" id="breeder-expected-birth">
-            </div>
-            <div class="form-group">
-                <label>Date de Mise à Bas réelle</label>
-                <input type="date" id="breeder-actual-birth">
-            </div>
-        </div>
-        
-        <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
-            <input type="checkbox" id="breeder-heat-reminder" style="width: auto;">
-            <label for="breeder-heat-reminder" style="font-size: 14px;">Activer le rappel des prochaines chaleurs (+6 mois)</label>
-        </div>
-
-        <button class="btn-primary mt-15" onclick="saveBreederData()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les données</button>
-    </div>
-</div>
-
-<div id="screen-shows" class="screen">
-    
-    <div class="main-card">
-        <h3><i class="fa-solid fa-award" style="color: var(--accent); margin-right: 8px;"></i>Profil Officiel & Santé</h3>
-        
-        <div class="dashboard-layout-grid mt-15" style="grid-template-columns: 1fr 1fr;">
-            <div class="form-group">
-                <label>N° de Pedigree / LOF</label>
-                <input type="text" id="show-pedigree" placeholder="Ex: LOF 123456/789">
-            </div>
-            <div class="form-group">
-                <label>Date Entrée Club Canin</label>
-                <input type="date" id="show-club-date">
-            </div>
-            <div class="form-group">
-                <label>Test ADN</label>
-                <select id="show-dna-test">
-                    <option value="Non fait">Non fait</option>
-                    <option value="En cours">En cours d'analyse</option>
-                    <option value="Identifié">Identifié ADN</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Radio Hanches / Coudes</label>
-                <input type="text" id="show-xrays" placeholder="Ex: Hanches A, Coudes 0">
-            </div>
-            <div class="form-group">
-                <label>Date Confirmation LOF</label>
-                <input type="date" id="show-lof-date">
-            </div>
-            <div class="form-group">
-                <label>Date Obention CSAU</label>
-                <input type="date" id="show-csau-date">
-            </div>
-        </div>
-        <button class="btn-primary mt-10" onclick="saveShowProfile()"><i class="fa-solid fa-floppy-disk"></i> Mettre à jour le profil officiel</button>
-    </div>
-
-    <div class="main-card mt-15">
-        <h3>Ajouter un Concours (Passé ou À venir)</h3>
-        <div class="dashboard-layout-grid mt-10" style="grid-template-columns: 1fr 1fr;">
-            <div class="form-group">
-                <label>Type de Concours</label>
-                <select id="new-show-type">
-                    <option value="Beauté (CACS/CACIB)">Beauté (CACS/CACIB)</option>
-                    <option value="Agility">Agility</option>
-                    <option value="Ring">Ring</option>
-                    <option value="Obéissance">Obéissance</option>
-                    <option value="IGP / RCI">IGP / RCI</option>
-                    <option value="Pistage">Pistage</option>
-                    <option value="Canicross">Canicross</option>
-                    <option value="Autre">Autre</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Date de l'événement</label>
-                <input type="date" id="new-show-date">
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-                <label>Lieu / Juge / Résultat</label>
-                <input type="text" id="new-show-details" placeholder="Ex: Paris - Excellent 1er...">
-            </div>
-        </div>
-        <button class="btn-primary mt-10" onclick="addShowEvent()"><i class="fa-solid fa-plus"></i> Ajouter l'événement</button>
-        
-        <h4 class="mt-20 mb-10">Agenda des Concours</h4>
-        <div id="shows-history-list"></div>
-    </div>
-</div>
 
                     <div class="dashboard-layout-grid mt-20">
                         <div class="main-card stat-flex-row">
@@ -609,6 +499,9 @@
                         </div>
                     </div>
                     <button class="btn-secondary-outline mt-10" onclick="resetDailyTrackers()" style="width: 100%; font-size: 13px; padding: 8px;">Réinitialiser l'eau & les marches du jour</button>
+                    
+                    <h3 class="mt-20 mb-10">Agenda & Rappels</h3>
+                    <div id="dynamic-reminders-list"></div>
                 </div>
 
                 <div id="screen-health" class="screen">
@@ -636,9 +529,6 @@
                         </div>
                     </div>
 
-                    <h3 class="mt-20 mb-10">Rappels urgents</h3>
-                    <div id="dynamic-reminders-list"></div>
-
                     <div class="main-card mt-20">
                         <div style="display: flex; justify-content:space-between; align-items:center;">
                             <h3>Actes & Soins réalisés</h3>
@@ -664,12 +554,11 @@
                         <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Pilotez et enregistrez les acquis d'apprentissage de votre compagnon.</p>
                         
                         <div style="display: flex; gap: 10px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border-color);">
-                            <input type="text" id="new-custom-exercise-input" placeholder="Ajouter un exercice (ex: Donne la patte)" style="flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color); font-size: 14px;">
+                            <input type="text" id="new-custom-exercise-input" placeholder="Ajouter un ordre (ex: Patte)" style="flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color); font-size: 14px;">
                             <button onclick="addCustomExercise()" class="btn-primary" style="width:auto; padding: 10px 15px;"><i class="fa-solid fa-plus"></i></button>
                         </div>
 
-                        <div id="edu-container" style="display:flex; flex-direction:column; gap:12px;">
-                            </div>
+                        <div id="edu-container" style="display:flex; flex-direction:column; gap:12px;"></div>
                     </div>
                 </div>
 
@@ -680,7 +569,7 @@
                     </div>
 
                     <div class="main-card mt-15">
-                        <h3>Ajouter un achat (Croquettes, Accessoires...)</h3>
+                        <h3>Ajouter un achat (Croquettes, Jouets...)</h3>
                         <div style="display: flex; gap:10px;" class="mt-10">
                             <input type="text" id="budget-title" placeholder="Ex: Sac de Croquettes" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
                             <input type="number" step="0.01" id="budget-amount" placeholder="Prix (€)" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
@@ -706,6 +595,113 @@
                         <button onclick="askPreset('Comment calculer la ration idéale de mon animal ?')" style="background:var(--main-card-bg); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer;">Calcul de ration 🍖</button>
                         <button onclick="askPreset('Faut-il vermifuger à chaque changement de saison ?')" style="background:var(--main-card-bg); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer;">Vermifuge & Saison 🍂</button>
                     </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- ONGLET OFFICIEL & ÉLEVAGE (ÉPURÉ) -->
+                <!-- ========================================== -->
+                <div id="screen-pro" class="screen">
+                    
+                    <!-- 1. Documents & Tests -->
+                    <div class="main-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                            <h3 style="margin:0;"><i class="fa-solid fa-id-card" style="color: var(--accent); margin-right: 8px;"></i>Documents & Profil</h3>
+                        </div>
+                        <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr;">
+                            <div class="form-group">
+                                <label>Sexe</label>
+                                <select id="pro-gender" onchange="toggleBreederFields()" style="border-color: var(--accent); font-weight: bold;">
+                                    <option value="Non spécifié">Non spécifié</option>
+                                    <option value="Mâle">Mâle ♂️</option>
+                                    <option value="Femelle">Femelle ♀️</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>N° Pedigree / LOF</label>
+                                <input type="text" id="pro-pedigree" placeholder="Ex: LOF 123456">
+                            </div>
+                            <div class="form-group">
+                                <label>Test ADN</label>
+                                <select id="pro-dna">
+                                    <option value="Non fait">Non fait</option>
+                                    <option value="En cours">En cours d'analyse</option>
+                                    <option value="Identifié">Identifié ADN</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Radio Hanches / Coudes</label>
+                                <input type="text" id="pro-xrays" placeholder="Ex: A/0">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirmation LOF</label>
+                                <input type="date" id="pro-lof-date">
+                            </div>
+                            <div class="form-group">
+                                <label>Club Canin / CSAU</label>
+                                <input type="date" id="pro-csau-date">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Reproduction (Intelligente) -->
+                    <div class="main-card mt-15">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Reproduction</h3>
+                        <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr;">
+                            
+                            <div class="form-group" id="field-chaleurs">
+                                <label>Début des Chaleurs</label>
+                                <input type="date" id="pro-heat-date" onchange="autoCalcBreederDates()">
+                            </div>
+                            <div class="form-group" id="field-fec-opti">
+                                <label>Fécondation Opti. (+12j)</label>
+                                <input type="date" id="pro-optimal-date">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Partenaire (Saillie)</label>
+                                <input type="text" id="pro-partner" placeholder="Nom...">
+                            </div>
+                            <div class="form-group">
+                                <label>Date de Saillie</label>
+                                <input type="date" id="pro-mating-date" onchange="autoCalcBreederDates()">
+                            </div>
+
+                            <div class="form-group" id="field-naissance-prevue">
+                                <label>Naissance Prévue (+63j)</label>
+                                <input type="date" id="pro-expected-birth">
+                            </div>
+                            <div class="form-group" id="field-mise-a-bas">
+                                <label>Date Mise à Bas (réelle)</label>
+                                <input type="date" id="pro-actual-birth">
+                            </div>
+                        </div>
+                        
+                        <div id="field-rappel-chaleurs" style="display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                            <input type="checkbox" id="pro-heat-reminder" style="width: auto;">
+                            <label for="pro-heat-reminder" style="font-size: 13px; color: var(--text-muted);">Activer le rappel des prochaines chaleurs dans 6 mois</label>
+                        </div>
+                    </div>
+
+                    <!-- 3. Palmarès & Événements -->
+                    <div class="main-card mt-15">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-trophy" style="color: var(--accent); margin-right: 8px;"></i>Palmarès & Concours</h3>
+                        <div style="display:flex; gap:10px; margin-bottom: 15px;">
+                            <select id="pro-event-type" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                                <option value="Beauté">Beauté (CACS/CACIB)</option>
+                                <option value="Sport">Sport (Agility, Ring...)</option>
+                                <option value="Autre">Autre Concours</option>
+                            </select>
+                            <input type="date" id="pro-event-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="pro-event-details" placeholder="Lieu & Résultat (Ex: Paris - 1er Exc)" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <button class="btn-primary" onclick="addProEvent()" style="width:auto; padding: 10px 15px;"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        
+                        <div id="pro-events-list" style="margin-top: 20px;"></div>
+                    </div>
+
+                    <button class="btn-primary mt-15 mb-20" onclick="saveProData()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel</button>
                 </div>
 
                 <div id="screen-profile" class="screen">
@@ -754,7 +750,7 @@
                             <span>Mode Sombre graphique</span><i class="fa-solid fa-moon"></i>
                         </button>
                         <button id="btn-enable-notifications" class="btn-secondary-outline mt-10" onclick="requestNotificationPermission()" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
-                            <span>Activer les rappels push de vaccins</span><i class="fa-solid fa-bell"></i>
+                            <span>Activer les notifications push</span><i class="fa-solid fa-bell"></i>
                         </button>
                         <button class="btn-secondary-outline mt-15" onclick="deleteCurrentPet()" style="width:100%; border-color:var(--danger); color:var(--danger); text-align:left; display:flex; justify-content:space-between; align-items:center;">
                             <span>Supprimer définitivement ce profil</span><i class="fa-solid fa-trash-can"></i>
@@ -768,14 +764,9 @@
                 <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
                 <div class="nav-item" onclick="navigateTo('screen-health')"><i class="fa-solid fa-heart-pulse"></i>Santé</div>
                 <div class="nav-item" onclick="navigateTo('screen-edu')"><i class="fa-solid fa-graduation-cap"></i>Édu</div>
-                <div class="nav-item" onclick="navigateTo('screen-budget')"><i class="fa-solid fa-wallet"></i>Budget</div>
                 <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>
+                <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Officiel</div>
                 <div class="nav-item" onclick="navigateTo('screen-profile')"><i class="fa-solid fa-gear"></i>Config</div>
-                <li onclick="navigateTo('screen-breeder')"><i class="fa-solid fa-mars-and-venus"></i> Éleveur</li>
-<li onclick="navigateTo('screen-shows')"><i class="fa-solid fa-trophy"></i> Concours</li>
-
-<div class="nav-item" onclick="navigateTo('screen-breeder')"><i class="fa-solid fa-mars-and-venus"></i>Élevage</div>
-<div class="nav-item" onclick="navigateTo('screen-shows')"><i class="fa-solid fa-trophy"></i>Concours</div>
             </div>
 
         </div>
@@ -818,12 +809,8 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('Service Worker enregistré avec succès :', registration.scope);
-            })
-            .catch(error => {
-              console.log('Échec de l\'enregistrement du Service Worker :', error);
-            });
+            .then(registration => console.log('Service Worker enregistré.'))
+            .catch(error => console.log('Échec de l\'enregistrement du Service Worker :', error));
         });
       }
     </script>
