@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
-
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/...";
 // ==========================================
 // CONFIGURATION GLOBALE
 // ==========================================
@@ -1176,5 +1176,48 @@ function renderMemories() {
 
 window.generateAvatar = () => { alert("Bientôt disponible ! L'IA analysera la photo de profil pour générer un avatar Disney/Pixar de " + (petProfile.name || "votre chien") + ". 🪄"); };
 
+// Tout en bas de ton fichier app.js
+
+window.processResetPassword = async function() {
+    const email = document.getElementById('auth-email').value;
+    const msgBox = document.getElementById('auth-msg-box');
+    
+    // 1. On vérifie si l'utilisateur a bien tapé un email
+    if (!email) {
+        msgBox.style.display = 'block';
+        msgBox.style.backgroundColor = 'rgba(230, 57, 70, 0.2)';
+        msgBox.style.color = '#e63946';
+        msgBox.innerText = "⚠️ Veuillez entrer une adresse email.";
+        return;
+    }
+
+    // 2. On appelle Firebase pour envoyer le mail
+    try {
+        // "auth" doit correspondre au nom de ta variable Firebase Auth configurée plus haut dans ton app.js
+        // Si tu utilises la méthode sendPasswordResetEmail importée de Firebase :
+        if (typeof sendPasswordResetEmail !== 'undefined' && auth) {
+            await sendPasswordResetEmail(auth, email);
+        } else {
+            // Version si tu utilises le SDK globalisé ou une autre syntaxe
+            await auth.sendPasswordResetEmail(email);
+        }
+
+        msgBox.style.display = 'block';
+        msgBox.style.backgroundColor = 'rgba(71, 209, 117, 0.2)';
+        msgBox.style.color = '#47d175';
+        msgBox.innerText = "🐾 Lien envoyé ! Vérifiez votre boîte mail (et vos spams).";
+    } catch (error) {
+        msgBox.style.display = 'block';
+        msgBox.style.backgroundColor = 'rgba(230, 57, 70, 0.2)';
+        msgBox.style.color = '#e63946';
+        
+        // Gestion des erreurs Firebase courantes
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+            msgBox.innerText = "❌ Aucun compte valide ne correspond à cet email.";
+        } else {
+            msgBox.innerText = "❌ Erreur : " + error.message;
+        }
+    }
+};
 // EXPORTS GLOBAUX
 window.switchPet = switchPet; window.createNewPet = createNewPet; window.confirmCreateNewPet = confirmCreateNewPet; window.closePetModal = closePetModal; window.toggleDarkMode = toggleDarkMode; window.updateNutritionUI = updateNutritionUI; window.addWater = addWater; window.addWalk = addWalk; window.resetDailyTrackers = resetDailyTrackers; window.addNewWeight = addNewWeight; window.addMedicalEvent = addMedicalEvent; window.clearMedicalHistory = clearMedicalHistory; window.addBudgetExpense = addBudgetExpense; window.uploadPetPhoto = uploadPetPhoto; window.savePetProfile = savePetProfile; window.deleteCurrentPet = deleteCurrentPet; window.navigateTo = navigateTo; window.autoCalcBreederDates = autoCalcBreederDates; window.saveProData = saveProData; window.addProEvent = addProEvent; window.addLitter = addLitter; window.toggleBreederFields = toggleBreederFields; window.callVet = callVet; window.callPoisonControl = callPoisonControl; window.refillKibbleBag = refillKibbleBag; window.saveHealthExtras = saveHealthExtras; window.addHeatRecord = addHeatRecord; window.addMatingRecord = addMatingRecord; window.addMemory = addMemory; window.generateAvatar = generateAvatar;
