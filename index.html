@@ -399,20 +399,31 @@
             <h2 id="auth-title" style="margin-bottom: 5px; font-size: 22px;">Bienvenue</h2>
             <p id="auth-subtitle" style="color: #bbb; font-size: 13px; margin-bottom: 20px;">Connectez-vous pour retrouver votre compagnon.</p>
             
+            <div id="auth-msg-box" style="display: none; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; text-align: left; font-weight: 500;"></div>
+            
             <div class="form-group">
                 <label>Adresse Email</label>
                 <input type="email" id="auth-email" placeholder="pablo@exemple.com">
             </div>
-            <div class="form-group">
+            
+            <div class="form-group" id="auth-password-group">
                 <label>Mot de passe</label>
                 <input type="password" id="auth-password" placeholder="••••••••">
+                <div style="text-align: right; margin-top: 6px;">
+                    <a onclick="switchToResetMode()" style="color: var(--accent); font-size: 12px; cursor: pointer; text-decoration: underline;">Mot de passe oublié ?</a>
+                </div>
             </div>
 
             <button class="btn-primary mt-10" id="auth-action-btn" onclick="processAuth()">Se connecter</button>
-            <button class="btn-secondary-outline mt-10" onclick="processGoogleAuth()" style="width:100%; color: white; border-color: rgba(255,255,255,0.2);">
+            
+            <button class="btn-secondary-outline mt-10" id="auth-google-btn" onclick="processGoogleAuth()" style="width:100%; color: white; border-color: rgba(255,255,255,0.2);">
                 <i class="fa-brands fa-google" style="margin-right: 8px;"></i> Continuer avec Google
             </button>
-            <p class="auth-switch"><span id="auth-switch-text">Pas encore de compte ?</span> <a onclick="toggleAuthMode()">Créer un compte</a></p>
+            
+            <p class="auth-switch">
+                <span id="auth-switch-text">Pas encore de compte ?</span> 
+                <a id="auth-switch-link" onclick="toggleAuthMode()">Créer un compte</a>
+            </p>
         </div>
     </div>
 
@@ -449,16 +460,12 @@
                 
                 <div style="display: flex; gap: 15px; align-items:center;">
                     <select id="mobile-pet-selector" style="display: none; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-size: 13px; max-width: 120px;"></select>
-                    <!-- Icone de Configuration ramenée ici pour purger les onglets -->
                     <i class="fa-solid fa-gear" style="color: var(--text-muted); cursor:pointer; font-size: 20px;" onclick="navigateTo('screen-profile')"></i>
                 </div>
             </div>
 
             <div class="screens-container">
 
-                <!-- ========================================== -->
-                <!-- 1. ACCUEIL -->
-                <!-- ========================================== -->
                 <div id="screen-home" class="screen active">
                     
                     <div id="birthday-banner" style="display:none; background: linear-gradient(135deg, #ff9a9e, #fecfef); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; color: #d62828; font-weight: bold;">
@@ -505,12 +512,8 @@
                     <div id="dynamic-reminders-list"></div>
                 </div>
 
-                <!-- ========================================== -->
-                <!-- 2. CARNET DE SUIVI (Fusion Santé, Édu, Budget) -->
-                <!-- ========================================== -->
                 <div id="screen-carnet" class="screen">
                     
-                    <!-- --- SANTÉ --- -->
                     <h2 class="section-divider"><i class="fa-solid fa-heart-pulse"></i> Santé & Nutrition</h2>
                     
                     <div id="health-alerts-banner" class="main-card" style="display:none; background-color: #ffe3e5; border-color: var(--danger);">
@@ -594,7 +597,6 @@
                         <div id="medical-history-list"></div>
                     </div>
 
-                    <!-- --- ÉDUCATION --- -->
                     <h2 class="section-divider"><i class="fa-solid fa-graduation-cap"></i> Apprentissages</h2>
                     <div class="main-card">
                         <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Enregistrez les acquis d'apprentissage.</p>
@@ -605,7 +607,6 @@
                         <div id="edu-container" style="display:flex; flex-direction:column; gap:12px;"></div>
                     </div>
 
-                    <!-- --- BUDGET --- -->
                     <h2 class="section-divider"><i class="fa-solid fa-wallet"></i> Budget du Mois : <span id="budget-screen-total" style="color:var(--accent);">0,00 €</span></h2>
                     <div class="main-card">
                         <h3>Ajouter une dépense</h3>
@@ -620,9 +621,6 @@
 
                 </div>
 
-                <!-- ========================================== -->
-                <!-- 3. CHAT PABLO -->
-                <!-- ========================================== -->
                 <div id="screen-chat" class="screen">
                     <div class="chat-area">
                         <div class="messages-box" id="chat-messages-container"></div>
@@ -638,9 +636,6 @@
                     </div>
                 </div>
 
-                <!-- ========================================== -->
-                <!-- 4. OFFICIEL & ÉLEVAGE -->
-                <!-- ========================================== -->
                 <div id="screen-pro" class="screen">
                     
                     <div class="main-card">
@@ -692,7 +687,6 @@
                     <div class="main-card mt-15">
                         <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Suivi de Reproduction</h3>
                         
-                        <!-- Chaleurs -->
                         <div id="field-chaleurs-history" style="margin-bottom: 20px;">
                             <h4>Historique des Chaleurs (Moyenne : <span id="heat-average" style="color: var(--accent);">-- mois</span>)</h4>
                             <div style="display:flex; gap:10px; margin-top:5px;">
@@ -702,7 +696,6 @@
                             <div id="heat-history-list" class="mt-10" style="font-size: 13px;"></div>
                         </div>
 
-                        <!-- Saillies -->
                         <div>
                             <h4>Historique des Saillies</h4>
                             <div class="dashboard-layout-grid mt-5">
@@ -767,9 +760,6 @@
                     <button class="btn-primary mt-15 mb-20" onclick="saveProData()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel</button>
                 </div>
 
-                <!-- ========================================== -->
-                <!-- 5. OUTILS & SOUVENIRS -->
-                <!-- ========================================== -->
                 <div id="screen-tools" class="screen">
                     <div class="main-card">
                         <h3><i class="fa-solid fa-suitcase" style="color: var(--accent); margin-right:8px;"></i>La Valise de <span class="dynamic-pet-name">Pablo</span></h3>
@@ -803,9 +793,6 @@
                     </div>
                 </div>
 
-                <!-- ========================================== -->
-                <!-- CONFIGURATION (Cachée de la nav principale) -->
-                <!-- ========================================== -->
                 <div id="screen-profile" class="screen">
                     <div class="main-card">
                         <div class="avatar-circle-uploader" onclick="document.getElementById('file-upload-input').click()">
@@ -867,10 +854,9 @@
 
             </div>
 
-            <!-- MENU MOBILE (Seulement 5 onglets) -->
             <div class="mobile-nav">
                 <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
-                <div class="nav-item" onclick="navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i>Carnet</div>
+                <div class="nav-item" onclick="navigator-carnet' || navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i>Carnet</div>
                 <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>
                 <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Élevage</div>
                 <div class="nav-item" onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i>Outils</div>
@@ -911,6 +897,46 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function switchToResetMode() {
+            document.getElementById('auth-title').innerText = "Mot de passe oublié";
+            document.getElementById('auth-subtitle').innerText = "Entrez votre email pour recevoir un lien de récupération.";
+            document.getElementById('auth-password-group').style.display = 'none';
+            document.getElementById('auth-google-btn').style.display = 'none';
+            
+            const actionBtn = document.getElementById('auth-action-btn');
+            actionBtn.innerText = "Envoyer le lien";
+            actionBtn.setAttribute('onclick', 'processResetPassword()');
+            
+            document.getElementById('auth-switch-text').innerText = "Vous vous en rappelez ?";
+            const switchLink = document.getElementById('auth-switch-link');
+            switchLink.innerText = "Se connecter";
+            switchLink.setAttribute('onclick', 'switchToLoginMode()');
+            
+            const msgBox = document.getElementById('auth-msg-box');
+            msgBox.style.display = 'none';
+        }
+
+        function switchToLoginMode() {
+            document.getElementById('auth-title').innerText = "Bienvenue";
+            document.getElementById('auth-subtitle').innerText = "Connectez-vous pour retrouver votre compagnon.";
+            document.getElementById('auth-password-group').style.display = 'block';
+            document.getElementById('auth-google-btn').style.display = 'block';
+            
+            const actionBtn = document.getElementById('auth-action-btn');
+            actionBtn.innerText = "Se connecter";
+            actionBtn.setAttribute('onclick', 'processAuth()');
+            
+            document.getElementById('auth-switch-text').innerText = "Pas encore de compte ?";
+            const switchLink = document.getElementById('auth-switch-link');
+            switchLink.innerText = "Créer un compte";
+            switchLink.setAttribute('onclick', 'toggleAuthMode()');
+            
+            const msgBox = document.getElementById('auth-msg-box');
+            msgBox.style.display = 'none';
+        }
+    </script>
 
     <script>
       if ('serviceWorker' in navigator) {
