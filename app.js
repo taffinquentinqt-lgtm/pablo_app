@@ -1,10 +1,11 @@
 // --- IMPORTS FIREBASE & CLOUD FIRESTORE ---
+// --- IMPORTS FIREBASE & CLOUD FIRESTORE ---
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+// On a ajouté sendPasswordResetEmail directement ici, sur la ligne officielle !
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/...";
-// ==========================================
+
 // CONFIGURATION GLOBALE
 // ==========================================
 const GLOBAL_CONFIG_ID = "pablo_global_config";
@@ -1220,4 +1221,5 @@ window.processResetPassword = async function() {
     }
 };
 // EXPORTS GLOBAUX
-window.switchPet = switchPet; window.createNewPet = createNewPet; window.confirmCreateNewPet = confirmCreateNewPet; window.closePetModal = closePetModal; window.toggleDarkMode = toggleDarkMode; window.updateNutritionUI = updateNutritionUI; window.addWater = addWater; window.addWalk = addWalk; window.resetDailyTrackers = resetDailyTrackers; window.addNewWeight = addNewWeight; window.addMedicalEvent = addMedicalEvent; window.clearMedicalHistory = clearMedicalHistory; window.addBudgetExpense = addBudgetExpense; window.uploadPetPhoto = uploadPetPhoto; window.savePetProfile = savePetProfile; window.deleteCurrentPet = deleteCurrentPet; window.navigateTo = navigateTo; window.autoCalcBreederDates = autoCalcBreederDates; window.saveProData = saveProData; window.addProEvent = addProEvent; window.addLitter = addLitter; window.toggleBreederFields = toggleBreederFields; window.callVet = callVet; window.callPoisonControl = callPoisonControl; window.refillKibbleBag = refillKibbleBag; window.saveHealthExtras = saveHealthExtras; window.addHeatRecord = addHeatRecord; window.addMatingRecord = addMatingRecord; window.addMemory = addMemory; window.generateAvatar = generateAvatar;
+// EXPORTS GLOBAUX NETTOYÉS
+window.switchPet = switchPet; window.createNewPet = createNewPet; window.confirmCreateNewPet = confirmCreateNewPet; window.closePetModal = closePetModal; window.toggleDarkMode = toggleDarkMode; window.updateNutritionUI = updateNutritionUI; window.addWater = addWater; window.addWalk = addWalk; window.resetDailyTrackers = resetDailyTrackers; window.addNewWeight = addNewWeight; window.addMedicalEvent = addMedicalEvent; window.clearMedicalHistory = clearMedicalHistory; window.addBudgetExpense = addBudgetExpense; window.uploadPetPhoto = uploadPetPhoto; window.savePetProfile = savePetProfile; window.deleteCurrentPet = deleteCurrentPet; window.navigateTo = navigateTo; window.autoCalcBreederDates = autoCalcBreederDates; window.saveProData = saveProData; window.addProEvent = addProEvent; window.addLitter = addLitter; window.toggleBreederFields = toggleBreederFields; window.callVet = callVet; window.callPoisonControl = callPoisonControl; window.refillKibbleBag = refillKibbleBag; window.addHeatRecord = addHeatRecord; window.addMatingRecord = addMatingRecord; window.addMemory = addMemory; window.generateAvatar = generateAvatar;
