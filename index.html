@@ -3,531 +3,1350 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pablo - Compagnon Santé</title>
-    
-    <!-- Mini-vitrine pour les partages Facebook & LinkedIn -->
-    <meta property="og:title" content="Pablo - Le tableau de bord de votre compagnon">
+    <title>Pablo — Compagnon Santé</title>
+
+    <meta property="og:title" content="Pablo — Le tableau de bord de votre compagnon">
     <meta property="og:description" content="L'assistant de poche qui chasse la charge mentale des maîtres et des éleveurs. 100% gratuit et indépendant.">
     <meta property="og:image" content="https://pablo-app-roan.vercel.app/pablo.jpg">
     <meta property="og:url" content="https://pablo-app-roan.vercel.app">
     <meta property="og:type" content="website">
 
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#2c2520">
+    <meta name="theme-color" content="#1a1208">
     <meta name="mobile-web-app-capable" content="yes">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Pablo">
     <link rel="apple-touch-icon" href="/pablo.jpg">
 
+    <!-- Google Fonts - Distinctive pairing -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     <style>
         /* ==========================================
-           VARIABLES DE THÈME & POLICES
-           ========================================== */
+           DESIGN SYSTEM
+        ========================================== */
         :root {
-            --bg-color: #faf8f5;
-            --main-card-bg: #ffffff;
-            --text-color: #2c2520;
-            --text-muted: #7d756e;
-            --accent: #d4a373;
-            --accent-light: #f4eae1;
-            --border-color: #eadfc9;
-            --danger: #e63946;
-            --success: #47d175;
+            --bg:           #faf8f4;
+            --bg-alt:       #f2ede3;
+            --card:         #ffffff;
+            --text:         #1a1208;
+            --text-muted:   #8a7e6e;
+            --accent:       #c8922a;
+            --accent-light: #fdf3e3;
+            --accent-dark:  #9e6f1a;
+            --border:       #e8dfc8;
+            --danger:       #d93025;
+            --success:      #2d9e6b;
+            --shadow-sm:    0 2px 8px rgba(26,18,8,0.07);
+            --shadow-md:    0 8px 24px rgba(26,18,8,0.10);
+            --shadow-lg:    0 20px 60px rgba(26,18,8,0.15);
+            --radius-sm:    8px;
+            --radius-md:    14px;
+            --radius-lg:    20px;
+            --font-display: 'Playfair Display', Georgia, serif;
+            --font-body:    'DM Sans', system-ui, sans-serif;
+            --transition:   0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .dark-mode {
-            --bg-color: #121212;
-            --main-card-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --text-muted: #a0a0a0;
-            --accent: #d4a373;
-            --accent-light: #2a2420;
-            --border-color: #333333;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            overflow: hidden;
-            height: 100vh;
+            --bg:           #100e08;
+            --bg-alt:       #1a1610;
+            --card:         #1f1c14;
+            --text:         #ede8de;
+            --text-muted:   #8a7e6e;
+            --accent:       #d4a343;
+            --accent-light: #251e0e;
+            --accent-dark:  #c8922a;
+            --border:       #302a1e;
+            --shadow-sm:    0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md:    0 8px 24px rgba(0,0,0,0.4);
         }
 
         /* ==========================================
-           ANIMATION CHIEN QUI COURT
-           ========================================== */
+           RESET & BASE
+        ========================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            font-size: 15px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+            height: 100dvh;
+        }
+
+        /* ==========================================
+           DOG RUNNING ANIMATION
+        ========================================== */
         @keyframes dog-run {
-            0% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-4px) rotate(-15deg); }
-            50% { transform: translateY(0) rotate(0deg); }
-            75% { transform: translateY(-4px) rotate(15deg); }
+            0%   { transform: translateY(0) rotate(0deg); }
+            25%  { transform: translateY(-5px) rotate(-12deg); }
+            50%  { transform: translateY(0) rotate(0deg); }
+            75%  { transform: translateY(-5px) rotate(12deg); }
             100% { transform: translateY(0) rotate(0deg); }
         }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+            0%   { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        @keyframes pulse-ring {
+            0%   { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
         .running-dog {
             display: inline-block;
-            animation: dog-run 0.5s infinite linear;
+            animation: dog-run 0.45s infinite linear;
             color: var(--accent);
             font-size: 18px;
         }
 
         /* ==========================================
-           ÉCRANS DE BIENVENUE & AUTHENTIFICATION
-           ========================================== */
-        .full-screen-page {
+           LANDING PAGE
+        ========================================== */
+        #landing-page {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, #2c2520 0%, #1a1512 100%);
-            color: #ffffff;
+            inset: 0;
+            background: #1a1208;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            z-index: 9999;
+        }
+
+        /* Grain texture overlay */
+        #landing-page::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .landing-inner {
+            position: relative;
+            z-index: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 60px 24px 60px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 30px;
-            z-index: 9999;
             text-align: center;
+            gap: 48px;
         }
 
-        .auth-container {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 30px;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .form-group {
-            text-align: left;
-            margin-bottom: 15px;
-            width: 100%;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-            color: var(--text-muted);
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: var(--main-card-bg);
-            color: var(--text-color);
-            font-size: 15px;
-        }
-
-        .auth-container input {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-
-        .btn-primary {
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            font-size: 15px;
-            transition: opacity 0.2s;
-        }
-        .btn-primary:active { opacity: 0.8; }
-
-        .btn-secondary-outline {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .auth-switch {
-            margin-top: 15px;
-            font-size: 14px;
-            color: #ccc;
-        }
-        .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: underline; }
-
-        /* ==========================================
-           ARCHITECTURE GLOBALE DE L'APPLICATION
-           ========================================== */
-        .app-container {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-        }
-
-        .sidebar {
-            width: 280px;
-            background-color: #2c2520;
-            color: white;
+        /* Hero */
+        .landing-hero {
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            border-right: 1px solid rgba(255,255,255,0.05);
+            align-items: center;
+            gap: 20px;
+            animation: fadeInUp 0.8s ease both;
         }
 
-        .sidebar h2 { font-size: 22px; letter-spacing: 1px; margin-bottom: 25px; color: white; }
-        .sidebar h2 span { color: var(--accent); }
-
-        .pet-selector-wrapper {
-            margin-bottom: 25px;
+        .landing-logo-ring {
+            position: relative;
+            width: 90px;
+            height: 90px;
         }
-        .pet-selector-wrapper select {
-            width: 100%;
-            padding: 10px;
-            background: #3d352e;
-            color: white;
-            border: 1px solid #4a4037;
-            border-radius: 8px;
-            font-size: 14px;
+        .landing-logo-ring::before {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            border: 2px solid rgba(200,146,42,0.4);
+            animation: pulse-ring 2s ease-out infinite;
+        }
+        .landing-logo-icon {
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(135deg, #c8922a, #e8b84b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 0 40px rgba(200,146,42,0.35);
         }
 
-        .sidebar-menu { list-style: none; flex: 1; margin-bottom: 20px; overflow-y: auto; }
-        .sidebar-menu li {
-            padding: 10px 15px;
-            border-radius: 8px;
+        .landing-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(200,146,42,0.12);
+            border: 1px solid rgba(200,146,42,0.25);
+            color: #d4a343;
+            padding: 5px 14px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .landing-title {
+            font-family: var(--font-display);
+            font-size: clamp(52px, 10vw, 80px);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -2px;
+            color: #fff;
+        }
+        .landing-title span { color: #c8922a; }
+
+        .landing-subtitle {
+            font-size: clamp(16px, 3vw, 20px);
+            color: rgba(255,255,255,0.65);
+            max-width: 480px;
+            font-weight: 300;
+            line-height: 1.5;
+        }
+
+        /* CTA */
+        .landing-cta-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            animation: fadeInUp 0.8s 0.15s ease both;
+        }
+
+        .btn-landing-cta {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #c8922a, #e8b84b);
+            color: #1a1208;
+            font-family: var(--font-body);
+            font-size: 16px;
+            font-weight: 700;
+            padding: 16px 32px;
+            border: none;
+            border-radius: 100px;
             cursor: pointer;
+            box-shadow: 0 8px 30px rgba(200,146,42,0.40);
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+        }
+        .btn-landing-cta::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2.5s infinite;
+        }
+        .btn-landing-cta:hover  { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(200,146,42,0.55); }
+        .btn-landing-cta:active { transform: translateY(0); }
+
+        .landing-badges {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .landing-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.45);
+        }
+        .landing-badge i { color: var(--accent); font-size: 11px; }
+
+        /* Feature grid */
+        .landing-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            width: 100%;
+            animation: fadeInUp 0.8s 0.3s ease both;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            text-align: left;
+            transition: background var(--transition), border-color var(--transition), transform var(--transition);
+        }
+        .feature-card:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(200,146,42,0.25);
+            transform: translateY(-3px);
+        }
+
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, rgba(200,146,42,0.2), rgba(200,146,42,0.08));
+            border: 1px solid rgba(200,146,42,0.2);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #d4a343;
+            font-size: 18px;
+            margin-bottom: 14px;
+        }
+
+        .feature-card h3 {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .feature-card p {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            line-height: 1.6;
+        }
+
+        /* Footer quote */
+        .landing-footer {
+            animation: fadeInUp 0.8s 0.45s ease both;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            width: 100%;
+        }
+        .landing-footer blockquote {
+            font-size: 13px;
+            color: rgba(255,255,255,0.35);
+            font-style: italic;
+            line-height: 1.7;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        /* ==========================================
+           AUTH PAGE
+        ========================================== */
+        #auth-page {
+            position: fixed;
+            inset: 0;
+            background: #1a1208;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 9999;
+            overflow-y: auto;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: var(--radius-lg);
+            padding: 36px;
+            backdrop-filter: blur(12px);
+            animation: fadeInUp 0.5s ease both;
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .auth-logo i { font-size: 32px; color: #d4a343; }
+        .auth-logo h2 {
+            font-family: var(--font-display);
+            font-size: 26px;
+            color: #fff;
+            margin-top: 10px;
+        }
+        .auth-logo p { font-size: 13px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+
+        .auth-msg {
+            display: none;
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .auth-msg.error   { background: rgba(217,48,37,0.15); color: #ff6b6b; border: 1px solid rgba(217,48,37,0.3); }
+        .auth-msg.success { background: rgba(45,158,107,0.15); color: #5af5a0; border: 1px solid rgba(45,158,107,0.3); }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.4);
             margin-bottom: 6px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 13px 16px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--radius-sm);
+            color: #fff;
+            font-family: var(--font-body);
+            font-size: 15px;
+            transition: border-color var(--transition), background var(--transition);
+        }
+        .form-group input::placeholder { color: rgba(255,255,255,0.25); }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: rgba(200,146,42,0.6);
+            background: rgba(255,255,255,0.09);
+        }
+
+        .form-group .form-hint {
+            text-align: right;
+            margin-top: 6px;
+        }
+        .form-group .form-hint a {
+            color: #d4a343;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity var(--transition);
+        }
+        .form-group .form-hint a:hover { opacity: 1; }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #c8922a, #d4a343);
+            color: #1a1208;
+            font-family: var(--font-body);
+            font-size: 15px;
+            font-weight: 700;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: opacity var(--transition), transform var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary:hover   { opacity: 0.92; transform: translateY(-1px); }
+        .btn-primary:active  { opacity: 1; transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn-google {
+            width: 100%;
+            padding: 13px;
+            background: transparent;
+            color: rgba(255,255,255,0.8);
+            font-family: var(--font-body);
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: border-color var(--transition), background var(--transition);
+            margin-top: 10px;
+        }
+        .btn-google:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.25); }
+
+        .auth-divider {
             display: flex;
             align-items: center;
             gap: 12px;
-            color: #ccc;
-            transition: all 0.2s;
-            font-size: 14px;
+            margin: 16px 0;
+            color: rgba(255,255,255,0.2);
+            font-size: 12px;
         }
-        .sidebar-menu li:hover, .sidebar-menu li.active {
-            background-color: var(--accent);
-            color: white;
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.1);
         }
 
+        .auth-switch {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.4);
+        }
+        .auth-switch a {
+            color: #d4a343;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: 4px;
+            transition: opacity var(--transition);
+        }
+        .auth-switch a:hover { opacity: 0.8; }
+
+        /* ==========================================
+           APP LAYOUT
+        ========================================== */
+        #main-app-layout {
+            display: none;
+            height: 100dvh;
+            width: 100vw;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+            background: var(--bg);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            background: #1a1208;
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            border-right: 1px solid rgba(255,255,255,0.06);
+            overflow: hidden;
+        }
+
+        .sidebar-brand {
+            padding: 0 8px;
+            margin-bottom: 24px;
+        }
+        .sidebar-brand h2 {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+        .sidebar-brand h2 span { color: #d4a343; }
+        .sidebar-breed {
+            font-size: 11px;
+            color: rgba(255,255,255,0.35);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 2px;
+        }
+
+        .pet-selector-block {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: var(--radius-md);
+        }
+        .pet-selector-block label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.3);
+            display: block;
+            margin-bottom: 6px;
+        }
+        .pet-selector-block select {
+            width: 100%;
+            padding: 8px 10px;
+            background: rgba(255,255,255,0.07);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-body);
+            font-size: 13px;
+        }
+
+        .btn-add-pet {
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(200,146,42,0.12);
+            border: 1px dashed rgba(200,146,42,0.3);
+            border-radius: var(--radius-sm);
+            color: #d4a343;
+            font-family: var(--font-body);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .btn-add-pet:hover { background: rgba(200,146,42,0.2); }
+
+        .sidebar-nav {
+            flex: 1;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow-y: auto;
+        }
+        .sidebar-nav li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            color: rgba(255,255,255,0.45);
+            font-size: 14px;
+            font-weight: 500;
+            transition: background var(--transition), color var(--transition);
+        }
+        .sidebar-nav li i { width: 18px; text-align: center; font-size: 15px; }
+        .sidebar-nav li:hover  { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
+        .sidebar-nav li.active { background: linear-gradient(135deg, rgba(200,146,42,0.2), rgba(200,146,42,0.08)); color: #d4a343; border: 1px solid rgba(200,146,42,0.15); }
+
+        .sidebar-footer {
+            padding: 12px 8px 0;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sidebar-footer span { font-size: 12px; color: rgba(255,255,255,0.3); }
+        .btn-logout {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.3);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 6px;
+            border-radius: 6px;
+            transition: color var(--transition);
+        }
+        .btn-logout:hover { color: var(--danger); }
+
+        /* Main content */
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-width: 0;
             overflow: hidden;
-            background-color: var(--bg-color);
+            background: var(--bg);
         }
 
         .main-header {
-            height: 60px;
-            background-color: var(--main-card-bg);
-            border-bottom: 1px solid var(--border-color);
+            height: 58px;
+            flex-shrink: 0;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
+            padding: 0 24px;
+            box-shadow: var(--shadow-sm);
         }
+        .main-header h1 {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 15px;
+            transition: background var(--transition), color var(--transition);
+        }
+        .btn-icon:hover { background: var(--accent-light); color: var(--accent); }
 
         .screens-container {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 24px;
             -webkit-overflow-scrolling: touch;
         }
 
-        .screen { 
-    display: none; 
-    opacity: 0;
-    transition: opacity 0.25s ease-in-out;
-}
-.screen.active { 
-    display: block; 
-    opacity: 1;
-}
-
-        /* Barre de navigation basse pour le Mobile */
-        .mobile-nav {
+        /* ==========================================
+           SCREENS
+        ========================================== */
+        .screen {
             display: none;
-            height: 65px;
-            background-color: var(--main-card-bg);
-            border-top: 1px solid var(--border-color);
-            justify-content: space-around;
-            align-items: center;
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            z-index: 999;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
         }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 11px;
-            color: var(--text-muted);
-            cursor: pointer;
-            gap: 4px;
-            flex: 1;
+        .screen.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
         }
-        .nav-item.active { color: var(--accent); }
-        .nav-item i { font-size: 20px; }
 
         /* ==========================================
-           COMPOSANTS UI
-           ========================================== */
-        .main-card {
-            background-color: var(--main-card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+           CARDS & COMPONENTS
+        ========================================== */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             padding: 20px;
-            margin-bottom: 15px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow-sm);
         }
-        .section-divider {
-            margin: 30px 0 15px 0;
-            padding-bottom: 5px;
-            border-bottom: 2px solid var(--accent-light);
-            color: var(--text-color);
-            font-size: 18px;
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+        .card-title i { color: var(--accent); font-size: 15px; }
+
+        .section-header {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 28px 0 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
             display: flex;
             align-items: center;
             gap: 10px;
         }
+        .section-header i { color: var(--accent); }
 
-        .dashboard-layout-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 15px;
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
         }
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1;
+            margin: 4px 0;
+        }
+        .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
 
-        .stat-flex-row {
+        /* Inline action button in stat card */
+        .btn-stat {
+            width: 42px;
+            height: 42px;
+            background: var(--accent-light);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--accent);
+            font-size: 16px;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            transition: background var(--transition), transform var(--transition);
+            flex-shrink: 0;
         }
+        .btn-stat:hover  { background: var(--accent); color: #fff; }
+        .btn-stat:active { transform: scale(0.95); }
 
-        .big-stat-number { font-size: 28px; font-weight: bold; color: var(--text-color); margin: 5px 0; }
-
-        .health-log-item, .budget-item {
+        /* Log items */
+        .log-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
         }
-        .health-log-item:last-child, .budget-item:last-child { border-bottom: none; }
+        .log-item:last-child { border-bottom: none; }
+        .log-item strong { color: var(--text); }
+        .log-item span   { color: var(--text-muted); }
 
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .badge-danger  { background: rgba(217,48,37,0.1); color: var(--danger); border: 1px solid rgba(217,48,37,0.2); }
+        .badge-warning { background: rgba(255,183,0,0.1); color: #c47c00; border: 1px solid rgba(255,183,0,0.25); }
+        .badge-accent  { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(200,146,42,0.2); }
+        .badge-success { background: rgba(45,158,107,0.1); color: var(--success); border: 1px solid rgba(45,158,107,0.2); }
+
+        /* Form controls */
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        input[type="tel"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        textarea {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 14px;
+            transition: border-color var(--transition);
+            width: 100%;
+        }
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .form-row input,
+        .form-row select { flex: 1; min-width: 0; }
+
+        label.form-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition);
+            border: none;
+            padding: 10px 18px;
+        }
+        .btn-accent {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-accent:hover  { background: var(--accent-dark); }
+        .btn-accent:active { transform: scale(0.98); }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+        .btn-danger-outline {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid rgba(217,48,37,0.3);
+        }
+        .btn-danger-outline:hover { background: rgba(217,48,37,0.08); }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .btn-full { width: 100%; }
+        .btn-sm   { padding: 7px 12px; font-size: 12px; }
+        .btn-icon-round {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        /* Reminder cards */
         .reminder-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 12px 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             margin-bottom: 10px;
+            box-shadow: var(--shadow-sm);
         }
-        .alert-badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .alert-badge.danger { background-color: #ffe3e5; color: var(--danger); }
+        .reminder-item h4   { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+        .reminder-item span { font-size: 12px; color: var(--text-muted); }
 
-        .chat-area {
-            height: calc(100vh - 240px);
+        /* ==========================================
+           CHAT
+        ========================================== */
+        .chat-wrapper {
+            height: calc(100dvh - 130px);
             display: flex;
             flex-direction: column;
-            background: var(--main-card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             overflow: hidden;
+            box-shadow: var(--shadow-sm);
         }
-        .messages-box { flex: 1; padding: 15px; overflow-y: auto; }
-        .msg { display: flex; margin-bottom: 12px; max-width: 80%; align-items: flex-end; gap: 8px; }
-        .msg-bot { margin-right: auto; }
+
+        .messages-box {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .msg { display: flex; align-items: flex-end; gap: 8px; max-width: 80%; }
+        .msg-bot  { margin-right: auto; }
         .msg-user { margin-left: auto; flex-direction: row-reverse; }
-        .msg-content { padding: 12px; border-radius: 12px; font-size: 14px; line-height: 1.4; }
-        .msg-bot .msg-content { background-color: var(--bg-color); color: var(--text-color); }
-        .msg-user .msg-content { background-color: var(--accent); color: white; }
 
-        .chat-avatar-container {
-            width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
-            color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;
+        .msg-bubble {
+            padding: 11px 15px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .msg-bot  .msg-bubble { background: var(--bg-alt); color: var(--text); border-bottom-left-radius: 4px; }
+        .msg-user .msg-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+
+        .msg-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 11px;
+            flex-shrink: 0;
         }
 
-        .chat-input-row { padding: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; }
+        .chat-input-row {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            background: var(--card);
+        }
+        .chat-input-row input { flex: 1; }
 
+        .chat-presets {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 0 0;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .chat-presets::-webkit-scrollbar { display: none; }
+        .chat-preset-btn {
+            white-space: nowrap;
+            padding: 7px 14px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 12px;
+            font-family: var(--font-body);
+            color: var(--text);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: border-color var(--transition), color var(--transition);
+        }
+        .chat-preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ==========================================
+           MODAL
+        ========================================== */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
-            display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9000;
+            padding: 24px;
         }
-        .modal-card { width: 100%; max-width: 450px; margin-bottom: 0; }
-        .modal-card h3 { display: flex; align-items: center; gap: 8px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; }
-        .btn-close-modal { background: transparent; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
-
-        .avatar-circle-uploader {
-            width: 90px; height: 90px; border-radius: 50%; background: var(--accent-light);
-            border: 2px dashed var(--accent); display: flex; align-items: center; justify-content: center;
-            font-size: 24px; color: var(--accent); cursor: pointer; position: relative; overflow: hidden; margin: 0 auto 20px;
+        .modal-overlay.open { display: flex; }
+        .modal-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            box-shadow: var(--shadow-lg);
+            animation: fadeInUp 0.3s ease both;
         }
-        .avatar-circle-uploader img { width: 100%; height: 100%; object-fit: cover; position: absolute; }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 {
+            font-family: var(--font-display);
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-header h3 i { color: var(--accent); }
+        .btn-close {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background var(--transition);
+        }
+        .btn-close:hover { background: var(--border); }
 
-        .mt-10 { margin-top: 10px; }
-        .mt-15 { margin-top: 15px; }
-        .mt-20 { margin-top: 20px; }
-        .mb-10 { margin-bottom: 10px; }
-        .mb-20 { margin-bottom: 20px; }
+        /* ==========================================
+           AVATAR UPLOADER
+        ========================================== */
+        .avatar-uploader {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            background: var(--accent-light);
+            border: 2px dashed var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: var(--accent);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto 20px;
+            transition: border-color var(--transition);
+        }
+        .avatar-uploader:hover { border-color: var(--accent-dark); }
+        .avatar-uploader img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .avatar-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent);
+            color: #fff;
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 700;
+        }
 
+        /* ==========================================
+           MOBILE NAV
+        ========================================== */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            z-index: 999;
+        }
+        .mobile-nav-inner {
+            display: flex;
+            height: 100%;
+        }
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color var(--transition);
+            letter-spacing: 0.3px;
+        }
+        .nav-item i { font-size: 19px; }
+        .nav-item.active { color: var(--accent); }
+
+        /* ==========================================
+           TOAST
+        ========================================== */
+        #global-toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text);
+            color: var(--card);
+            padding: 12px 20px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+        #global-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ==========================================
+           BIRTHDAY BANNER
+        ========================================== */
+        .birthday-banner {
+            background: linear-gradient(135deg, rgba(255,154,158,0.15), rgba(254,207,239,0.1));
+            border: 1px solid rgba(255,154,158,0.3);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            text-align: center;
+            margin-bottom: 14px;
+            color: #c23b3b;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        /* ==========================================
+           SKELETON LOADER
+        ========================================== */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-alt) 25%, var(--border) 50%, var(--bg-alt) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        /* ==========================================
+           RESPONSIVE
+        ========================================== */
         @media (max-width: 768px) {
             .sidebar { display: none; }
-            .mobile-nav { display: flex; }
-            .main-header { padding: 0 15px; }
-            .screens-container { padding: 15px; padding-bottom: 85px; }
-            .chat-area { height: calc(100vh - 210px); }
-            #mobile-pet-selector { display: block !important; }
+            .mobile-nav { display: block; }
+            .screens-container {
+                padding: 16px;
+                padding-bottom: 80px;
+            }
+            .chat-wrapper { height: calc(100dvh - 180px); }
+            .main-header { padding: 0 16px; }
+            #mobile-pet-selector { display: block !important; max-width: 130px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ==========================================
-       NOUVELLE LANDING PAGE PREMIUM & INFORMATIVE
-       ========================================== -->
-    <div id="landing-page" class="full-screen-page" style="overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; padding: 40px 20px;">
-        
-        <!-- En-tête / Logo -->
-        <div style="margin-top: 20px; margin-bottom: 30px;">
-            <i class="fa-solid fa-shield-dog" style="font-size: 55px; color: var(--accent); margin-bottom: 15px;"></i>
-            <h1 style="font-size: 42px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px;">PABLO<span style="color: var(--accent);">.</span></h1>
-            <div style="display: inline-block; background: rgba(212, 163, 115, 0.15); color: var(--accent); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">
-                🐾 Projet Passion & Indépendant
+<!-- ==========================================
+     LANDING PAGE
+========================================== -->
+<div id="landing-page">
+    <div class="landing-inner">
+
+        <div class="landing-hero">
+            <div class="landing-logo-ring">
+                <div class="landing-logo-icon">🐾</div>
             </div>
-            <p style="color: #eadfc9; max-width: 500px; margin: 0 auto; font-size: 18px; font-weight: 500; line-height: 1.4;">
-                Le tableau de bord ultime qui chasse la charge mentale des maîtres et des éleveurs.
-            </p>
+            <div class="landing-eyebrow">
+                <i class="fa-solid fa-heart"></i> Projet passion & indépendant
+            </div>
+            <h1 class="landing-title">PABLO<span>.</span></h1>
+            <p class="landing-subtitle">Le tableau de bord ultime qui chasse la charge mentale des maîtres et des éleveurs.</p>
         </div>
 
-        <!-- Bouton d'action principal -->
-        <div style="margin-bottom: 40px; width: 100%; max-width: 320px;">
-            <button class="btn-primary" onclick="enterApp()" style="padding: 16px; font-size: 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(212, 163, 115, 0.3);">
-                Rejoindre la meute <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i>
+        <div class="landing-cta-group">
+            <button class="btn-landing-cta" onclick="enterApp()">
+                Rejoindre la meute
+                <i class="fa-solid fa-arrow-right"></i>
             </button>
-            <span style="display: block; font-size: 12px; color: #aaa; margin-top: 8px;">🚀 100% Gratuit • Sans publicité • Sans revente de données</span>
+            <div class="landing-badges">
+                <span class="landing-badge"><i class="fa-solid fa-check"></i> 100% Gratuit</span>
+                <span class="landing-badge"><i class="fa-solid fa-ban"></i> Sans pub</span>
+                <span class="landing-badge"><i class="fa-solid fa-shield-halved"></i> Sans revente de données</span>
+            </div>
         </div>
 
-        <!-- Grille des fonctionnalités -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px; text-align: left; margin-bottom: 40px;">
-            
-            <!-- Feature 1: Assistant -->
-            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; backdrop-filter: blur(5px);">
-                <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: white; font-size: 18px;">
-                    <i class="fa-solid fa-comment-medical"></i>
-                </div>
-                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: white;">Assistant intelligent contextuel</h3>
-                <p style="font-size: 13px; color: #ccc; line-height: 1.5;">Une question sur l'alimentation ou un doute sur un symptôme ? Votre assistant virtuel "Hey Pablo" profile ses réponses selon la race, l'âge et le poids exact de votre animal.</p>
+        <div class="landing-features">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-comment-medical"></i></div>
+                <h3>Assistant contextuel intelligent</h3>
+                <p>Hey Pablo profile ses réponses selon la race, l'âge et le poids exact de votre animal.</p>
             </div>
-
-            <!-- Feature 2: Croquette prédictive -->
-            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; backdrop-filter: blur(5px);">
-                <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: white; font-size: 18px;">
-                    <i class="fa-solid fa-bowl-food"></i>
-                </div>
-                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: white;">Zéro panne de croquettes</h3>
-                <p style="font-size: 13px; color: #ccc; line-height: 1.5;">L'application calcule la ration journalière idéale au gramme près. Grâce à sa jauge prédictive intelligente, Pablo vous alerte par notification avant que le sac ne soit vide.</p>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-bowl-food"></i></div>
+                <h3>Zéro panne de croquettes</h3>
+                <p>Ration calculée au gramme près. Alertes prédictives avant que le sac ne soit vide.</p>
             </div>
-
-            <!-- Feature 3: Suivi Pro Élevage -->
-            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; backdrop-filter: blur(5px);">
-                <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: white; font-size: 18px;">
-                    <i class="fa-solid fa-award"></i>
-                </div>
-                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: white;">Module Élevage de Terrain</h3>
-                <p style="font-size: 13px; color: #ccc; line-height: 1.5;">Directement inspiré du monde des éleveurs professionnels. Suivi précis des cycles de chaleurs, des saillies, des portées et calcul automatisé du taux de consanguinité (COI%).</p>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-award"></i></div>
+                <h3>Module Élevage de Terrain</h3>
+                <p>Chaleurs, saillies, portées et calcul automatisé du taux de consanguinité (COI%).</p>
             </div>
-
-            <!-- Feature 4: Santé et Budget -->
-            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; backdrop-filter: blur(5px);">
-                <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: white; font-size: 18px;">
-                    <i class="fa-solid fa-heart-pulse"></i>
-                </div>
-                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: white;">Santé globale & Gestion budgétaire</h3>
-                <p style="font-size: 13px; color: #ccc; line-height: 1.5;">Graphiques de croissance interactifs, rappels automatiques des soins (vaccins, vermifuges) et gestion complète des dépenses avec exportation des fiches de frais en PDF.</p>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                <h3>Santé & Gestion budgétaire</h3>
+                <p>Graphiques de croissance, rappels de soins, dépenses et export PDF intégré.</p>
             </div>
-
         </div>
 
-        <!-- Footer Storytelling -->
-        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 600px;">
-            <p style="font-size: 12px; color: #888; font-style: italic; line-height: 1.4;">
-                "Fils d'éleveur de Bergers Allemands, j'ai codé Pablo pour chasser les carnets en papier perdus et rendre hommage au premier chien qui a partagé ma vie d'adulte." ✨
-            </p>
+        <div class="landing-footer">
+            <blockquote>
+                "Fils d'éleveur de Bergers Allemands, j'ai codé Pablo pour chasser les carnets en papier perdus
+                et rendre hommage au premier chien qui a partagé ma vie d'adulte." ✨
+            </blockquote>
         </div>
 
     </div>
+</div>
 
-    <!-- ==========================================
-       ÉCRAN D'AUTHENTIFICATION MODULAIRE
-       ========================================== -->
-    <div id="auth-page" class="full-screen-page" style="display: none;">
-        <div class="auth-container">
-            <h2 id="auth-title" style="margin-bottom: 5px; font-size: 22px;">Bienvenue</h2>
-            <p id="auth-subtitle" style="color: #bbb; font-size: 13px; margin-bottom: 20px;">Connectez-vous pour retrouver votre compagnon.</p>
-            
-            <div id="auth-msg-box" style="display: none; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; text-align: left; font-weight: 500;"></div>
-            
-            <div class="form-group">
-                <label>Adresse Email</label>
-                <input type="email" id="auth-email" placeholder="pablo@exemple.com">
-            </div>
-            
-            <div class="form-group" id="auth-password-group">
-                <label>Mot de passe</label>
-                <input type="password" id="auth-password" placeholder="••••••••">
-                <div style="text-align: right; margin-top: 6px;">
-                    <a onclick="switchToResetMode()" style="color: var(--accent); font-size: 12px; cursor: pointer; text-decoration: underline;">Mot de passe oublié ?</a>
-                </div>
-            </div>
-
-            <button class="btn-primary mt-10" id="auth-action-btn" onclick="processAuth()">Se connecter</button>
-            
-            <button class="btn-secondary-outline mt-10" id="auth-google-btn" onclick="processGoogleAuth()" style="width:100%; color: white; border-color: rgba(255,255,255,0.2);">
-                <i class="fa-brands fa-google" style="margin-right: 8px;"></i> Continuer avec Google
-            </button>
-            
-            <p class="auth-switch">
-                <span id="auth-switch-text">Pas encore de compte ?</span> 
-                <a id="auth-switch-link" onclick="toggleAuthMode()">Créer un compte</a>
-            </p>
+<!-- ==========================================
+     AUTH PAGE
+========================================== -->
+<div id="auth-page">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <i class="fa-solid fa-shield-dog"></i>
+            <h2 id="auth-title">Bienvenue</h2>
+            <p id="auth-subtitle">Connectez-vous pour retrouver votre compagnon.</p>
         </div>
-    </div>
 
-    <!-- ==========================================
-       LAYOUT DE L'APPLICATION PRINCIPALE
-       ========================================== -->
-    <div id="main-app-layout" class="app-container" style="display: none;">
-        
-        <div class="sidebar">
-            <h2 id="header-pet-name">PABLO<span>.</span></h2>
-            <div id="header-pet-breed" style="font-size:12px; color:var(--accent); margin-top:-20px; margin-bottom:20px; text-transform:uppercase; letter-spacing:1px;">Race non définie</div>
-            
-            <div class="pet-selector-wrapper">
-                <label style="font-size:11px; text-transform:uppercase; color:#888; display:block; margin-bottom:5px;">Changer de profil :</label>
+        <div id="auth-msg-box" class="auth-msg"></div>
+
+        <div class="form-group">
+            <label>Adresse Email</label>
+            <input type="email" id="auth-email" placeholder="pablo@exemple.com"
+                   autocomplete="email" inputmode="email">
+        </div>
+
+        <div class="form-group" id="auth-password-group">
+            <label>Mot de passe</label>
+            <input type="password" id="auth-password" placeholder="••••••••"
+                   autocomplete="current-password">
+            <div class="form-hint">
+                <a onclick="switchToResetMode()">Mot de passe oublié ?</a>
+            </div>
+        </div>
+
+        <button class="btn btn-accent btn-full" id="auth-action-btn" onclick="processAuth()">
+            Se connecter
+        </button>
+
+        <div class="auth-divider">ou</div>
+
+        <button class="btn-google" id="auth-google-btn" onclick="processGoogleAuth()">
+            <i class="fa-brands fa-google"></i> Continuer avec Google
+        </button>
+
+        <p class="auth-switch">
+            <span id="auth-switch-text">Pas encore de compte ?</span>
+            <a id="auth-switch-link" onclick="toggleAuthMode()">Créer un compte</a>
+        </p>
+    </div>
+</div>
+
+<!-- ==========================================
+     MAIN APP LAYOUT
+========================================== -->
+<div id="main-app-layout">
+    <div class="app-container">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2 id="header-pet-name">PABLO<span>.</span></h2>
+                <div class="sidebar-breed" id="header-pet-breed">Race non définie</div>
+            </div>
+
+            <div class="pet-selector-block">
+                <label>Profil actif</label>
                 <select id="pet-selector"></select>
-                <button onclick="createNewPet()" class="btn-primary mt-10" style="padding: 6px; font-size:12px;"><i class="fa-solid fa-plus"></i> Ajouter un animal</button>
+                <button class="btn-add-pet" onclick="createNewPet()">
+                    <i class="fa-solid fa-plus"></i> Ajouter un animal
+                </button>
             </div>
 
-            <ul class="sidebar-menu">
+            <ul class="sidebar-nav">
                 <li class="active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i> Accueil</li>
                 <li onclick="navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i> Carnet de Suivi</li>
                 <li onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i> Hey Pablo</li>
@@ -535,141 +1354,169 @@
                 <li onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i> Outils & Souvenirs</li>
             </ul>
 
-            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
-                <span id="current-pet-display-top" style="font-size:13px; color:#aaa;">Pablo</span>
-                <button onclick="logoutApp()" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fa-solid fa-power-off"></i></button>
+            <div class="sidebar-footer">
+                <span id="current-pet-display-top">Pablo</span>
+                <button class="btn-logout" onclick="logoutApp()" title="Déconnexion">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
             </div>
-        </div>
+        </aside>
 
+        <!-- MAIN CONTENT -->
         <div class="main-content">
-            
-            <div class="main-header">
-                <h1 id="page-title" style="font-size: 18px; font-weight: bold;">Vue d'ensemble</h1>
-                
-                <div style="display: flex; gap: 15px; align-items:center;">
-                    <select id="mobile-pet-selector" style="display: none; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-size: 13px; max-width: 120px;"></select>
-                    <i class="fa-solid fa-gear" style="color: var(--text-muted); cursor:pointer; font-size: 20px;" onclick="navigateTo('screen-profile')"></i>
+            <header class="main-header">
+                <h1 id="page-title">Vue d'ensemble</h1>
+                <div class="header-actions">
+                    <select id="mobile-pet-selector" style="display:none; padding:6px 10px; border-radius:var(--radius-sm); font-size:13px; max-width:130px;"></select>
+                    <div class="btn-icon" onclick="navigateTo('screen-profile')" title="Paramètres">
+                        <i class="fa-solid fa-gear"></i>
+                    </div>
                 </div>
-            </div>
+            </header>
 
             <div class="screens-container">
 
-                <!-- 1. ACCUEIL -->
+                <!-- ================================
+                     SCREEN: ACCUEIL
+                ================================= -->
                 <div id="screen-home" class="screen active">
-                    <div id="birthday-banner" style="display:none; background: linear-gradient(135deg, #ff9a9e, #fecfef); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; color: #d62828; font-weight: bold;">
+                    <div id="birthday-banner" class="birthday-banner" style="display:none;">
                         🎉 Joyeux Anniversaire <span id="bday-pet-name"></span> ! 🎂
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
                         <div>
-                            <h2 style="font-size: 20px; margin-bottom: 4px;">Bonjour, Maître ! 👋</h2>
-                            <p style="color: var(--text-muted); font-size: 14px;">Série actuelle : <span id="streak-counter" style="color: #ff9f1c; font-weight: bold; font-size: 16px;">🔥 0 Jours</span></p>
+                            <h2 style="font-family:var(--font-display); font-size:22px; margin-bottom:4px;">Bonjour, Maître ! 👋</h2>
+                            <p style="color:var(--text-muted); font-size:14px;">Série actuelle :
+                                <span id="streak-counter" style="color:#e87b00; font-weight:700; font-size:16px;">🔥 0 Jours</span>
+                            </p>
                         </div>
-                        <div id="badges-container" style="display: flex; gap: 5px; font-size: 24px;"></div>
+                        <div id="badges-container" style="display:flex; gap:6px; font-size:22px; align-items:center;"></div>
                     </div>
 
-                    <div class="main-card mt-20 mb-20" id="breed-advice-card" style="display: none; border-left: 4px solid var(--accent);">
-                        <h3 style="margin-top:0; font-size: 16px; display:flex; align-items:center; gap:8px;">
-                            <i class="fa-solid fa-book-journal-whills" style="color: var(--accent);"></i> 
-                            Encyclopédie : <span id="advice-breed-name"></span>
-                        </h3>
-                        <div id="breed-advice-content" style="font-size: 14px; line-height: 1.6; color: var(--text-color); max-height: 250px; overflow-y: auto; padding-right: 10px; margin-top: 15px;">
-                            Chargement de la documentation...
+                    <!-- Breed advice -->
+                    <div class="card" id="breed-advice-card" style="display:none; border-left:3px solid var(--accent);">
+                        <div class="card-title">
+                            <i class="fa-solid fa-book-journal-whills"></i>
+                            Encyclopédie : <span id="advice-breed-name" style="color:var(--accent);"></span>
                         </div>
+                        <div id="breed-advice-content" style="font-size:14px; line-height:1.7; max-height:260px; overflow-y:auto; padding-right:8px;"></div>
                     </div>
 
-                    <div class="dashboard-layout-grid mt-20">
-                        <div class="main-card stat-flex-row">
+                    <!-- Daily trackers -->
+                    <div class="grid-2">
+                        <div class="stat-card">
                             <div>
-                                <span>Hydratation</span>
-                                <div class="big-stat-number" id="water-current-text">0 ml</div>
+                                <div class="stat-label">Hydratation du jour</div>
+                                <div class="stat-value" id="water-current-text">0 ml</div>
                             </div>
-                            <button onclick="addWater()" class="btn-primary" style="width: auto; padding: 10px 14px;"><i class="fa-solid fa-glass-water"></i></button>
+                            <button class="btn-stat" onclick="addWater()" title="Ajouter 250ml">
+                                <i class="fa-solid fa-glass-water"></i>
+                            </button>
                         </div>
-                        <div class="main-card stat-flex-row">
+                        <div class="stat-card">
                             <div>
-                                <span>Promenade</span>
-                                <div class="big-stat-number" id="walk-current-text">0 min</div>
+                                <div class="stat-label">Promenade du jour</div>
+                                <div class="stat-value" id="walk-current-text">0 min</div>
                             </div>
-                            <button onclick="addWalk()" class="btn-primary" style="width: auto; padding: 10px 14px;"><i class="fa-solid fa-shoe-prints"></i></button>
+                            <button class="btn-stat" onclick="addWalk()" title="Ajouter 15 min">
+                                <i class="fa-solid fa-shoe-prints"></i>
+                            </button>
                         </div>
                     </div>
-                    <button class="btn-secondary-outline mt-10" onclick="resetDailyTrackers()" style="width: 100%; font-size: 13px; padding: 8px;">Réinitialiser l'eau & les marches du jour</button>
-                    
-                    <h3 class="mt-20 mb-10">Agenda & Rappels</h3>
+                    <button class="btn btn-outline btn-full btn-sm" onclick="resetDailyTrackers()" style="margin-top:8px; margin-bottom:20px;">
+                        <i class="fa-solid fa-rotate-left"></i> Réinitialiser eau & marches
+                    </button>
+
+                    <h3 style="font-family:var(--font-display); font-size:18px; margin-bottom:12px;">Agenda & Rappels</h3>
                     <div id="dynamic-reminders-list"></div>
                 </div>
 
-                <!-- 2. CARNET DE SUIVI -->
+                <!-- ================================
+                     SCREEN: CARNET DE SUIVI
+                ================================= -->
                 <div id="screen-carnet" class="screen">
-                    <h2 class="section-divider"><i class="fa-solid fa-heart-pulse"></i> Santé & Nutrition</h2>
-                    
-                    <div id="health-alerts-banner" class="main-card" style="display:none; background-color: #ffe3e5; border-color: var(--danger);">
-                        <h4 style="color: var(--danger); margin-bottom: 5px;"><i class="fa-solid fa-triangle-exclamation"></i> Allergies & Traitements</h4>
-                        <div id="health-alerts-text" style="color: #d62828; font-weight: bold; font-size: 14px;"></div>
+
+                    <div class="section-header"><i class="fa-solid fa-heart-pulse"></i> Santé & Nutrition</div>
+
+                    <!-- Allergies banner -->
+                    <div id="health-alerts-banner" class="card" style="display:none; background:rgba(217,48,37,0.06); border-color:rgba(217,48,37,0.3);">
+                        <div class="card-title" style="color:var(--danger);"><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);"></i> Allergies & Traitements</div>
+                        <div id="health-alerts-text" style="color:var(--danger); font-weight:600; font-size:14px;"></div>
                     </div>
 
-                    <div class="main-card" style="border-left: 4px solid var(--danger);">
-                        <h3><i class="fa-solid fa-truck-medical" style="color: var(--danger); margin-right:8px;"></i>Urgences</h3>
-                        <div class="dashboard-layout-grid mt-10">
+                    <!-- Urgences -->
+                    <div class="card" style="border-left:3px solid var(--danger);">
+                        <div class="card-title"><i class="fa-solid fa-truck-medical" style="color:var(--danger);"></i> Urgences</div>
+                        <div class="grid-2">
                             <div>
-                                <input type="text" id="vet-name" placeholder="Nom du Vétérinaire" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:5px; background:var(--bg-color); color:var(--text-color);">
-                                <input type="tel" id="vet-phone" placeholder="Téléphone Vétérinaire" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                                <input type="text" id="vet-name" placeholder="Nom du Vétérinaire" style="margin-bottom:8px;">
+                                <input type="tel" id="vet-phone" placeholder="Téléphone Vétérinaire" autocomplete="tel">
                             </div>
-                            <div style="display:flex; flex-direction:column; gap:5px;">
-                                <button class="btn-primary" onclick="callVet()" style="background-color: var(--success);"><i class="fa-solid fa-phone"></i> Appeler mon Véto</button>
-                                <button class="btn-secondary-outline" onclick="callPoisonControl()" style="color: var(--danger); border-color: var(--danger);"><i class="fa-solid fa-skull-crossbones"></i> Antipoison</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="main-card mt-15">
-                        <h3><i class="fa-solid fa-bowl-food" style="color: var(--accent); margin-right:8px;"></i>Nutrition & Croquettes</h3>
-                        <div class="dashboard-layout-grid mt-10">
-                            <div>
-                                <span style="font-size: 12px; color: var(--text-muted); display:flex; justify-content:space-between;">Ration <select id="activity-level-selector" onchange="updateNutritionUI()" style="width:auto; padding:0; font-size:12px; border:none; background:transparent; color:var(--accent); font-weight:bold;"><option value="normal">Normale</option><option value="calm">Calme</option><option value="active">Sportif</option></select></span>
-                                <div class="big-stat-number" id="nutrition-ration-text">-- g</div>
-                            </div>
-                            <div>
-                                <span style="font-size: 12px; color: var(--text-muted);">Sac de croquettes (Reste)</span>
-                                <div class="big-stat-number" id="kibble-remaining-text" style="color: var(--success);">-- kg</div>
-                            </div>
-                        </div>
-                        <div class="mt-15" style="display:flex; gap:10px;">
-                            <input type="number" id="kibble-bag-size" placeholder="Nouveau sac (ex: 12 kg)" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <button class="btn-primary" onclick="refillKibbleBag()" style="width:auto;">Ouvrir un sac</button>
-                        </div>
-                        <div class="mt-15" style="padding-top: 15px; border-top: 1px dashed var(--border-color);">
-                            <h4>Calculateur de Transition</h4>
-                            <div id="transition-plan" style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                                <em>Renseignez le poids de votre animal.</em>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <button class="btn btn-success btn-full" onclick="callVet()"><i class="fa-solid fa-phone"></i> Appeler mon Véto</button>
+                                <button class="btn btn-danger-outline btn-full" onclick="callPoisonControl()"><i class="fa-solid fa-skull-crossbones"></i> Antipoison</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="main-card mt-15">
-                        <h3>Suivi de croissance</h3>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-                            <span style="font-size: 12px; color: var(--text-muted);">Poids Actuel: <strong id="nutrition-weight-text" style="font-size:16px; color:var(--text-color);">-- kg</strong></span>
-                            <span id="water-target-text" style="font-size: 12px; color: var(--text-muted);">Objectif eau : -- ml</span>
+                    <!-- Nutrition -->
+                    <div class="card" style="margin-top:14px;">
+                        <div class="card-title"><i class="fa-solid fa-bowl-food"></i> Nutrition & Croquettes</div>
+                        <div class="grid-2">
+                            <div>
+                                <div class="stat-label" style="display:flex; justify-content:space-between; align-items:center;">
+                                    Ration journalière
+                                    <select id="activity-level-selector" onchange="updateNutritionUI()" style="width:auto; padding:2px 6px; font-size:12px; border:none; background:transparent; color:var(--accent); font-weight:700; cursor:pointer;">
+                                        <option value="normal">Normale</option>
+                                        <option value="calm">Calme</option>
+                                        <option value="active">Sportif</option>
+                                    </select>
+                                </div>
+                                <div class="stat-value" id="nutrition-ration-text" style="font-size:24px; margin-top:6px;">-- g</div>
+                            </div>
+                            <div>
+                                <div class="stat-label">Sac de croquettes (restant)</div>
+                                <div class="stat-value" id="kibble-remaining-text" style="font-size:24px; margin-top:6px; color:var(--success);">-- kg</div>
+                            </div>
                         </div>
-                        <div style="height: 180px; width: 100%; margin-top: 15px;">
+                        <div class="form-row" style="margin-top:14px;">
+                            <input type="number" id="kibble-bag-size" placeholder="Nouveau sac (ex: 12)" min="0" step="0.5">
+                            <button class="btn btn-accent" onclick="refillKibbleBag()">Ouvrir un sac</button>
+                        </div>
+                        <div style="margin-top:16px; padding-top:16px; border-top:1px dashed var(--border);">
+                            <h4 style="font-size:13px; font-weight:700; margin-bottom:6px;">Plan de transition alimentaire</h4>
+                            <div id="transition-plan" style="font-size:12px; color:var(--text-muted);"><em>Renseignez le poids de votre animal.</em></div>
+                        </div>
+                    </div>
+
+                    <!-- Poids / croissance -->
+                    <div class="card" style="margin-top:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <div class="card-title" style="margin-bottom:0;"><i class="fa-solid fa-weight-scale"></i> Suivi de croissance</div>
+                            <span id="water-target-text" style="font-size:12px; color:var(--text-muted);">Objectif eau : -- ml</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <span style="font-size:13px; color:var(--text-muted);">Poids actuel : <strong id="nutrition-weight-text" style="font-size:17px; color:var(--text);">-- kg</strong></span>
+                        </div>
+                        <div style="height:180px; width:100%;">
                             <canvas id="weightChart"></canvas>
                         </div>
-                        <div style="display: flex; gap: 10px;" class="mt-15">
-                            <input type="number" step="0.1" id="weight-input" placeholder="Poids (kg)" style="flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <input type="date" id="weight-date" style="flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <button onclick="addNewWeight()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
+                        <div class="form-row" style="margin-top:14px;">
+                            <input type="number" step="0.1" id="weight-input" placeholder="Poids (kg)" min="0">
+                            <input type="date" id="weight-date">
+                            <button class="btn btn-accent btn-icon-round" onclick="addNewWeight()"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
 
-                    <div class="main-card mt-15">
-                        <div style="display: flex; justify-content:space-between; align-items:center;">
-                            <h3>Actes & Soins réalisés</h3>
-                            <button onclick="clearMedicalHistory()" style="background:transparent; border:none; color:var(--danger); font-size:12px; cursor:pointer;">Tout effacer</button>
+                    <!-- Actes & soins -->
+                    <div class="card" style="margin-top:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <div class="card-title" style="margin-bottom:0;"><i class="fa-solid fa-clipboard-list"></i> Actes & Soins réalisés</div>
+                            <button class="btn btn-sm btn-danger-outline" onclick="clearMedicalHistory()">Tout effacer</button>
                         </div>
-                        <div style="display: flex; gap:10px;" class="mt-10 mb-15">
-                            <select id="event-type" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                        <div class="form-row" style="margin-bottom:14px;">
+                            <select id="event-type" style="flex:2;">
                                 <option value="Vaccin">Vaccination 💉</option>
                                 <option value="Vermifuge">Vermifuge 💊</option>
                                 <option value="Anti-puces">Anti-puces 🛡️</option>
@@ -679,399 +1526,440 @@
                                 <option value="Oreilles">Nettoyage Oreilles 👂</option>
                                 <option value="Griffes">Coupe Griffes 🐾</option>
                             </select>
-                            <input type="date" id="event-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <button onclick="addMedicalEvent()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
+                            <input type="date" id="event-date">
+                            <button class="btn btn-accent btn-icon-round" onclick="addMedicalEvent()"><i class="fa-solid fa-plus"></i></button>
                         </div>
                         <div id="medical-history-list"></div>
                     </div>
 
-                    <h2 class="section-divider"><i class="fa-solid fa-graduation-cap"></i> Apprentissages</h2>
-                    <div class="main-card">
-                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Enregistrez les acquis d'apprentissage.</p>
-                        <div style="display: flex; gap: 10px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border-color);">
-                            <input type="text" id="new-custom-exercise-input" placeholder="Ajouter un ordre (ex: Patte)" style="flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color); font-size: 14px;">
-                            <button onclick="addCustomExercise()" class="btn-primary" style="width:auto; padding: 10px 15px;"><i class="fa-solid fa-plus"></i></button>
+                    <div class="section-header"><i class="fa-solid fa-graduation-cap"></i> Apprentissages</div>
+                    <div class="card">
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Enregistrez les acquis d'apprentissage.</p>
+                        <div class="form-row" style="margin-bottom:20px; padding-bottom:16px; border-bottom:1px dashed var(--border);">
+                            <input type="text" id="new-custom-exercise-input" placeholder="Ajouter un ordre (ex : Patte)">
+                            <button class="btn btn-accent btn-icon-round" onclick="addCustomExercise()"><i class="fa-solid fa-plus"></i></button>
                         </div>
-                        <div id="edu-container" style="display:flex; flex-direction:column; gap:12px;"></div>
+                        <div id="edu-container" style="display:flex; flex-direction:column; gap:10px;"></div>
                     </div>
 
-                    <h2 class="section-divider"><i class="fa-solid fa-wallet"></i> Budget du Mois : <span id="budget-screen-total" style="color:var(--accent);">0,00 €</span></h2>
-                    <div class="main-card">
-                        <h3>Ajouter une dépense</h3>
-                        <div style="display: flex; gap:10px;" class="mt-10">
-                            <input type="text" id="budget-title" placeholder="Ex: Jouet" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <input type="number" step="0.01" id="budget-amount" placeholder="Prix (€)" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <button onclick="addBudgetExpense()" class="btn-primary" style="width:auto;"><i class="fa-solid fa-check"></i></button>
+                    <div class="section-header"><i class="fa-solid fa-wallet"></i> Budget du Mois : <span id="budget-screen-total" style="color:var(--accent);">0,00 €</span></div>
+                    <div class="card">
+                        <div class="card-title"><i class="fa-solid fa-circle-plus"></i> Ajouter une dépense</div>
+                        <div class="form-row">
+                            <input type="text" id="budget-title" placeholder="Ex: Jouet" style="flex:2;">
+                            <input type="number" step="0.01" id="budget-amount" placeholder="Prix (€)">
+                            <button class="btn btn-accent btn-icon-round" onclick="addBudgetExpense()"><i class="fa-solid fa-check"></i></button>
                         </div>
-                        <div class="mt-20" id="budget-history-list"></div>
-                        <button class="btn-secondary-outline mt-15" onclick="exportToPDF()" style="width:100%;"><i class="fa-solid fa-print"></i> Exporter la fiche de frais</button>
+                        <div id="budget-history-list" style="margin-top:16px;"></div>
+                        <button class="btn btn-outline btn-full" onclick="exportToPDF()" style="margin-top:14px;">
+                            <i class="fa-solid fa-print"></i> Exporter la fiche de frais
+                        </button>
                     </div>
                 </div>
 
-                <!-- 3. CHAT PABLO -->
+                <!-- ================================
+                     SCREEN: CHAT
+                ================================= -->
                 <div id="screen-chat" class="screen">
-                    <div class="chat-area">
+                    <div class="chat-wrapper">
                         <div class="messages-box" id="chat-messages-container"></div>
                         <div class="chat-input-row">
-                            <input type="text" id="chat-input-field" placeholder="Posez une question sur l'éducation ou le bien-être..." style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <button onclick="sendMessage()" class="btn-primary" style="width:auto; padding:10px 18px;"><i class="fa-solid fa-paper-plane"></i></button>
+                            <input type="text" id="chat-input-field" placeholder="Une question sur l'éducation ou le bien-être…">
+                            <button class="btn btn-accent btn-icon-round" onclick="sendMessage()">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
                         </div>
                     </div>
-                    <div style="display:flex; gap:8px; overflow-x:auto; padding:10px 0; -webkit-overflow-scrolling:touch;">
-                        <button onclick="askPreset('Quels fruits sont toxiques pour les chiens ?')" style="background:var(--main-card-bg); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer;">Fruits toxiques ? 🍇</button>
-                        <button onclick="askPreset('Comment calculer la ration idéale de mon animal ?')" style="background:var(--main-card-bg); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer;">Calcul de ration 🍖</button>
-                        <button onclick="askPreset('Faut-il vermifuger à chaque changement de saison ?')" style="background:var(--main-card-bg); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer;">Vermifuge & Saison 🍂</button>
+                    <div class="chat-presets">
+                        <button class="chat-preset-btn" onclick="askPreset('Quels fruits sont toxiques pour les chiens ?')">Fruits toxiques 🍇</button>
+                        <button class="chat-preset-btn" onclick="askPreset('Comment calculer la ration idéale de mon animal ?')">Calcul de ration 🍖</button>
+                        <button class="chat-preset-btn" onclick="askPreset('Faut-il vermifuger à chaque changement de saison ?')">Vermifuge & Saison 🍂</button>
+                        <button class="chat-preset-btn" onclick="askPreset('Quels signes indiquent que mon chien est malade ?')">Signes de maladie 🩺</button>
                     </div>
                 </div>
 
-                <!-- 4. OFFICIEL & ÉLEVAGE -->
+                <!-- ================================
+                     SCREEN: PRO / ÉLEVAGE
+                ================================= -->
                 <div id="screen-pro" class="screen">
-                    <div class="main-card">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-id-card" style="color: var(--accent); margin-right: 8px;"></i>Documents & Profil</h3>
-                        <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr;">
-                            <div class="form-group">
-                                <label>Sexe</label>
-                                <select id="pro-gender" onchange="toggleBreederFields()" style="border-color: var(--accent); font-weight: bold;">
+                    <!-- Documents & Profil -->
+                    <div class="card">
+                        <div class="card-title"><i class="fa-solid fa-id-card"></i> Documents & Profil</div>
+                        <div class="grid-2">
+                            <div>
+                                <label class="form-label">Sexe</label>
+                                <select id="pro-gender" onchange="toggleBreederFields()">
                                     <option value="Non spécifié">Non spécifié</option>
                                     <option value="Mâle">Mâle ♂️</option>
                                     <option value="Femelle">Femelle ♀️</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>N° Identification (Puce)</label>
-                                <input type="text" id="pro-chip" placeholder="Ex: 250268...">
+                            <div>
+                                <label class="form-label">N° Identification (Puce)</label>
+                                <input type="text" id="pro-chip" placeholder="Ex: 250268…">
                             </div>
-                            <div class="form-group">
-                                <label>N° LOF / Enregistrement</label>
+                            <div>
+                                <label class="form-label">N° LOF / Enregistrement</label>
                                 <input type="text" id="pro-lof">
                             </div>
-                            <div class="form-group">
-                                <label>Pedigree</label>
+                            <div>
+                                <label class="form-label">Pedigree</label>
                                 <input type="text" id="pro-pedigree" placeholder="Affixe ou Lien">
                             </div>
-                            <div class="form-group">
-                                <label>Test ADN</label>
+                            <div>
+                                <label class="form-label">Test ADN</label>
                                 <select id="pro-dna">
                                     <option value="Non fait">Non fait</option>
                                     <option value="En cours">En cours</option>
                                     <option value="Identifié">Identifié ADN</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>Radio Hanches / Coudes</label>
+                            <div>
+                                <label class="form-label">Radio Hanches / Coudes</label>
                                 <input type="text" id="pro-xrays" placeholder="Ex: A/0">
                             </div>
-                            <div class="form-group">
-                                <label>Club Canin (Nom)</label>
+                            <div>
+                                <label class="form-label">Club Canin (Nom)</label>
                                 <input type="text" id="pro-club-name">
                             </div>
-                            <div class="form-group">
-                                <label>Date Entrée Club</label>
+                            <div>
+                                <label class="form-label">Date Entrée Club</label>
                                 <input type="date" id="pro-club-date">
                             </div>
                         </div>
                     </div>
 
-                    <div class="main-card mt-15">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-mars-and-venus" style="color: var(--accent); margin-right: 8px;"></i>Suivi de Reproduction</h3>
-                        
-                        <div id="field-chaleurs-history" style="margin-bottom: 20px;">
-                            <h4>Historique des Chaleurs (Moyenne : <span id="heat-average" style="color: var(--accent);">-- mois</span>)</h4>
-                            <div style="display:flex; gap:10px; margin-top:5px;">
-                                <input type="date" id="new-heat-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                                <button class="btn-primary" onclick="addHeatRecord()" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
+                    <!-- Reproduction -->
+                    <div class="card" style="margin-top:14px;">
+                        <div class="card-title"><i class="fa-solid fa-mars-and-venus"></i> Suivi de Reproduction</div>
+
+                        <div id="field-chaleurs-history" style="margin-bottom:20px;">
+                            <h4 style="font-size:13px; font-weight:700; margin-bottom:8px;">Historique des Chaleurs (Moyenne : <span id="heat-average" style="color:var(--accent);">-- mois</span>)</h4>
+                            <div class="form-row">
+                                <input type="date" id="new-heat-date">
+                                <button class="btn btn-accent btn-icon-round" onclick="addHeatRecord()"><i class="fa-solid fa-plus"></i></button>
                             </div>
-                            <div id="heat-history-list" class="mt-10" style="font-size: 13px;"></div>
+                            <div id="heat-history-list" style="margin-top:10px; font-size:13px;"></div>
                         </div>
 
                         <div>
-                            <h4>Historique des Saillies</h4>
-                            <div class="dashboard-layout-grid mt-5">
-                                <input type="date" id="mating-date" style="padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                                <input type="text" id="mating-partner" placeholder="Partenaire" style="padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                                <input type="number" step="0.1" id="mating-coi" placeholder="COI (%)" style="padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                                <button class="btn-primary" onclick="addMatingRecord()">Ajouter</button>
+                            <h4 style="font-size:13px; font-weight:700; margin-bottom:8px;">Historique des Saillies</h4>
+                            <div class="grid-3" style="margin-bottom:8px;">
+                                <input type="date" id="mating-date">
+                                <input type="text" id="mating-partner" placeholder="Partenaire">
+                                <input type="number" step="0.1" id="mating-coi" placeholder="COI (%)">
                             </div>
-                            <div id="mating-history-list" class="mt-10" style="font-size: 13px;"></div>
+                            <button class="btn btn-accent btn-full" onclick="addMatingRecord()">Ajouter la saillie</button>
+                            <div id="mating-history-list" style="margin-top:10px; font-size:13px;"></div>
                         </div>
 
-                        <div class="dashboard-layout-grid mt-15" style="border-top: 1px dashed var(--border-color); padding-top: 15px;">
-                            <div class="form-group" id="field-fec-opti">
-                                <label>Fécondation Opti. (+12j)</label>
+                        <div class="grid-2" style="margin-top:16px; padding-top:16px; border-top:1px dashed var(--border);">
+                            <div id="field-fec-opti">
+                                <label class="form-label">Fécondation Optim. (+12j)</label>
                                 <input type="date" id="pro-optimal-date">
                             </div>
-                            <div class="form-group" id="field-naissance-prevue">
-                                <label>Naissance Prévue (+63j)</label>
+                            <div id="field-naissance-prevue">
+                                <label class="form-label">Naissance Prévue (+63j)</label>
                                 <input type="date" id="pro-expected-birth">
                             </div>
-                            <div class="form-group" id="field-mise-a-bas">
-                                <label>Date Mise à Bas (réelle)</label>
+                            <div id="field-mise-a-bas">
+                                <label class="form-label">Date Mise à Bas (réelle)</label>
                                 <input type="date" id="pro-actual-birth">
                             </div>
                         </div>
-                        
-                        <div id="field-rappel-chaleurs" style="display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px;">
-                            <input type="checkbox" id="pro-heat-reminder" style="width: auto;">
-                            <label for="pro-heat-reminder" style="font-size: 13px; color: var(--text-muted);">Activer le rappel des prochaines chaleurs dans 6 mois</label>
+
+                        <div id="field-rappel-chaleurs" style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+                            <input type="checkbox" id="pro-heat-reminder" style="width:auto; accent-color:var(--accent);">
+                            <label for="pro-heat-reminder" style="font-size:13px; color:var(--text-muted); cursor:pointer;">Activer le rappel des prochaines chaleurs dans 6 mois</label>
                         </div>
                     </div>
 
-                    <div class="main-card mt-15">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-baby-carriage" style="color: var(--accent); margin-right: 8px;"></i>Historique des Portées</h3>
-                        <div style="display:flex; gap:10px; margin-bottom: 15px; flex-wrap: wrap;">
-                            <input type="date" id="litter-date" style="flex:1; min-width:120px; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <input type="text" id="litter-partner" placeholder="Avec qui ?" style="flex:1; min-width:120px; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <input type="number" id="litter-count" placeholder="Nb chiots" style="flex:1; max-width:100px; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <button class="btn-primary" onclick="addLitter()" style="width:auto; padding: 10px 15px;"><i class="fa-solid fa-plus"></i></button>
+                    <!-- Portées -->
+                    <div class="card" style="margin-top:14px;">
+                        <div class="card-title"><i class="fa-solid fa-baby-carriage"></i> Historique des Portées</div>
+                        <div class="grid-3" style="margin-bottom:10px;">
+                            <input type="date" id="litter-date">
+                            <input type="text" id="litter-partner" placeholder="Avec qui ?">
+                            <input type="number" id="litter-count" placeholder="Nb chiots" min="0">
                         </div>
-                        <div id="litters-list"></div>
+                        <button class="btn btn-accent btn-full" onclick="addLitter()"><i class="fa-solid fa-plus"></i> Ajouter la portée</button>
+                        <div id="litters-list" style="margin-top:14px;"></div>
                     </div>
 
-                    <div class="main-card mt-15">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-trophy" style="color: var(--accent); margin-right: 8px;"></i>Palmarès & Concours</h3>
-                        <div style="display:flex; gap:10px; margin-bottom: 15px;">
-                            <select id="pro-event-type" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                                <option value="Beauté">Beauté (CACS/CACIB...)</option>
-                                <option value="Sport">Sport (Agility, Ring...)</option>
+                    <!-- Palmarès -->
+                    <div class="card" style="margin-top:14px;">
+                        <div class="card-title"><i class="fa-solid fa-trophy"></i> Palmarès & Concours</div>
+                        <div class="form-row" style="margin-bottom:10px;">
+                            <select id="pro-event-type">
+                                <option value="Beauté">Beauté (CACS/CACIB…)</option>
+                                <option value="Sport">Sport (Agility, Ring…)</option>
                                 <option value="CSAU">Obtention CSAU</option>
                                 <option value="Autre">Autre Concours</option>
                             </select>
-                            <input type="date" id="pro-event-date" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                            <input type="date" id="pro-event-date">
                         </div>
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" id="pro-event-details" placeholder="Lieu & Résultat (Ex: Paris - 1er Exc)" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <button class="btn-primary" onclick="addProEvent()" style="width:auto; padding: 10px 15px;"><i class="fa-solid fa-plus"></i></button>
+                        <div class="form-row">
+                            <input type="text" id="pro-event-details" placeholder="Lieu & Résultat (ex: Paris — 1er Exc)" style="flex:2;">
+                            <button class="btn btn-accent btn-icon-round" onclick="addProEvent()"><i class="fa-solid fa-plus"></i></button>
                         </div>
-                        <div id="pro-events-list" style="margin-top: 20px;"></div>
+                        <div id="pro-events-list" style="margin-top:16px;"></div>
                     </div>
 
-                    <button class="btn-primary mt-15 mb-20" onclick="saveProData()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel</button>
+                    <button class="btn btn-accent btn-full" onclick="saveProData()" style="margin-top:14px; margin-bottom:24px;">
+                        <i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel
+                    </button>
                 </div>
 
-                <!-- 5. OUTILS & SOUVENIRS -->
+                <!-- ================================
+                     SCREEN: OUTILS & SOUVENIRS
+                ================================= -->
                 <div id="screen-tools" class="screen">
-                    <div class="main-card">
-                        <h3><i class="fa-solid fa-suitcase" style="color: var(--accent); margin-right:8px;"></i>La Valise de <span class="dynamic-pet-name">Pablo</span></h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Cochez avant de partir en vacances :</p>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:14px;">
-                            <label><input type="checkbox"> Passeport/Carnet</label>
-                            <label><input type="checkbox"> Croquettes & Eau</label>
-                            <label><input type="checkbox"> Laisse & Collier</label>
-                            <label><input type="checkbox"> Pince à tiques</label>
-                            <label><input type="checkbox"> Trousse secours</label>
-                            <label><input type="checkbox"> Médicaments</label>
-                            <label><input type="checkbox"> Jouet favori</label>
-                            <label><input type="checkbox"> Sacs à crottes</label>
+                    <div class="card">
+                        <div class="card-title"><i class="fa-solid fa-suitcase"></i> La Valise de <span class="dynamic-pet-name">Pablo</span></div>
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Cochez avant de partir en vacances :</p>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:14px;">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:auto; accent-color:var(--accent);"> Passeport / Carnet</label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:auto; accent-color:var(--accent);"> Croquettes & Eau</label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:auto; accent-color:var(--accent);"> Laisse & Collier</label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:auto; accent-color:var(--accent);"> Pince à tiques</label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:auto; accent-color:var(--accent);"> Trousse secours</label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:auto; accent-color:var(--accent);"> Médicaments</label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:auto; accent-color:var(--accent);"> Jouet favori</label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:auto; accent-color:var(--accent);"> Sacs à crottes</label>
                         </div>
                     </div>
 
-                    <div class="main-card mt-15">
-                        <h3><i class="fa-solid fa-camera-retro" style="color: var(--accent); margin-right:8px;"></i>Journal des Premières Fois</h3>
-                        <div style="display:flex; gap:10px; margin-top:10px;">
-                            <input type="date" id="memory-date" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <input type="text" id="memory-title" placeholder="Ex: Première baignade !" style="flex:2; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
-                            <button class="btn-primary" onclick="addMemory()" style="width:auto;"><i class="fa-solid fa-plus"></i></button>
+                    <div class="card" style="margin-top:14px;">
+                        <div class="card-title"><i class="fa-solid fa-camera-retro"></i> Journal des Premières Fois</div>
+                        <div class="form-row" style="margin-top:10px;">
+                            <input type="date" id="memory-date">
+                            <input type="text" id="memory-title" placeholder="Ex: Première baignade !" style="flex:2;">
+                            <button class="btn btn-accent btn-icon-round" onclick="addMemory()"><i class="fa-solid fa-plus"></i></button>
                         </div>
-                        <div id="memories-timeline" class="mt-15" style="border-left: 2px solid var(--accent); padding-left: 15px;"></div>
+                        <div id="memories-timeline" style="margin-top:16px; border-left:2px solid var(--accent); padding-left:16px;"></div>
                     </div>
 
-                    <!-- AMÉLIORATION PAROLE ASSISTANT ICI -->
-                    <div class="main-card mt-15" style="text-align: center; background: linear-gradient(135deg, #fdfbfb, #ebedee);">
-                        <h3>🎨 Créateur d'Avatar Magique</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Transformez la photo de votre compagnon en personnage de dessin animé !</p>
-                        <button class="btn-primary" onclick="generateAvatar()" style="background: linear-gradient(90deg, #833ab4, #fd1d1d, #fcb045); border:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Générer la magie</button>
+                    <!-- Avatar IA -->
+                    <div class="card" style="margin-top:14px; text-align:center; background:linear-gradient(135deg, var(--bg-alt), var(--card));">
+                        <div class="card-title" style="justify-content:center;">🎨 Créateur d'Avatar Magique</div>
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                            Transformez la photo de votre compagnon en personnage de dessin animé via IA !
+                        </p>
+                        <div id="avatar-result" style="margin-bottom:16px; display:none;">
+                            <div id="avatar-ai-text" style="font-size:14px; line-height:1.7; color:var(--text); text-align:left; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; white-space:pre-wrap;"></div>
+                        </div>
+                        <button class="btn btn-accent btn-full" onclick="generateAvatar()" id="btn-generate-avatar" style="background:linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); border:none; color:#fff;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Générer la magie
+                        </button>
+                        <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+                            Ajoutez d'abord une photo dans le profil de votre animal.
+                        </p>
                     </div>
                 </div>
 
-                <!-- CONFIGURATION -->
+                <!-- ================================
+                     SCREEN: PROFIL / CONFIG
+                ================================= -->
                 <div id="screen-profile" class="screen">
-                    <div class="main-card">
-                        <div class="avatar-circle-uploader" onclick="document.getElementById('file-upload-input').click()">
-                            <i class="fa-solid fa-camera"></i>
-                            <div id="profile-avatar-placeholder" style="position:absolute; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--accent); color:white; font-weight:bold;">P</div>
-                            <img id="profile-pet-image" style="display: none;" src="" alt="Avatar">
+                    <div class="card">
+                        <div class="avatar-uploader" onclick="document.getElementById('file-upload-input').click()">
+                            <i class="fa-solid fa-camera" style="position:relative; z-index:1;"></i>
+                            <div id="profile-avatar-placeholder" class="avatar-placeholder">P</div>
+                            <img id="profile-pet-image" style="display:none;" src="" alt="Avatar">
                         </div>
-                        <input type="file" id="file-upload-input" style="display: none;" accept="image/*" onchange="uploadPetPhoto()">
+                        <input type="file" id="file-upload-input" style="display:none;" accept="image/*" onchange="uploadPetPhoto()">
 
-                        <div class="form-group">
-                            <label>Nom du compagnon</label>
-                            <input type="text" id="profile-name">
-                        </div>
-                        <div class="form-group">
-                            <label>Race</label>
-                            <input type="text" id="profile-breed">
-                        </div>
-                        <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-                            <div class="form-group">
-                                <label>Âge (mois)</label>
-                                <input type="number" id="profile-age">
+                        <div class="grid-2">
+                            <div>
+                                <label class="form-label">Nom du compagnon</label>
+                                <input type="text" id="profile-name" autocomplete="off">
                             </div>
-                            <div class="form-group">
-                                <label>Taille (cm)</label>
-                                <input type="number" id="profile-size">
+                            <div>
+                                <label class="form-label">Race</label>
+                                <input type="text" id="profile-breed" autocomplete="off">
                             </div>
-                            <div class="form-group">
-                                <label>Poids (kg)</label>
-                                <input type="number" id="profile-weight">
+                            <div>
+                                <label class="form-label">Âge (mois)</label>
+                                <input type="number" id="profile-age" min="0">
                             </div>
-                        </div>
-
-                        <div class="form-group mt-10">
-                            <label>Allergies & Traitements chroniques (Affiché en rouge dans Santé)</label>
-                            <input type="text" id="profile-allergies" placeholder="Ex: Allergie au bœuf, Épileptique...">
+                            <div>
+                                <label class="form-label">Taille (cm)</label>
+                                <input type="number" id="profile-size" min="0">
+                            </div>
+                            <div>
+                                <label class="form-label">Poids (kg)</label>
+                                <input type="number" id="profile-weight" step="0.1" min="0">
+                            </div>
                         </div>
 
-                        <button class="btn-primary mt-15" onclick="savePetProfile()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications</button>
+                        <div style="margin-top:12px;">
+                            <label class="form-label">Allergies & Traitements chroniques</label>
+                            <input type="text" id="profile-allergies" placeholder="Ex: Allergie au bœuf, Épileptique…">
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">Affiché en rouge dans la section Santé</p>
+                        </div>
+
+                        <button class="btn btn-accent btn-full" onclick="savePetProfile()" style="margin-top:16px;">
+                            <i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications
+                        </button>
                     </div>
 
-                    <div class="main-card mt-20">
-                        <h3>Options Système & Sécurité</h3>
-                        
-                        <button class="btn-primary mt-15" onclick="createNewPet()" style="background-color: var(--success); width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center; color: white;">
-                            <span>Ajouter un nouveau compagnon</span><i class="fa-solid fa-plus"></i>
-                        </button>
+                    <div class="card" style="margin-top:14px; margin-bottom:24px;">
+                        <div class="card-title"><i class="fa-solid fa-sliders"></i> Options Système</div>
 
-                        <button class="btn-secondary-outline mt-15" onclick="toggleDarkMode()" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
-                            <span>Mode Sombre graphique</span><i class="fa-solid fa-moon"></i>
+                        <button class="btn btn-outline btn-full" onclick="createNewPet()" style="margin-bottom:8px; color:var(--success); border-color:rgba(45,158,107,0.3);">
+                            <i class="fa-solid fa-plus"></i> Ajouter un nouveau compagnon
                         </button>
-                        <button id="btn-enable-notifications" class="btn-secondary-outline mt-10" onclick="requestNotificationPermission()" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
-                            <span>Activer les notifications push</span><i class="fa-solid fa-bell"></i>
+                        <button class="btn btn-outline btn-full" onclick="toggleDarkMode()" style="margin-bottom:8px;">
+                            <i class="fa-solid fa-moon"></i> Mode Sombre
                         </button>
-                        <button class="btn-secondary-outline mt-15" onclick="deleteCurrentPet()" style="width:100%; border-color:var(--danger); color:var(--danger); text-align:left; display:flex; justify-content:space-between; align-items:center;">
-                            <span>Supprimer définitivement ce profil</span><i class="fa-solid fa-trash-can"></i>
+                        <button id="btn-enable-notifications" class="btn btn-outline btn-full" onclick="requestNotificationPermission()" style="margin-bottom:8px;">
+                            <i class="fa-solid fa-bell"></i> Activer les notifications push
+                        </button>
+                        <button class="btn btn-danger-outline btn-full" onclick="deleteCurrentPet()">
+                            <i class="fa-solid fa-trash-can"></i> Supprimer définitivement ce profil
                         </button>
                     </div>
                 </div>
 
-            </div>
+            </div><!-- /screens-container -->
 
-            <!-- MENU MOBILE NETTOYÉ -->
-            <div class="mobile-nav">
-                <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
-                <div class="nav-item" onclick="navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i>Carnet</div>
-                <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>
-                <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Élevage</div>
-                <div class="nav-item" onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i>Outils</div>
-            </div>
+            <!-- MOBILE NAV -->
+            <nav class="mobile-nav">
+                <div class="mobile-nav-inner">
+                    <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
+                    <div class="nav-item" onclick="navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i>Carnet</div>
+                    <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>
+                    <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Élevage</div>
+                    <div class="nav-item" onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i>Outils</div>
+                </div>
+            </nav>
 
+        </div><!-- /main-content -->
+    </div><!-- /app-container -->
+</div><!-- /main-app-layout -->
+
+<!-- MODAL AJOUT ANIMAL -->
+<div id="add-pet-modal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-paw"></i> Nouveau compagnon</h3>
+            <button class="btn-close" onclick="closePetModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div style="margin-top:4px;">
+            <label class="form-label">Son nom</label>
+            <input type="text" id="new-pet-name-input" placeholder="Ex: Rooky, Bella…" autocomplete="off">
+        </div>
+        <div style="margin-top:12px;">
+            <label class="form-label">Espèce</label>
+            <select id="new-pet-species-input">
+                <option value="Chien">Chien 🐶</option>
+                <option value="Chat">Chat 🐱</option>
+                <option value="Autre">Autre 🐾</option>
+            </select>
+        </div>
+        <div style="margin-top:12px;">
+            <label class="form-label">Race (facultatif)</label>
+            <input type="text" id="new-pet-breed-input" placeholder="Ex: Border Collie, Persan…" autocomplete="off">
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:24px;">
+            <button class="btn btn-outline" onclick="closePetModal()">Annuler</button>
+            <button class="btn btn-accent" onclick="confirmCreateNewPet()">Ajouter !</button>
         </div>
     </div>
+</div>
 
-    <!-- MODAL AJOUT ANIMAL -->
-    <div id="add-pet-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card main-card">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-paw" style="color: var(--accent);"></i> Nouveau compagnon</h3>
-                <button class="btn-close-modal" onclick="closePetModal()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            
-            <div class="form-group mt-15">
-                <label for="new-pet-name-input">Quel est son nom ?</label>
-                <input type="text" id="new-pet-name-input" placeholder="Ex: Rooky, Bella...">
-            </div>
-            
-            <div class="form-group mt-10">
-                <label for="new-pet-species-input">Espèce</label>
-                <select id="new-pet-species-input" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
-                    <option value="Chien">Chien 🐶</option>
-                    <option value="Chat">Chat 🐱</option>
-                    <option value="Autre">Autre 🐾</option>
-                </select>
-            </div>
-
-            <div class="form-group mt-10">
-                <label for="new-pet-breed-input">Race (facultatif)</label>
-                <input type="text" id="new-pet-breed-input" placeholder="Ex: Border Collie, Persan...">
-            </div>
-
-            <div class="modal-actions mt-20" style="display:flex; gap:10px; justify-content:flex-end;">
-                <button class="btn-secondary-outline" onclick="closePetModal()">Annuler</button>
-                <button class="btn-primary" onclick="confirmCreateNewPet()" style="width:auto;">Ajouter !</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- LOGIQUE JAVASCRIPT LOGICIELLE (UI TRANSITIONS) -->
-    <script>
-        function switchToResetMode() {
-            document.getElementById('auth-title').innerText = "Mot de passe oublié";
-            document.getElementById('auth-subtitle').innerText = "Entrez votre email pour recevoir un lien de récupération.";
-            document.getElementById('auth-password-group').style.display = 'none';
-            document.getElementById('auth-google-btn').style.display = 'none';
-            
-            const actionBtn = document.getElementById('auth-action-btn');
-            actionBtn.innerText = "Envoyer le lien";
-            actionBtn.setAttribute('onclick', 'processResetPassword()');
-            
-            document.getElementById('auth-switch-text').innerText = "Vous vous en rappelez ?";
-            const switchLink = document.getElementById('auth-switch-link');
-            switchLink.innerText = "Se connecter";
-            switchLink.setAttribute('onclick', 'switchToLoginMode()');
-            
-            const msgBox = document.getElementById('auth-msg-box');
-            msgBox.style.display = 'none';
-        }
-
-        function switchToLoginMode() {
-            document.getElementById('auth-title').innerText = "Bienvenue";
-            document.getElementById('auth-subtitle').innerText = "Connectez-vous pour retrouver votre compagnon.";
-            document.getElementById('auth-password-group').style.display = 'block';
-            document.getElementById('auth-google-btn').style.display = 'block';
-            
-            const actionBtn = document.getElementById('auth-action-btn');
-            actionBtn.innerText = "Se connecter";
-            actionBtn.setAttribute('onclick', 'processAuth()');
-            
-            document.getElementById('auth-switch-text').innerText = "Pas encore de compte ?";
-            const switchLink = document.getElementById('auth-switch-link');
-            switchLink.innerText = "Créer un compte";
-            switchLink.setAttribute('onclick', 'toggleAuthMode()');
-            
-            const msgBox = document.getElementById('auth-msg-box');
-            msgBox.style.display = 'none';
-        }
-    </script>
-
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => console.log('Service Worker enregistré.'))
-            .catch(error => console.log('Échec SW : ', error));
-        });
-      }
-    </script>
-
-    <script type="module" src="./app.js"></script>
-    <!-- Système de Toast Premium Global -->
-<div id="global-toast" style="position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%) translateY(100px); background: #2c2520; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; z-index: 10000; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; opacity: 0;">
+<!-- GLOBAL TOAST -->
+<div id="global-toast">
     <span id="toast-icon">🐾</span>
     <span id="toast-text">Message</span>
 </div>
 
+<!-- ==========================================
+     UI SCRIPTS
+========================================== -->
 <script>
-    window.showToast = function(text, icon = "🐾", type = "success") {
-        const toast = document.getElementById('global-toast');
-        const tText = document.getElementById('toast-text');
-        const tIcon = document.getElementById('toast-icon');
-        
-        tText.innerText = text;
-        tIcon.innerText = icon;
-        
-        if(type === "error") {
-            toast.style.borderLeft = "4px solid #e63946";
-        } else {
-            toast.style.borderLeft = "4px solid #47d175";
+    // Auth mode switching
+    let _authLoginMode = true;
+
+    window.enterApp = () => {
+        document.getElementById('landing-page').style.display = 'none';
+        if (!window._fbAuth?.currentUser) {
+            document.getElementById('auth-page').style.display = 'flex';
         }
-        
-        toast.style.opacity = "1";
-        toast.style.transform = "translateX(-50%) translateY(0)";
-        
-        setTimeout(() => {
-            toast.style.opacity = "0";
-            toast.style.transform = "translateX(-50%) translateY(100px)";
-        }, 3500);
+    };
+
+    window.toggleAuthMode = () => {
+        _authLoginMode = !_authLoginMode;
+        const btn      = document.getElementById('auth-action-btn');
+        const sub      = document.getElementById('auth-subtitle');
+        const switchTx = document.getElementById('auth-switch-text');
+        const switchLk = document.getElementById('auth-switch-link');
+        const pwGroup  = document.getElementById('auth-password-group');
+        const pwInput  = document.getElementById('auth-password');
+
+        btn.textContent      = _authLoginMode ? 'Se connecter' : 'Créer mon compte';
+        sub.textContent      = _authLoginMode ? 'Connectez-vous pour retrouver votre compagnon.' : 'Rejoignez la meute et gérez la santé de votre chien.';
+        switchTx.textContent = _authLoginMode ? 'Pas encore de compte ?' : 'Déjà un compte ?';
+        switchLk.textContent = _authLoginMode ? 'Créer un compte' : 'Se connecter';
+        pwInput.autocomplete = _authLoginMode ? 'current-password' : 'new-password';
+    };
+
+    window.switchToResetMode = () => {
+        document.getElementById('auth-title').textContent    = 'Mot de passe oublié';
+        document.getElementById('auth-subtitle').textContent = 'Entrez votre email pour recevoir un lien de récupération.';
+        document.getElementById('auth-password-group').style.display = 'none';
+        document.getElementById('auth-google-btn').style.display     = 'none';
+        document.getElementById('auth-action-btn').textContent       = 'Envoyer le lien';
+        document.getElementById('auth-action-btn').setAttribute('onclick', 'processResetPassword()');
+        document.getElementById('auth-switch-text').textContent      = 'Vous vous en rappelez ?';
+        document.getElementById('auth-switch-link').textContent      = 'Se connecter';
+        document.getElementById('auth-switch-link').setAttribute('onclick', 'switchToLoginMode()');
+        showAuthMsg('', '');
+    };
+
+    window.switchToLoginMode = () => {
+        document.getElementById('auth-title').textContent    = 'Bienvenue';
+        document.getElementById('auth-subtitle').textContent = 'Connectez-vous pour retrouver votre compagnon.';
+        document.getElementById('auth-password-group').style.display = 'block';
+        document.getElementById('auth-google-btn').style.display     = 'flex';
+        document.getElementById('auth-action-btn').textContent       = 'Se connecter';
+        document.getElementById('auth-action-btn').setAttribute('onclick', 'processAuth()');
+        document.getElementById('auth-switch-text').textContent      = 'Pas encore de compte ?';
+        document.getElementById('auth-switch-link').textContent      = 'Créer un compte';
+        document.getElementById('auth-switch-link').setAttribute('onclick', 'toggleAuthMode()');
+        showAuthMsg('', '');
+    };
+
+    window.showAuthMsg = (text, type) => {
+        const box = document.getElementById('auth-msg-box');
+        if (!text) { box.style.display = 'none'; return; }
+        box.className = `auth-msg ${type}`;
+        box.textContent = text;
+        box.style.display = 'block';
+    };
+
+    // Toast system
+    window.showToast = (text, icon = '🐾', type = 'success') => {
+        const toast = document.getElementById('global-toast');
+        document.getElementById('toast-text').textContent = text;
+        document.getElementById('toast-icon').textContent = icon;
+        toast.style.borderLeft = type === 'error' ? '3px solid var(--danger)' : '3px solid var(--success)';
+        toast.classList.add('show');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => toast.classList.remove('show'), 3500);
+    };
+</script>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
     }
 </script>
+
+<script type="module" src="./app.js"></script>
 </body>
 </html>
