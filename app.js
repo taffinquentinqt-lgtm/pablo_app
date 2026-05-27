@@ -26,6 +26,31 @@ const db = getFirestore(app);
 // Expose auth for landing-page inline script
 window._fbAuth = auth;
 
+// ==========================================
+// GROQ API CONFIG
+// ==========================================
+const GROQ_API_KEY = "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";
+const GROQ_MODEL   = "llama-3.3-70b-versatile";
+const GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions";
+
+async function groqChat(messages, maxTokens = 1000) {
+    const response = await fetch(GROQ_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: GROQ_MODEL,
+            max_tokens: maxTokens,
+            messages
+        })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    return data.choices[0].message.content.trim();
+}
+
 // Variables globales
 let petsList = [];
 let currentPetId = null;
@@ -45,6 +70,7 @@ let memoriesList = [];
 let gamification = { streak: 0, lastLogin: null, badges: [] };
 
 let weightChartInstance = null;
+let _isLoginMode = true;
 
 const DEFAULT_EDU_EXERCISES = [
     { id: 'assis',          name: "S'asseoir (Assis)",              icon: 'fa-arrow-down' },
@@ -91,17 +117,14 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// enterApp is already defined in index.html inline script; we override to keep Firebase awareness
-window.enterApp = () => {
+function enterApp() {
     const landing  = document.getElementById('landing-page');
     const authPage = document.getElementById('auth-page');
     if (landing)  landing.style.display = 'none';
     if (!auth.currentUser && authPage) authPage.style.display = 'flex';
-};
+}
 
-// toggleAuthMode is defined in index.html; we re-declare to use the local isLoginMode var
-let _isLoginMode = true;
-window.toggleAuthMode = () => {
+function toggleAuthMode() {
     _isLoginMode = !_isLoginMode;
     const btn        = document.getElementById('auth-action-btn');
     const subtitle   = document.getElementById('auth-subtitle');
@@ -114,13 +137,13 @@ window.toggleAuthMode = () => {
     if (switchText) switchText.textContent = _isLoginMode ? 'Pas encore de compte ?' : 'Déjà un compte ?';
     if (switchLink) switchLink.textContent = _isLoginMode ? 'Créer un compte' : 'Se connecter';
     if (pwInput)    pwInput.autocomplete   = _isLoginMode ? 'current-password' : 'new-password';
-};
+}
 
-window.processAuth = async () => {
+async function processAuth() {
     const email    = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value.trim();
-    if (!email || !password) { showAuthMsg("Veuillez remplir tous les champs. 🐾", "error"); return; }
-    if (password.length < 6)  { showAuthMsg("Le mot de passe doit faire au moins 6 caractères.", "error"); return; }
+    if (!email || !password) { showToast("Veuillez remplir tous les champs. 🐾", "⚠️", "error"); return; }
+    if (password.length < 6)  { showToast("Le mot de passe doit faire au moins 6 caractères.", "⚠️", "error"); return; }
 
     const btn          = document.getElementById('auth-action-btn');
     const originalText = btn.textContent;
@@ -130,53 +153,43 @@ window.processAuth = async () => {
             await signInWithEmailAndPassword(auth, email, password);
         } else {
             await createUserWithEmailAndPassword(auth, email, password);
-            showAuthMsg("Compte créé avec succès ! Bienvenue ! 🎉", "success");
+            showToast("Bienvenue dans la meute ! 🎉");
         }
     } catch (error) {
-        showAuthMsg(`Erreur : ${error.message}`, "error");
+        showToast(`Erreur : ${error.message}`, "⚠️", "error");
     } finally {
         btn.textContent = originalText;
     }
-};
+}
 
-window.processGoogleAuth = async () => {
+async function processGoogleAuth() {
     try {
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
     } catch (error) {
-        showAuthMsg(`Erreur Google : ${error.message}`, "error");
+        showToast(`Erreur Google : ${error.message}`, "⚠️", "error");
     }
-};
+}
 
-window.processResetPassword = async () => {
+async function processResetPassword() {
     const email = document.getElementById('auth-email').value.trim();
-    if (!email) { showAuthMsg("⚠️ Veuillez entrer une adresse email.", "error"); return; }
+    if (!email) { showToast("⚠️ Veuillez entrer une adresse email.", "⚠️", "error"); return; }
     try {
         await sendPasswordResetEmail(auth, email);
-        showAuthMsg("🐾 Lien envoyé ! Vérifiez votre boîte mail (et vos spams).", "success");
+        showToast("🐾 Lien envoyé ! Vérifiez votre boîte mail.", "📩");
     } catch (error) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
-            showAuthMsg("❌ Aucun compte valide ne correspond à cet email.", "error");
+            showToast("❌ Aucun compte valide ne correspond à cet email.", "⚠️", "error");
         } else {
-            showAuthMsg("❌ Erreur : " + error.message, "error");
+            showToast("❌ Erreur : " + error.message, "⚠️", "error");
         }
     }
-};
+}
 
-// showAuthMsg is declared in index.html inline but we redefine robustly here
-window.showAuthMsg = (text, type) => {
-    const box = document.getElementById('auth-msg-box');
-    if (!box) return;
-    if (!text) { box.style.display = 'none'; return; }
-    box.className       = `auth-msg ${type}`;
-    box.textContent     = text;
-    box.style.display   = 'block';
-};
-
-window.logoutApp = async () => {
+async function logoutApp() {
     try { await signOut(auth); location.reload(); }
     catch (error) { console.error("Erreur déconnexion:", error); }
-};
+}
 
 // ==========================================
 // INITIALISATION
@@ -198,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initGlobalConfig() {
-    // Theme: index.html uses .light-mode on body (default is dark)
     const saved = localStorage.getItem(GLOBAL_CONFIG_ID);
     if (saved) {
         const config = JSON.parse(saved);
@@ -206,15 +218,12 @@ function initGlobalConfig() {
     }
 }
 
-// toggleTheme is declared in index.html inline — we hook into it from here
-// The inline version already toggles .light-mode on body, so we just persist
-const _originalToggleTheme = window.toggleTheme;
-window.toggleTheme = () => {
-    if (typeof _originalToggleTheme === 'function') _originalToggleTheme();
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
     const isLight = document.body.classList.contains('light-mode');
     localStorage.setItem(GLOBAL_CONFIG_ID, JSON.stringify({ lightMode: isLight }));
     if (typeof renderWeightChart === 'function') renderWeightChart();
-};
+}
 
 async function saveLocalData(petId, key, data) {
     localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
@@ -278,14 +287,14 @@ function renderPetSelector() {
     });
 }
 
-window.switchPet = function(petId) {
+function switchPet(petId) {
     currentPetId = petId;
     localStorage.setItem('current_pet_id', currentPetId);
     loadCurrentPetData();
     navigateTo('screen-home');
-};
+}
 
-window.createNewPet = function() {
+function createNewPet() {
     const modal = document.getElementById('add-pet-modal');
     if (modal) {
         modal.classList.add('open');
@@ -294,14 +303,14 @@ window.createNewPet = function() {
         const breedInput = document.getElementById('new-pet-breed-input');
         if (breedInput) breedInput.value = '';
     }
-};
+}
 
-window.closePetModal = function() {
+function closePetModal() {
     const modal = document.getElementById('add-pet-modal');
     if (modal) modal.classList.remove('open');
-};
+}
 
-window.confirmCreateNewPet = function() {
+function confirmCreateNewPet() {
     const name    = document.getElementById('new-pet-name-input').value.trim();
     const species = document.getElementById('new-pet-species-input').value;
     const breed   = document.getElementById('new-pet-breed-input').value.trim();
@@ -319,7 +328,7 @@ window.confirmCreateNewPet = function() {
     saveLocalData(newId, 'daily',       { water: 0, walk: 0, date: new Date().toISOString().split('T')[0] });
     saveLocalData(newId, 'chat',        [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${name}. Comment puis-je aider ?` }]);
     saveLocalData(newId, 'budget',      []);
-    saveLocalData(newId, 'proData',     { gender: 'Non spécifié' });
+    saveLocalData(newId, 'proData',      { gender: 'Non spécifié' });
     saveLocalData(newId, 'proEvents',   []);
     saveLocalData(newId, 'proLitters',  []);
     saveLocalData(newId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
@@ -329,7 +338,7 @@ window.confirmCreateNewPet = function() {
 
     closePetModal();
     switchPet(newId);
-};
+}
 
 function loadCurrentPetData() {
     initPetProfile();
@@ -346,7 +355,7 @@ function loadCurrentPetData() {
     initGamification();
 }
 
-window.deleteCurrentPet = function() {
+function deleteCurrentPet() {
     if (!confirm(`⚠️ Êtes-vous sûr de vouloir supprimer ${petProfile.name} ?`)) return;
     const keys = ['profile','weight','medical','education','daily','chat','budget','proData','proEvents','proLitters','healthExtras','proHistory','memories','gamification','custom_exercises'];
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
@@ -361,7 +370,7 @@ window.deleteCurrentPet = function() {
     } else {
         switchPet(petsList[0].id);
     }
-};
+}
 
 // ==========================================
 // PROFIL & ENCYCLOPÉDIE
@@ -369,19 +378,16 @@ window.deleteCurrentPet = function() {
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
 
-    // Sidebar brand tagline (breed)
     const breedEl = document.getElementById('header-pet-breed');
     if (breedEl) breedEl.innerText = petProfile.breed || 'Compagnon santé';
 
-    // Sidebar footer name & pet selector label
     const topNameEl = document.getElementById('current-pet-display-top');
     if (topNameEl) topNameEl.innerText = petProfile.name || 'Pablo';
 
-    // Avatar — profile screen
     const profileImg         = document.getElementById('profile-pet-image');
     const profilePlaceholder = document.getElementById('profile-avatar-placeholder');
     if (petProfile.avatar) {
-        if (profileImg)         { profileImg.src = petProfile.avatar; profileImg.style.display = 'block'; }
+        if (profileImg)          { profileImg.src = petProfile.avatar; profileImg.style.display = 'block'; }
         if (profilePlaceholder) profilePlaceholder.style.display = 'none';
     } else {
         if (profileImg)         profileImg.style.display = 'none';
@@ -391,19 +397,16 @@ function initPetProfile() {
         }
     }
 
-    // Profile form fields
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
     setVal('profile-name',    petProfile.name);
     setVal('profile-breed',   petProfile.breed);
-    setVal('profile-age',     petProfile.age);
+    setVal('profile-age',      petProfile.age);
     setVal('profile-size',    petProfile.size);
     setVal('profile-weight',  petProfile.weight);
 
-    // Allergies (healthExtras loaded separately, but we sync here if already loaded)
     const allergyInput = document.getElementById('profile-allergies');
     if (allergyInput) allergyInput.value = (getLocalData(currentPetId, 'healthExtras', {})).allergies || '';
 
-    // Dynamic pet name spans
     document.querySelectorAll('.dynamic-pet-name').forEach(el => el.innerText = petProfile.name || 'Pablo');
 
     updateBreedAdviceUI();
@@ -431,29 +434,18 @@ Structure ta réponse en HTML propre avec ces sections en balises <h4> (avec emo
 <h4>Conseil d'éducation</h4>
 Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de conclusion, envoie uniquement le HTML propre.`;
 
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1000,
-                messages: [{ role: "user", content: prompt }]
-            })
-        });
-        const data = await response.json();
-        const text = data.content?.map(b => b.text || '').join('') || '';
-        const clean = text.replace(/```html|```/g, '').trim();
+        const clean = (await groqChat([{ role: "user", content: prompt }], 1200)).replace(/```html|```/g, '').trim();
 
         petProfile.breedAdvice = clean;
         saveLocalData(currentPetId, 'profile', petProfile);
         if (adviceContent) adviceContent.innerHTML = clean;
     } catch (error) {
         console.error("Erreur encyclopédie:", error);
-        if (adviceContent) adviceContent.innerText = "Documentation non disponible. Demandez à l'assistant dans l'onglet dédié !";
+        if (adviceContent) adviceContent.innerText = "Documentation non disponible. Demandez à l'assistant !";
     }
 }
 
-window.savePetProfile = function() {
+function savePetProfile() {
     const name      = document.getElementById('profile-name').value.trim();
     if (!name) { showToast("Le nom est obligatoire.", "⚠️", "error"); return; }
     const weight    = parseFloat(document.getElementById('profile-weight').value);
@@ -487,11 +479,11 @@ window.savePetProfile = function() {
     }
 
     loadCurrentPetData();
-    showToast(`Profil de ${name} enregistré ! 🐾`);
+    showToast(`Profil de ${name} enregistré !`);
     navigateTo('screen-home');
-};
+}
 
-window.uploadPetPhoto = function() {
+function uploadPetPhoto() {
     const file = document.getElementById('file-upload-input').files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -499,12 +491,12 @@ window.uploadPetPhoto = function() {
         petProfile.avatar = reader.result;
         const img         = document.getElementById('profile-pet-image');
         const placeholder = document.getElementById('profile-avatar-placeholder');
-        if (img)         { img.src = reader.result; img.style.display = 'block'; }
+        if (img)          { img.src = reader.result; img.style.display = 'block'; }
         if (placeholder) placeholder.style.display = 'none';
         saveLocalData(currentPetId, 'profile', petProfile);
     };
     reader.readAsDataURL(file);
-};
+}
 
 // ==========================================
 // POIDS & NUTRITION
@@ -539,12 +531,11 @@ function updateWeightUI() {
     generateTransitionPlan();
 }
 
-window.updateNutritionUI = async function() {
+async function updateNutritionUI() {
     const nutritionRationText = document.getElementById('nutrition-ration-text');
     const activitySelector    = document.getElementById('activity-level-selector');
     if (!petProfile.weight || !nutritionRationText || !activitySelector) return;
 
-    // Local fallback first
     let baseRation = petProfile.weight * 13.5;
     if (activitySelector.value === 'calm')   baseRation *= 0.85;
     if (activitySelector.value === 'active') baseRation *= 1.15;
@@ -554,17 +545,7 @@ window.updateNutritionUI = async function() {
 
     try {
         const prompt = `Calcule la ration de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, activité ${activitySelector.value}. Réponds UNIQUEMENT par le chiffre suivi de la lettre g. Exemple : 420g`;
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1000,
-                messages: [{ role: "user", content: prompt }]
-            })
-        });
-        const data    = await response.json();
-        const aiText  = data.content?.map(b => b.text || '').join('').trim() || '';
+        const aiText = await groqChat([{ role: "user", content: prompt }], 20);
         nutritionRationText.style.fontSize = '';
 
         const match = aiText.match(/\d+\s*g/i);
@@ -578,9 +559,9 @@ window.updateNutritionUI = async function() {
         nutritionRationText.style.fontSize = '';
         nutritionRationText.innerText      = Math.round(baseRation) + 'g';
     }
-};
+}
 
-window.addNewWeight = function() {
+function addNewWeight() {
     const weightVal = parseFloat(document.getElementById('weight-input').value);
     const dateVal   = document.getElementById('weight-date').value;
     if (!weightVal || !dateVal || weightVal <= 0) { showToast("Valeurs invalides.", "⚠️", "error"); return; }
@@ -589,7 +570,7 @@ window.addNewWeight = function() {
     updateWeightUI();
     renderWeightChart();
     document.getElementById('weight-input').value = '';
-};
+}
 
 function renderWeightChart() {
     const canvas = document.getElementById('weightChart');
@@ -653,15 +634,15 @@ function updateTrackersUI() {
     if (walkEl)  walkEl.innerText  = `${dailyTrackers.walk} min`;
 }
 
-window.addWater = function()          { dailyTrackers.water += 250; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); showToast('+250 ml 💧'); };
-window.addWalk  = function()          { dailyTrackers.walk  += 15;  saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); showToast('+15 min 🐾'); };
-window.resetDailyTrackers = function() {
+function addWater() { dailyTrackers.water += 250; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); showToast('+250 ml 💧'); }
+function addWalk()  { dailyTrackers.walk  += 15;  saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); showToast('+15 min 🐾'); }
+function resetDailyTrackers() {
     dailyTrackers.water = 0;
     dailyTrackers.walk  = 0;
     saveLocalData(currentPetId, 'daily', dailyTrackers);
     updateTrackersUI();
     showToast('Trackers remis à zéro', '🔄');
-};
+}
 
 // ==========================================
 // CARNET MÉDICAL & RAPPELS
@@ -672,7 +653,7 @@ function initMedicalRecords() {
     renderReminders();
 }
 
-window.addMedicalEvent = function() {
+function addMedicalEvent() {
     const type = document.getElementById('event-type').value;
     const date = document.getElementById('event-date').value;
     if (!date) { showToast("Sélectionnez une date.", "⚠️", "error"); return; }
@@ -682,7 +663,7 @@ window.addMedicalEvent = function() {
     renderReminders();
     document.getElementById('event-date').value = '';
     showToast(`${type} enregistré !`, '✅');
-};
+}
 
 function renderMedicalHistory() {
     const list = document.getElementById('medical-history-list');
@@ -698,13 +679,13 @@ function renderMedicalHistory() {
     if (sorted.length === 0) list.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:10px 0;">Aucun acte enregistré.</p>';
 }
 
-window.clearMedicalHistory = function() {
+function clearMedicalHistory() {
     if (!confirm(`Vider l'historique de ${petProfile.name} ?`)) return;
     medicalEvents = [];
     saveLocalData(currentPetId, 'medical', medicalEvents);
     renderMedicalHistory();
     renderReminders();
-};
+}
 
 function renderReminders() {
     const container = document.getElementById('dynamic-reminders-list');
@@ -713,7 +694,6 @@ function renderReminders() {
     const today = new Date();
     let hasReminders = false;
 
-    // 1. Rappels médicaux
     const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30, 'Toilettage': 90, 'Dents': 7, 'Oreilles': 30, 'Griffes': 60 };
     Object.keys(rules).forEach(type => {
         const eventsOfType = medicalEvents.filter(e => e.type === type);
@@ -730,7 +710,6 @@ function renderReminders() {
         }
     });
 
-    // 2. Rappels élevage — naissance prévue
     if (proData.gender !== 'Mâle' && proData.expectedBirth && !proData.actualBirth) {
         const birthDate   = new Date(proData.expectedBirth);
         const daysToBirth = Math.ceil((birthDate - today) / 86400000);
@@ -744,7 +723,6 @@ function renderReminders() {
         }
     }
 
-    // 3. Rappel chaleurs
     if (proData.gender !== 'Mâle' && proData.heatReminder && proHistory.heats.length > 0) {
         const sorted   = [...proHistory.heats].sort((a, b) => new Date(b.date) - new Date(a.date));
         const lastHeat = new Date(sorted[0].date);
@@ -761,7 +739,6 @@ function renderReminders() {
         }
     }
 
-    // 4. Concours à venir
     const upcoming = proEvents.filter(e => new Date(e.date) > today).sort((a, b) => new Date(a.date) - new Date(b.date));
     if (upcoming.length > 0) {
         hasReminders = true;
@@ -819,12 +796,12 @@ function renderEducation() {
     });
 }
 
-window.updateEduLevel = async function(exerciseId, levelValue) {
+function updateEduLevel(exerciseId, levelValue) {
     educationData[exerciseId] = parseInt(levelValue);
-    await saveLocalData(currentPetId, 'education', educationData);
-};
+    saveLocalData(currentPetId, 'education', educationData);
+}
 
-window.addCustomExercise = async function() {
+function addCustomExercise() {
     const input = document.getElementById('new-custom-exercise-input');
     if (!input) return;
     const name = input.value.trim();
@@ -832,11 +809,11 @@ window.addCustomExercise = async function() {
     const id              = 'custom_' + Date.now();
     const customExercises = getLocalData(currentPetId, 'custom_exercises', []);
     customExercises.push({ id, name, icon: 'fa-star' });
-    await saveLocalData(currentPetId, 'custom_exercises', customExercises);
+    saveLocalData(currentPetId, 'custom_exercises', customExercises);
     input.value = '';
     renderEducation();
     showToast(`Exercice « ${name} » ajouté !`, '✅');
-};
+}
 
 // ==========================================
 // BUDGET
@@ -879,7 +856,7 @@ function renderBudgetHistory(expenses) {
     if (expenses.length === 0) list.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:10px 0;">Aucune dépense ce mois.</p>';
 }
 
-window.addBudgetExpense = function() {
+function addBudgetExpense() {
     const title  = document.getElementById('budget-title').value.trim();
     const amount = parseFloat(document.getElementById('budget-amount').value);
     if (!title || !amount || amount <= 0) { showToast("Valeurs invalides.", "⚠️", "error"); return; }
@@ -889,12 +866,10 @@ window.addBudgetExpense = function() {
     document.getElementById('budget-title').value  = '';
     document.getElementById('budget-amount').value = '';
     showToast(`${title} — ${amount.toFixed(2)} € enregistré !`, '💰');
-};
-
-window.exportToPDF = () => window.print();
+}
 
 // ==========================================
-// CHAT — Assistant IA via Anthropic API
+// CHAT — Assistant via Groq API
 // ==========================================
 function initChat() {
     chatHistory = getLocalData(currentPetId, 'chat', [{
@@ -927,13 +902,13 @@ function renderChat() {
     container.scrollTop = container.scrollHeight;
 }
 
-window.askPreset = function(questionText) {
+function askPreset(questionText) {
     const input = document.getElementById('chat-input-field');
     if (input) input.value = questionText;
     sendMessage();
-};
+}
 
-window.sendMessage = async function() {
+async function sendMessage() {
     const input = document.getElementById('chat-input-field');
     const text  = input?.value.trim();
     if (!text) return;
@@ -941,7 +916,6 @@ window.sendMessage = async function() {
     chatHistory.push({ sender: 'user', text });
     input.value = '';
 
-    // Loading indicator
     const loadingId  = Date.now();
     const loadingTxt = `<span class="running-dog">🐶</span> <em style="font-size:13px; color:var(--text-muted); margin-left:8px;">Pablo renifle une piste…</em>`;
     chatHistory.push({ sender: 'bot', text: loadingTxt, _id: loadingId });
@@ -949,31 +923,20 @@ window.sendMessage = async function() {
 
     const systemPrompt = `Tu es l'assistant Pablo, spécialisé en bien-être animal. Tu aides le maître de : ${petProfile.name || 'l\'animal'}, Espèce: ${petProfile.species || 'Chien'}, Race: ${petProfile.breed || 'Inconnue'}, Âge: ${petProfile.age || '?'} mois, Poids: ${petProfile.weight || '?'} kg. Sois concis, bienveillant et finis toujours par un wouf ou un miaou !`;
 
-    // Build messages array for Anthropic (system goes as separate param, not in messages)
-    const apiMessages = chatHistory
-        .filter(m => !m._id)
-        .slice(-10)
-        .map(m => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }));
+    const apiMessages = [
+        { role: "system", content: systemPrompt },
+        ...chatHistory
+            .filter(m => !m._id)
+            .slice(-10)
+            .map(m => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }))
+    ];
 
-    // Ensure last message is user (required by Anthropic)
-    if (apiMessages.length === 0 || apiMessages[apiMessages.length - 1].role !== 'user') {
+    if (apiMessages[apiMessages.length - 1].role !== 'user') {
         apiMessages.push({ role: 'user', content: text });
     }
 
     try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1000,
-                system: systemPrompt,
-                messages: apiMessages
-            })
-        });
-        const data    = await response.json();
-        const replyTx = data.content?.map(b => b.text || '').join('').trim() || "Wouf… je n'ai pas compris.";
-
+        const replyTx = await groqChat(apiMessages);
         chatHistory = chatHistory.filter(m => m._id !== loadingId);
         chatHistory.push({ sender: 'bot', text: replyTx });
         renderChat();
@@ -983,26 +946,22 @@ window.sendMessage = async function() {
         chatHistory.push({ sender: 'bot', text: `Wouf… Erreur de connexion. (${e.message})` });
         renderChat();
     }
-};
+}
 
 // ==========================================
 // NAVIGATION
 // ==========================================
-window.navigateTo = function(screenId) {
-    // Screens
+function navigateTo(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(screenId);
     if (target) target.classList.add('active');
 
-    // Sidebar nav items
     document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
     document.querySelectorAll(`.sidebar-nav li[onclick="navigateTo('${screenId}')"]`).forEach(li => li.classList.add('active'));
 
-    // Mobile nav items
     document.querySelectorAll('.nav-item').forEach(ni => ni.classList.remove('active'));
     document.querySelectorAll(`.nav-item[onclick="navigateTo('${screenId}')"]`).forEach(ni => ni.classList.add('active'));
 
-    // Page title
     const titles = {
         'screen-home':    "Vue d'ensemble",
         'screen-carnet':  "Carnet de Santé & Suivi",
@@ -1015,7 +974,7 @@ window.navigateTo = function(screenId) {
     if (titleEl && titles[screenId]) titleEl.innerText = titles[screenId];
 
     if (screenId === 'screen-carnet') setTimeout(() => renderWeightChart(), 60);
-};
+}
 
 // ==========================================
 // SANTÉ, URGENCES & CROQUETTES
@@ -1023,7 +982,7 @@ window.navigateTo = function(screenId) {
 function initHealthExtras() {
     healthExtras = getLocalData(currentPetId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
 
-    const vetNameEl  = document.getElementById('vet-name');
+    const vetNameEl = document.getElementById('vet-name');
     const vetPhoneEl = document.getElementById('vet-phone');
     if (vetNameEl)  vetNameEl.value  = healthExtras.vetName  || '';
     if (vetPhoneEl) vetPhoneEl.value = healthExtras.vetPhone || '';
@@ -1043,7 +1002,7 @@ function initHealthExtras() {
     generateTransitionPlan();
 }
 
-window.callVet = function() {
+function callVet() {
     const vetPhoneEl = document.getElementById('vet-phone');
     const vetNameEl  = document.getElementById('vet-name');
     if (vetPhoneEl?.value) {
@@ -1054,11 +1013,11 @@ window.callVet = function() {
     } else {
         showToast("Entrez un numéro de téléphone.", "⚠️", "error");
     }
-};
+}
 
-window.callPoisonControl = () => window.open('tel:0468315555');
+function callPoisonControl() { window.open('tel:0468315555'); }
 
-window.refillKibbleBag = function() {
+function refillKibbleBag() {
     const size = parseFloat(document.getElementById('kibble-bag-size').value);
     if (size > 0) {
         healthExtras.kibbleBag       = size;
@@ -1068,7 +1027,7 @@ window.refillKibbleBag = function() {
         showToast("Nouveau sac entamé ! 🍖");
         document.getElementById('kibble-bag-size').value = '';
     }
-};
+}
 
 function updateKibbleUI() {
     const textEl    = document.getElementById('kibble-remaining-text');
@@ -1082,7 +1041,7 @@ function updateKibbleUI() {
     textEl.innerText = `${remaining.toFixed(2)} kg / ${healthExtras.kibbleBag} kg`;
     if (remaining < 3) {
         textEl.style.color = 'var(--danger)';
-        showToast(`⚠️ Seulement ${remaining.toFixed(1)} kg de croquettes restantes !`, '🍖', 'error');
+        showToast(`⚠️ Seulement ${remaining.toFixed(1)} kg restants !`, '🍖', 'error');
     } else {
         textEl.style.color = 'var(--success)';
     }
@@ -1134,7 +1093,7 @@ function updateBadges() {
 }
 
 // ==========================================
-// MODULE OFFICIEL & ÉLEVAGE
+// MODULE ÉLEVAGE
 // ==========================================
 function initProData() {
     proData    = getLocalData(currentPetId, 'proData',    { gender: 'Non spécifié' });
@@ -1150,8 +1109,6 @@ function initProData() {
     setVal('pro-xrays',     proData.xrays);
     setVal('pro-club-name', proData.clubName);
     setVal('pro-club-date', proData.clubDate);
-
-    // Reproduction fields (index.html IDs)
     setVal('pro-optimal-date',  proData.optimalDate);
     setVal('pro-expected-birth', proData.expectedBirth);
     setVal('pro-actual-birth',   proData.actualBirth);
@@ -1164,17 +1121,16 @@ function initProData() {
     renderLitters();
 }
 
-window.toggleBreederFields = function() {
+function toggleBreederFields() {
     const gender = document.getElementById('pro-gender')?.value;
-    // These IDs match index.html exactly
     const femaleFields = ['field-chaleurs-history', 'field-fec-opti', 'field-naissance-prevue', 'field-mise-a-bas', 'field-rappel-chaleurs'];
     femaleFields.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = (gender === 'Mâle') ? 'none' : 'block';
     });
-};
+}
 
-window.saveProData = function() {
+function saveProData() {
     proData = {
         gender:         document.getElementById('pro-gender')?.value,
         chip:           document.getElementById('pro-chip')?.value,
@@ -1192,10 +1148,9 @@ window.saveProData = function() {
     saveLocalData(currentPetId, 'proData', proData);
     renderReminders();
     showToast('Profil Officiel & Élevage mis à jour ! 🐾');
-};
+}
 
-// PORTÉES — IDs from index.html: litter-date, litter-partner, litter-count
-window.addLitter = function() {
+function addLitter() {
     const date    = document.getElementById('litter-date')?.value;
     const partner = document.getElementById('litter-partner')?.value;
     const count   = document.getElementById('litter-count')?.value;
@@ -1207,7 +1162,7 @@ window.addLitter = function() {
     if (document.getElementById('litter-count'))   document.getElementById('litter-count').value   = '';
     renderLitters();
     showToast('Portée enregistrée ! 🐶', '✅');
-};
+}
 
 function renderLitters() {
     const list = document.getElementById('litters-list');
@@ -1227,8 +1182,7 @@ function renderLitters() {
     });
 }
 
-// ÉVÉNEMENTS & CONCOURS — IDs from index.html: pro-event-type, pro-event-date, pro-event-details
-window.addProEvent = function() {
+function addProEvent() {
     const type    = document.getElementById('pro-event-type')?.value;
     const date    = document.getElementById('pro-event-date')?.value;
     const details = document.getElementById('pro-event-details')?.value;
@@ -1240,7 +1194,7 @@ window.addProEvent = function() {
     renderProEvents();
     renderReminders();
     showToast('Événement ajouté !', '🏆');
-};
+}
 
 function renderProEvents() {
     const list = document.getElementById('pro-events-list');
@@ -1271,8 +1225,7 @@ function initProHistory() {
     renderMatingHistory();
 }
 
-// IDs from index.html: new-heat-date, heat-history-list, heat-average
-window.addHeatRecord = function() {
+function addHeatRecord() {
     const date = document.getElementById('new-heat-date')?.value;
     if (!date) return;
     proHistory.heats.push({ id: Date.now(), date });
@@ -1280,7 +1233,7 @@ window.addHeatRecord = function() {
     document.getElementById('new-heat-date').value = '';
     renderHeatHistory();
     showToast('Chaleurs enregistrées !', '🩸');
-};
+}
 
 function renderHeatHistory() {
     const list  = document.getElementById('heat-history-list');
@@ -1306,8 +1259,7 @@ function renderHeatHistory() {
     if (sorted.length === 0) list.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">Aucune chaleur enregistrée.</p>';
 }
 
-// IDs from index.html: mating-date, mating-partner, mating-coi, mating-history-list
-window.addMatingRecord = function() {
+function addMatingRecord() {
     const date    = document.getElementById('mating-date')?.value;
     const partner = document.getElementById('mating-partner')?.value;
     const coi     = document.getElementById('mating-coi')?.value;
@@ -1319,7 +1271,7 @@ window.addMatingRecord = function() {
     if (document.getElementById('mating-coi'))     document.getElementById('mating-coi').value     = '';
     renderMatingHistory();
     showToast('Saillie enregistrée !', '❤️');
-};
+}
 
 function renderMatingHistory() {
     const list = document.getElementById('mating-history-list');
@@ -1345,11 +1297,9 @@ function renderMatingHistory() {
 function initMemories() {
     memoriesList = getLocalData(currentPetId, 'memories', []);
     renderMemories();
-    document.querySelectorAll('.dynamic-pet-name').forEach(el => el.innerText = petProfile.name || 'Pablo');
 }
 
-// IDs from index.html: memory-date, memory-title, memories-timeline
-window.addMemory = function() {
+function addMemory() {
     const date  = document.getElementById('memory-date')?.value;
     const title = document.getElementById('memory-title')?.value.trim();
     if (!date || !title) { showToast("Remplissez la date et le souvenir.", "⚠️", "error"); return; }
@@ -1358,14 +1308,14 @@ window.addMemory = function() {
     if (document.getElementById('memory-title')) document.getElementById('memory-title').value = '';
     renderMemories();
     showToast(`Souvenir « ${title} » ajouté !`, '📸');
-};
+}
 
 function renderMemories() {
     const timeline = document.getElementById('memories-timeline');
     if (!timeline) return;
     timeline.innerHTML = '';
     const sorted = [...memoriesList].sort((a, b) => new Date(b.date) - new Date(a.date));
-    if (sorted.length === 0) { timeline.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">Aucun souvenir encore. Ajoutez la première ! ✨</p>'; return; }
+    if (sorted.length === 0) { timeline.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">Aucun souvenir encore. Ajoutez-en un ! ✨</p>'; return; }
     sorted.forEach(m => {
         timeline.innerHTML += `
             <div style="position:relative; margin-bottom:16px;">
@@ -1376,14 +1326,14 @@ function renderMemories() {
     });
 }
 
-window.generateAvatar = function() {
+function generateAvatar() {
     showToast(`Avatar de ${petProfile.name || 'votre compagnon'} bientôt disponible ! 🪄`, '🎨');
-};
+}
 
 // ==========================================
 // NOTIFICATIONS
 // ==========================================
-window.requestNotificationPermission = function() {
+function requestNotificationPermission() {
     if (!('Notification' in window)) { showToast("Votre navigateur ne supporte pas les notifications.", "⚠️", "error"); return; }
     Notification.requestPermission().then(permission => {
         const btn = document.getElementById('btn-enable-notifications');
@@ -1394,40 +1344,44 @@ window.requestNotificationPermission = function() {
             showToast("Notifications refusées.", "⚠️", "error");
         }
     });
-};
+}
 
 // ==========================================
-// EXPORTS WINDOW
+// EXPORTS WINDOW POUR LE HTML
 // ==========================================
 window.switchPet                  = switchPet;
-window.createNewPet               = window.createNewPet;
-window.closePetModal              = window.closePetModal;
-window.confirmCreateNewPet        = window.confirmCreateNewPet;
-window.updateNutritionUI          = window.updateNutritionUI;
-window.addWater                   = window.addWater;
-window.addWalk                    = window.addWalk;
-window.resetDailyTrackers         = window.resetDailyTrackers;
-window.addNewWeight               = window.addNewWeight;
-window.addMedicalEvent            = window.addMedicalEvent;
-window.clearMedicalHistory        = window.clearMedicalHistory;
-window.addBudgetExpense           = window.addBudgetExpense;
-window.uploadPetPhoto             = window.uploadPetPhoto;
-window.savePetProfile             = window.savePetProfile;
-window.deleteCurrentPet           = window.deleteCurrentPet;
-window.navigateTo                 = window.navigateTo;
-window.saveProData                = window.saveProData;
-window.addProEvent                = window.addProEvent;
-window.addLitter                  = window.addLitter;
-window.toggleBreederFields        = window.toggleBreederFields;
-window.callVet                    = window.callVet;
-window.callPoisonControl          = window.callPoisonControl;
-window.refillKibbleBag            = window.refillKibbleBag;
-window.addHeatRecord              = window.addHeatRecord;
-window.addMatingRecord            = window.addMatingRecord;
-window.addMemory                  = window.addMemory;
-window.generateAvatar             = window.generateAvatar;
-window.updateEduLevel             = window.updateEduLevel;
-window.addCustomExercise          = window.addCustomExercise;
-window.exportToPDF                = window.exportToPDF;
-window.requestNotificationPermission = window.requestNotificationPermission;
+window.createNewPet               = createNewPet;
+window.closePetModal              = closePetModal;
+window.confirmCreateNewPet        = confirmCreateNewPet;
+window.updateNutritionUI          = updateNutritionUI;
+window.addWater                   = addWater;
+window.addWalk                    = addWalk;
+window.resetDailyTrackers          = resetDailyTrackers;
+window.addNewWeight               = addNewWeight;
+window.addMedicalEvent            = addMedicalEvent;
+window.clearMedicalHistory        = clearMedicalHistory;
+window.addBudgetExpense           = addBudgetExpense;
+window.uploadPetPhoto             = uploadPetPhoto;
+window.savePetProfile             = savePetProfile;
+window.deleteCurrentPet           = deleteCurrentPet;
+window.navigateTo                  = navigateTo;
+window.saveProData                = saveProData;
+window.addProEvent                = addProEvent;
+window.addLitter                  = addLitter;
+window.toggleBreederFields        = toggleBreederFields;
+window.callVet                    = callVet;
+window.callPoisonControl          = callPoisonControl;
+window.refillKibbleBag            = refillKibbleBag;
+window.addHeatRecord              = addHeatRecord;
+window.addMatingRecord            = addMatingRecord;
+window.addMemory                  = addMemory;
+window.generateAvatar             = generateAvatar;
+window.updateEduLevel             = updateEduLevel;
+window.addCustomExercise          = addCustomExercise;
+window.exportToPDF                = exportToPDF;
+window.requestNotificationPermission = requestNotificationPermission;
 window.renderWeightChart          = renderWeightChart;
+window.toggleTheme                = toggleTheme;
+window.processAuth                = processAuth;
+window.processGoogleAuth          = processGoogleAuth;
+window.processResetPassword       = processResetPassword;
