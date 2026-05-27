@@ -497,13 +497,14 @@ async function updateNutritionUI() {
     if (!petProfile.weight || !nutritionRationText || !activityLevel) return;
 
     nutritionRationText.style.fontSize = "16px";
-    nutritionRationText.innerText = "Calcul IA...";
+    nutritionRationText.innerText = "Calcul...";
 
+    // Calcul de secours local au cas où l'API met du temps
     let baseRation = petProfile.weight * 13.5; 
     if (activityLevel.value === 'calm') baseRation *= 0.85;
     if (activityLevel.value === 'active') baseRation *= 1.15;
 
-    const promptNutrition = `Calcule la ration de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, activité ${activityLevel.value}. Réponds UNIQUEMENT par le nombre de grammes suivi de 'g'. Exemple : 420g`;
+    const promptNutrition = `Calcule la ration de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, activité ${activityLevel.value}. Réponds UNIQUEMENT par le chiffre suivi de la lettre g. Exemple : 420g`;
 
     try {
         const response = await fetch("/api/mammouth-proxy", {
@@ -514,10 +515,28 @@ async function updateNutritionUI() {
         if (data.error) throw new Error(data.error);
 
         nutritionRationText.style.fontSize = ""; 
-        nutritionRationText.innerText = data.choices[0].message.content.trim();
+        let aiResponse = data.choices[0].message.content.trim();
+        
+        // 🔥 SÉCURITÉ : On extrait UNIQUEMENT le grammage (ex: "420g" ou "420 g") de la réponse
+        const match = aiResponse.match(/\d+\s*g/i);
+        
+        if (match) {
+            // Si on trouve le grammage, on l'affiche proprement sans espaces superflus
+            nutritionRationText.innerText = match[0].toLowerCase().replace(' ', '');
+        } else {
+            // Si l'assistant a juste renvoyé le chiffre sans le "g"
+            const numbers = aiResponse.match(/\d+/);
+            if (numbers) {
+                nutritionRationText.innerText = numbers[0] + "g";
+            } else {
+                // Pire des cas : calcul local de secours
+                nutritionRationText.innerText = Math.round(baseRation) + "g";
+            }
+        }
     } catch (e) {
+        // En cas de panne réseau / serveur proxy
         nutritionRationText.style.fontSize = "";
-        nutritionRationText.innerText = Math.round(baseRation) + " g";
+        nutritionRationText.innerText = Math.round(baseRation) + "g";
     }
 }
 
@@ -1173,7 +1192,7 @@ function renderMemories() {
     });
 }
 
-window.generateAvatar = () => { alert("Bientôt disponible ! L'IA analysera la photo de profil pour générer un avatar Disney/Pixar de " + (petProfile.name || "votre chien") + ". 🪄"); };
+window.generateAvatar = () => { alert("Bientôt disponible ! L'assistant analysera la photo de profil pour générer un avatar Disney/Pixar de " + (petProfile.name || "votre chien") + ". 🪄"); };
 
 // Tout en bas de ton fichier app.js
 
