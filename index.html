@@ -387,11 +387,80 @@
 </head>
 <body>
 
-    <div id="landing-page" class="full-screen-page">
-        <i class="fa-solid fa-shield-dog" style="font-size: 60px; color: var(--accent); margin-bottom: 20px;"></i>
-        <h1 style="font-size: 32px; margin-bottom: 10px;">PABLO<span>.</span></h1>
-        <p style="color: #bbb; max-width: 280px; margin-bottom: 30px; font-size: 15px;">Le carnet de santé intelligent connecté à votre assistant.</p>
-        <button class="btn-primary" onclick="enterApp()" style="max-width: 260px;">Rejoindre la meute</button>
+   <!-- ==========================================
+       NOUVELLE LANDING PAGE PREMIUM & INFORMATIVE (CORRIGÉE)
+       ========================================== -->
+    <div id="landing-page" class="full-screen-page" style="overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; padding: 40px 20px;">
+        
+        <!-- En-tête / Logo -->
+        <div style="margin-top: 20px; margin-bottom: 30px;">
+            <i class="fa-solid fa-shield-dog" style="font-size: 55px; color: var(--accent); margin-bottom: 15px;"></i>
+            <h1 style="font-size: 42px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px;">PABLO<span style="color: var(--accent);">.</span></h1>
+            <!-- CORRECTION ICI : text-transform: uppercase; -->
+            <div style="display: inline-block; background: rgba(212, 163, 115, 0.15); color: var(--accent); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">
+                🐾 Projet Passion & Indépendant
+            </div>
+            <p style="color: #eadfc9; max-width: 500px; margin: 0 auto; font-size: 18px; font-weight: 500; line-height: 1.4;">
+                Le tableau de bord ultime qui chasse la charge mentale des maîtres et des éleveurs.
+            </p>
+        </div>
+
+        <!-- Bouton d'action principal (Haut) -->
+        <div style="margin-bottom: 40px; width: 100%; max-width: 320px;">
+            <button class="btn-primary" onclick="enterApp()" style="padding: 16px; font-size: 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(212, 163, 115, 0.3);">
+                Rejoindre la meute <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i>
+            </button>
+            <span style="display: block; font-size: 12px; color: #aaa; margin-top: 8px;">🚀 100% Gratuit • Sans publicité • Sans revente de données</span>
+        </div>
+
+        <!-- Grille des fonctionnalités majeures -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px; text-align: left; margin-bottom: 40px;">
+            
+            <!-- Feature 1: Assistant -->
+            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; backdrop-filter: blur(5px);">
+                <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: white; font-size: 18px;">
+                    <i class="fa-solid fa-comment-medical"></i>
+                </div>
+                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: white;">Assistant intelligent contextuel</h3>
+                <p style="font-size: 13px; color: #ccc; line-height: 1.5;">Une question sur l'alimentation ou un doute sur un symptôme ? Votre assistant virtuel "Hey Pablo" profile ses réponses selon la race, l'âge et le poids exact de votre animal.</p>
+            </div>
+
+            <!-- Feature 2: Croquette prédictive -->
+            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; backdrop-filter: blur(5px);">
+                <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: white; font-size: 18px;">
+                    <i class="fa-solid fa-bowl-food"></i>
+                </div>
+                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: white;">Zéro panne de croquettes</h3>
+                <p style="font-size: 13px; color: #ccc; line-height: 1.5;">L'application calcule la ration journalière idéale au gramme près. Grâce à sa jauge prédictive intelligente, Pablo vous alerte par notification avant que le sac ne soit vide.</p>
+            </div>
+
+            <!-- Feature 3: Suivi Pro Élevage -->
+            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; backdrop-filter: blur(5px);">
+                <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: white; font-size: 18px;">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: white;">Module Élevage de Terrain</h3>
+                <p style="font-size: 13px; color: #ccc; line-height: 1.5;">Directement inspiré du monde des éleveurs professionnels. Suivi précis des cycles de chaleurs, des saillies, des portées et calcul automatisé du taux de consanguinité (COI%).</p>
+            </div>
+
+            <!-- Feature 4: Santé et Budget -->
+            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; backdrop-filter: blur(5px);">
+                <div style="width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; color: white; font-size: 18px;">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: white;">Santé globale & Gestion budgétaire</h3>
+                <p style="font-size: 13px; color: #ccc; line-height: 1.5;">Graphiques de croissance interactifs, rappels automatiques des soins (vaccins, vermifuges) et gestion complète des dépenses avec exportation des fiches de frais en PDF.</p>
+            </div>
+
+        </div>
+
+        <!-- Footer Storytelling discret -->
+        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 600px;">
+            <p style="font-size: 12px; color: #888; font-style: italic; line-height: 1.4;">
+                "Fils d'éleveur de Bergers Allemands, j'ai codé Pablo pour chasser les carnets en papier perdus et rendre hommage au premier chien qui a partagé ma vie d'adulte." ✨
+            </p>
+        </div>
+
     </div>
 
     <div id="auth-page" class="full-screen-page" style="display: none;">
