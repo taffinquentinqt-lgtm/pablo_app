@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pablo - Compagnon Santé</title>
     
+    <!-- Mini-vitrine pour les partages Facebook & LinkedIn -->
+    <meta property="og:title" content="Pablo - Le tableau de bord de votre compagnon">
+    <meta property="og:description" content="L'assistant de poche qui chasse la charge mentale des maîtres et des éleveurs. 100% gratuit et indépendant.">
+    <meta property="og:image" content="https://pablo-app-roan.vercel.app/pablo.jpg">
+    <meta property="og:url" content="https://pablo-app-roan.vercel.app">
+    <meta property="og:type" content="website">
+
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2c2520">
     <meta name="mobile-web-app-capable" content="yes">
@@ -244,7 +251,7 @@
         .screen { display: none; }
         .screen.active { display: block; }
 
-        /* Barre de navigation basse pour le Mobile (5 onglets max) */
+        /* Barre de navigation basse pour le Mobile */
         .mobile-nav {
             display: none;
             height: 65px;
@@ -387,8 +394,8 @@
 </head>
 <body>
 
-   <!-- ==========================================
-       NOUVELLE LANDING PAGE PREMIUM & INFORMATIVE (CORRIGÉE)
+    <!-- ==========================================
+       NOUVELLE LANDING PAGE PREMIUM & INFORMATIVE
        ========================================== -->
     <div id="landing-page" class="full-screen-page" style="overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; padding: 40px 20px;">
         
@@ -396,7 +403,6 @@
         <div style="margin-top: 20px; margin-bottom: 30px;">
             <i class="fa-solid fa-shield-dog" style="font-size: 55px; color: var(--accent); margin-bottom: 15px;"></i>
             <h1 style="font-size: 42px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px;">PABLO<span style="color: var(--accent);">.</span></h1>
-            <!-- CORRECTION ICI : text-transform: uppercase; -->
             <div style="display: inline-block; background: rgba(212, 163, 115, 0.15); color: var(--accent); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">
                 🐾 Projet Passion & Indépendant
             </div>
@@ -405,7 +411,7 @@
             </p>
         </div>
 
-        <!-- Bouton d'action principal (Haut) -->
+        <!-- Bouton d'action principal -->
         <div style="margin-bottom: 40px; width: 100%; max-width: 320px;">
             <button class="btn-primary" onclick="enterApp()" style="padding: 16px; font-size: 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(212, 163, 115, 0.3);">
                 Rejoindre la meute <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i>
@@ -413,7 +419,7 @@
             <span style="display: block; font-size: 12px; color: #aaa; margin-top: 8px;">🚀 100% Gratuit • Sans publicité • Sans revente de données</span>
         </div>
 
-        <!-- Grille des fonctionnalités majeures -->
+        <!-- Grille des fonctionnalités -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px; text-align: left; margin-bottom: 40px;">
             
             <!-- Feature 1: Assistant -->
@@ -454,7 +460,7 @@
 
         </div>
 
-        <!-- Footer Storytelling discret -->
+        <!-- Footer Storytelling -->
         <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 600px;">
             <p style="font-size: 12px; color: #888; font-style: italic; line-height: 1.4;">
                 "Fils d'éleveur de Bergers Allemands, j'ai codé Pablo pour chasser les carnets en papier perdus et rendre hommage au premier chien qui a partagé ma vie d'adulte." ✨
@@ -463,6 +469,9 @@
 
     </div>
 
+    <!-- ==========================================
+       ÉCRAN D'AUTHENTIFICATION MODULAIRE
+       ========================================== -->
     <div id="auth-page" class="full-screen-page" style="display: none;">
         <div class="auth-container">
             <h2 id="auth-title" style="margin-bottom: 5px; font-size: 22px;">Bienvenue</h2>
@@ -496,6 +505,9 @@
         </div>
     </div>
 
+    <!-- ==========================================
+       LAYOUT DE L'APPLICATION PRINCIPALE
+       ========================================== -->
     <div id="main-app-layout" class="app-container" style="display: none;">
         
         <div class="sidebar">
@@ -535,8 +547,8 @@
 
             <div class="screens-container">
 
+                <!-- 1. ACCUEIL -->
                 <div id="screen-home" class="screen active">
-                    
                     <div id="birthday-banner" style="display:none; background: linear-gradient(135deg, #ff9a9e, #fecfef); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; color: #d62828; font-weight: bold;">
                         🎉 Joyeux Anniversaire <span id="bday-pet-name"></span> ! 🎂
                     </div>
@@ -581,8 +593,8 @@
                     <div id="dynamic-reminders-list"></div>
                 </div>
 
+                <!-- 2. CARNET DE SUIVI -->
                 <div id="screen-carnet" class="screen">
-                    
                     <h2 class="section-divider"><i class="fa-solid fa-heart-pulse"></i> Santé & Nutrition</h2>
                     
                     <div id="health-alerts-banner" class="main-card" style="display:none; background-color: #ffe3e5; border-color: var(--danger);">
@@ -687,9 +699,9 @@
                         <div class="mt-20" id="budget-history-list"></div>
                         <button class="btn-secondary-outline mt-15" onclick="exportToPDF()" style="width:100%;"><i class="fa-solid fa-print"></i> Exporter la fiche de frais</button>
                     </div>
-
                 </div>
 
+                <!-- 3. CHAT PABLO -->
                 <div id="screen-chat" class="screen">
                     <div class="chat-area">
                         <div class="messages-box" id="chat-messages-container"></div>
@@ -705,8 +717,8 @@
                     </div>
                 </div>
 
+                <!-- 4. OFFICIEL & ÉLEVAGE -->
                 <div id="screen-pro" class="screen">
-                    
                     <div class="main-card">
                         <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-id-card" style="color: var(--accent); margin-right: 8px;"></i>Documents & Profil</h3>
                         <div class="dashboard-layout-grid" style="grid-template-columns: 1fr 1fr;">
@@ -829,6 +841,7 @@
                     <button class="btn-primary mt-15 mb-20" onclick="saveProData()"><i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel</button>
                 </div>
 
+                <!-- 5. OUTILS & SOUVENIRS -->
                 <div id="screen-tools" class="screen">
                     <div class="main-card">
                         <h3><i class="fa-solid fa-suitcase" style="color: var(--accent); margin-right:8px;"></i>La Valise de <span class="dynamic-pet-name">Pablo</span></h3>
@@ -855,13 +868,15 @@
                         <div id="memories-timeline" class="mt-15" style="border-left: 2px solid var(--accent); padding-left: 15px;"></div>
                     </div>
 
+                    <!-- AMÉLIORATION PAROLE ASSISTANT ICI -->
                     <div class="main-card mt-15" style="text-align: center; background: linear-gradient(135deg, #fdfbfb, #ebedee);">
-                        <h3>🎨 Créateur d'Avatar IA</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Transformez la photo de votre chien en personnage Pixar !</p>
+                        <h3>🎨 Créateur d'Avatar Magique</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Transformez la photo de votre compagnon en personnage de dessin animé !</p>
                         <button class="btn-primary" onclick="generateAvatar()" style="background: linear-gradient(90deg, #833ab4, #fd1d1d, #fcb045); border:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Générer la magie</button>
                     </div>
                 </div>
 
+                <!-- CONFIGURATION -->
                 <div id="screen-profile" class="screen">
                     <div class="main-card">
                         <div class="avatar-circle-uploader" onclick="document.getElementById('file-upload-input').click()">
@@ -923,17 +938,19 @@
 
             </div>
 
+            <!-- MENU MOBILE NETTOYÉ -->
             <div class="mobile-nav">
                 <div class="nav-item active" onclick="navigateTo('screen-home')"><i class="fa-solid fa-house"></i>Accueil</div>
-<div class="nav-item" onclick="navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i>Carnet</div>
-                <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>,
-                <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Élevage</div>;
-                <div class="nav-item" onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i>Outils</div>;
+                <div class="nav-item" onclick="navigateTo('screen-carnet')"><i class="fa-solid fa-book-medical"></i>Carnet</div>
+                <div class="nav-item" onclick="navigateTo('screen-chat')"><i class="fa-solid fa-comment-medical"></i>Pablo</div>
+                <div class="nav-item" onclick="navigateTo('screen-pro')"><i class="fa-solid fa-award"></i>Élevage</div>
+                <div class="nav-item" onclick="navigateTo('screen-tools')"><i class="fa-solid fa-toolbox"></i>Outils</div>
             </div>
 
         </div>
     </div>
 
+    <!-- MODAL AJOUT ANIMAL -->
     <div id="add-pet-modal" class="modal-overlay" style="display: none;">
         <div class="modal-card main-card">
             <div class="modal-header">
@@ -967,6 +984,7 @@
         </div>
     </div>
 
+    <!-- LOGIQUE JAVASCRIPT LOGICIELLE (UI TRANSITIONS) -->
     <script>
         function switchToResetMode() {
             document.getElementById('auth-title').innerText = "Mot de passe oublié";
@@ -1012,7 +1030,7 @@
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then(registration => console.log('Service Worker enregistré.'))
-            .catch(error => console.log('Échec SW :', error));
+            .catch(error => console.log('Échec SW : ', error));
         });
       }
     </script>
