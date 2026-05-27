@@ -248,8 +248,15 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        .screen { display: none; }
-        .screen.active { display: block; }
+        .screen { 
+    display: none; 
+    opacity: 0;
+    transition: opacity 0.25s ease-in-out;
+}
+.screen.active { 
+    display: block; 
+    opacity: 1;
+}
 
         /* Barre de navigation basse pour le Mobile */
         .mobile-nav {
@@ -1036,5 +1043,35 @@
     </script>
 
     <script type="module" src="./app.js"></script>
+    <!-- Système de Toast Premium Global -->
+<div id="global-toast" style="position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%) translateY(100px); background: #2c2520; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; z-index: 10000; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; opacity: 0;">
+    <span id="toast-icon">🐾</span>
+    <span id="toast-text">Message</span>
+</div>
+
+<script>
+    window.showToast = function(text, icon = "🐾", type = "success") {
+        const toast = document.getElementById('global-toast');
+        const tText = document.getElementById('toast-text');
+        const tIcon = document.getElementById('toast-icon');
+        
+        tText.innerText = text;
+        tIcon.innerText = icon;
+        
+        if(type === "error") {
+            toast.style.borderLeft = "4px solid #e63946";
+        } else {
+            toast.style.borderLeft = "4px solid #47d175";
+        }
+        
+        toast.style.opacity = "1";
+        toast.style.transform = "translateX(-50%) translateY(0)";
+        
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transform = "translateX(-50%) translateY(100px)";
+        }, 3500);
+    }
+</script>
 </body>
 </html>
