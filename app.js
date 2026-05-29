@@ -28,6 +28,36 @@ try {
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// 🟢 EXPOSITION CRUCIALE POUR LE BOUTON DE LA PAGE INDEX.HTML :
+window._fbAuth = auth;
+
+// 🔑 METS TA CLÉ GROQ ICI UNE SEULE FOIS POUR TOUTE L'APP :
+const GROQ_API_KEY = "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"; // Remplace gsk_...
+
+// CONFIGURATION GLOBALE
+// ==========================================
+const GLOBAL_CONFIG_ID = "pablo_global_config";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBuz7iwOzeEFsFDU1G5aAe69JCczaduI44",
+    authDomain: "pablo-app-f6057.firebaseapp.com",
+    projectId: "pablo-app-f6057",
+    storageBucket: "pablo-app-f6057.firebasestorage.app",
+    messagingSenderId: "764832752787",
+    appId: "1:764832752787:web:21948ed789665c531b9966",
+    measurementId: "G-RE0F1KKEK3"
+};
+
+const app = initializeApp(firebaseConfig);
+let analytics;
+try {
+    analytics = getAnalytics(app);
+} catch (e) {
+    console.warn("Firebase Analytics bloqué ou non supporté.");
+}
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 // Expose auth for landing-page inline script
 window._fbAuth = auth;
 
@@ -61,6 +91,7 @@ const DEFAULT_EDU_EXERCISES = [
     { id: 'solitude',       name: 'Gestion de la solitude',          icon: 'fa-house-chimney-user' }
 ];
 
+// ==========================================
 // ==========================================
 // AUTHENTIFICATION
 // ==========================================
@@ -369,51 +400,9 @@ window.deleteCurrentPet = function() {
 };
 
 // ==========================================
-// PROFIL & ENCYCLOPÉDIE
 // ==========================================
-function initPetProfile() {
-    petProfile = getLocalData(currentPetId, 'profile', {});
-
-    // Sidebar brand tagline (breed)
-    const breedEl = document.getElementById('header-pet-breed');
-    if (breedEl) breedEl.innerText = petProfile.breed || 'Compagnon santé';
-
-    // Sidebar footer name & pet selector label
-    const topNameEl = document.getElementById('current-pet-display-top');
-    if (topNameEl) topNameEl.innerText = petProfile.name || 'Pablo';
-
-    // Avatar — profile screen
-    const profileImg         = document.getElementById('profile-pet-image');
-    const profilePlaceholder = document.getElementById('profile-avatar-placeholder');
-    if (petProfile.avatar) {
-        if (profileImg)         { profileImg.src = petProfile.avatar; profileImg.style.display = 'block'; }
-        if (profilePlaceholder) profilePlaceholder.style.display = 'none';
-    } else {
-        if (profileImg)         profileImg.style.display = 'none';
-        if (profilePlaceholder) {
-            profilePlaceholder.style.display = 'flex';
-            profilePlaceholder.innerText     = (petProfile.name || 'P').charAt(0).toUpperCase();
-        }
-    }
-
-    // Profile form fields
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
-    setVal('profile-name',    petProfile.name);
-    setVal('profile-breed',   petProfile.breed);
-    setVal('profile-age',     petProfile.age);
-    setVal('profile-size',    petProfile.size);
-    setVal('profile-weight',  petProfile.weight);
-
-    // Allergies (healthExtras loaded separately, but we sync here if already loaded)
-    const allergyInput = document.getElementById('profile-allergies');
-    if (allergyInput) allergyInput.value = (getLocalData(currentPetId, 'healthExtras', {})).allergies || '';
-
-    // Dynamic pet name spans
-    document.querySelectorAll('.dynamic-pet-name').forEach(el => el.innerText = petProfile.name || 'Pablo');
-
-    updateBreedAdviceUI();
-}
-
+// PROFIL & ENCYCLOPÉDIE (GROQ)
+// ==========================================
 async function updateBreedAdviceUI() {
     const adviceCard      = document.getElementById('breed-advice-card');
     const adviceBreedName = document.getElementById('advice-breed-name');
@@ -425,7 +414,7 @@ async function updateBreedAdviceUI() {
     if (adviceBreedName) adviceBreedName.innerText = petProfile.breed;
 
     if (petProfile.breedAdvice) { if (adviceContent) adviceContent.innerHTML = petProfile.breedAdvice; return; }
-    if (adviceContent) adviceContent.innerHTML = "<div style='text-align:center; padding:20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size:24px; color:var(--gold);'></i><br><br><span style='color:var(--text-muted); font-size:13px;'>Génération de l'encyclopédie…</span></div>";
+    if (adviceContent) adviceContent.innerHTML = "<div style='text-align:center; padding:20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size:24px; color:var(--gold);'></i><br><br><span style='color:var(--text-muted); font-size:13px;'>Génération de l'encyclopédie via Groq…</span></div>";
 
     try {
         const prompt = `Tu es un expert canin. Rédige une documentation complète pour un ${petProfile.species || 'animal'} de race ${petProfile.breed}.
@@ -436,79 +425,126 @@ Structure ta réponse en HTML propre avec ces sections en balises <h4> (avec emo
 <h4>Conseil d'éducation</h4>
 Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de conclusion, envoie uniquement le HTML propre.`;
 
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${GROQ_API_KEY}`
+            },
             body: JSON.stringify({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1000,
+                model: "llama-3.3-70b-specdec",
                 messages: [{ role: "user", content: prompt }]
             })
         });
         const data = await response.json();
-        const text = data.content?.map(b => b.text || '').join('') || '';
+        const text = data.choices?.[0]?.message?.content?.trim() || '';
         const clean = text.replace(/```html|```/g, '').trim();
 
         petProfile.breedAdvice = clean;
         saveLocalData(currentPetId, 'profile', petProfile);
         if (adviceContent) adviceContent.innerHTML = clean;
     } catch (error) {
-        console.error("Erreur encyclopédie:", error);
-        if (adviceContent) adviceContent.innerText = "Documentation non disponible. Demandez à l'assistant dans l'onglet dédié !";
+        console.error("Erreur encyclopédie Groq:", error);
+        if (adviceContent) adviceContent.innerText = "Documentation temporairement indisponible.";
     }
 }
 
-window.savePetProfile = function() {
-    const name      = document.getElementById('profile-name').value.trim();
-    if (!name) { showToast("Le nom est obligatoire.", "⚠️", "error"); return; }
-    const weight    = parseFloat(document.getElementById('profile-weight').value);
-    const newBreed  = document.getElementById('profile-breed').value.trim();
+// ==========================================
+// NUTRITION (GROQ)
+// ==========================================
+window.updateNutritionUI = async function() {
+    const nutritionRationText = document.getElementById('nutrition-ration-text');
+    const activitySelector    = document.getElementById('activity-level-selector');
+    if (!petProfile.weight || !nutritionRationText || !activitySelector) return;
 
-    if (petProfile.breed !== newBreed) petProfile.breedAdvice = '';
-    petProfile.name  = name;
-    petProfile.breed = newBreed;
-    petProfile.age   = parseInt(document.getElementById('profile-age').value)  || 0;
-    petProfile.size  = parseInt(document.getElementById('profile-size').value) || 0;
+    let baseRation = petProfile.weight * 13.5;
+    if (activitySelector.value === 'calm')   baseRation *= 0.85;
+    if (activitySelector.value === 'active') baseRation *= 1.15;
 
-    if (weight && weight !== petProfile.weight) {
-        weightHistory.push({ date: new Date().toISOString().split('T')[0], weight });
-        saveLocalData(currentPetId, 'weight', weightHistory);
+    nutritionRationText.style.fontSize = '16px';
+    nutritionRationText.innerText      = 'Calcul…';
+
+    try {
+        const prompt = `Calcule la ration de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, activité ${activitySelector.value}. Réponds UNIQUEMENT par le chiffre suivi de la lettre g. Exemple : 420g`;
+        
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-specdec",
+                messages: [{ role: "user", content: prompt }]
+            })
+        });
+        const data    = await response.json();
+        const aiText  = data.choices?.[0]?.message?.content?.trim() || '';
+        nutritionRationText.style.fontSize = '';
+
+        const match = aiText.match(/\d+\s*g/i);
+        if (match) {
+            nutritionRationText.innerText = match[0].toLowerCase().replace(' ', '');
+        } else {
+            const nums = aiText.match(/\d+/);
+            nutritionRationText.innerText = nums ? nums[0] + 'g' : Math.round(baseRation) + 'g';
+        }
+    } catch (e) {
+        nutritionRationText.style.fontSize = '';
+        nutritionRationText.innerText      = Math.round(baseRation) + 'g';
     }
-    petProfile.weight = weight || petProfile.weight;
-    saveLocalData(currentPetId, 'profile', petProfile);
-
-    const allergyInput = document.getElementById('profile-allergies');
-    if (allergyInput) {
-        healthExtras.allergies = allergyInput.value.trim();
-        saveLocalData(currentPetId, 'healthExtras', healthExtras);
-    }
-
-    const petObj = petsList.find(p => p.id === currentPetId);
-    if (petObj) {
-        petObj.name = name;
-        localStorage.setItem('app_pets_list', JSON.stringify(petsList));
-        if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
-        renderPetSelector();
-    }
-
-    loadCurrentPetData();
-    showToast(`Profil de ${name} enregistré ! 🐾`);
-    navigateTo('screen-home');
 };
 
-window.uploadPetPhoto = function() {
-    const file = document.getElementById('file-upload-input').files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        petProfile.avatar = reader.result;
-        const img         = document.getElementById('profile-pet-image');
-        const placeholder = document.getElementById('profile-avatar-placeholder');
-        if (img)         { img.src = reader.result; img.style.display = 'block'; }
-        if (placeholder) placeholder.style.display = 'none';
-        saveLocalData(currentPetId, 'profile', petProfile);
-    };
-    reader.readAsDataURL(file);
+// ==========================================
+// CHAT ASSISTANT (GROQ)
+// ==========================================
+window.sendMessage = async function() {
+    const input = document.getElementById('chat-input-field');
+    const text  = input?.value.trim();
+    if (!text) return;
+
+    chatHistory.push({ sender: 'user', text });
+    input.value = '';
+
+    const loadingId  = Date.now();
+    const loadingTxt = `<span class="running-dog">🐶</span> <em style="font-size:13px; color:var(--text-muted); margin-left:8px;">Pablo renifle une piste…</em>`;
+    chatHistory.push({ sender: 'bot', text: loadingTxt, _id: loadingId });
+    renderChat();
+
+    const systemPrompt = `Tu es l'assistant Pablo, spécialisé en bien-être animal. Tu aides le maître de : ${petProfile.name || 'l\'animal'}, Espèce: ${petProfile.species || 'Chien'}, Race: ${petProfile.breed || 'Inconnue'}, Âge: ${petProfile.age || '?'} mois, Poids: ${petProfile.weight || '?'} kg. Sois concis, bienveillant et finis toujours par un wouf ou un miaou !`;
+
+    const apiMessages = chatHistory
+        .filter(m => !m._id)
+        .slice(-10)
+        .map(m => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }));
+
+    try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-specdec",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    ...apiMessages
+                ]
+            })
+        });
+        const data    = await response.json();
+        const replyTx = data.choices?.[0]?.message?.content?.trim() || "Wouf… je n'ai pas compris.";
+
+        chatHistory = chatHistory.filter(m => m._id !== loadingId);
+        chatHistory.push({ sender: 'bot', text: replyTx });
+        renderChat();
+        saveLocalData(currentPetId, 'chat', chatHistory);
+    } catch (e) {
+        chatHistory = chatHistory.filter(m => m._id !== loadingId);
+        chatHistory.push({ sender: 'bot', text: `Wouf… Erreur de connexion API. (${e.message})` });
+        renderChat();
+    }
 };
 
 // ==========================================
