@@ -395,7 +395,7 @@ Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de con
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "llama-3.3-70b-specdec",
+                model: "llama-3.3-70b-versatile",
                 messages: [{ role: "user", content: prompt }]
             })
         });
