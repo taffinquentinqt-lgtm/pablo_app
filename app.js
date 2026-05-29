@@ -28,37 +28,7 @@ try {
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 🟢 EXPOSITION CRUCIALE POUR LE BOUTON DE LA PAGE INDEX.HTML :
-window._fbAuth = auth;
-
-// 🔑 METS TA CLÉ GROQ ICI UNE SEULE FOIS POUR TOUTE L'APP :
-const GROQ_API_KEY = "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"; // Remplace gsk_...
-
-// CONFIGURATION GLOBALE
-// ==========================================
-const GLOBAL_CONFIG_ID = "pablo_global_config";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyBuz7iwOzeEFsFDU1G5aAe69JCczaduI44",
-    authDomain: "pablo-app-f6057.firebaseapp.com",
-    projectId: "pablo-app-f6057",
-    storageBucket: "pablo-app-f6057.firebasestorage.app",
-    messagingSenderId: "764832752787",
-    appId: "1:764832752787:web:21948ed789665c531b9966",
-    measurementId: "G-RE0F1KKEK3"
-};
-
-const app = initializeApp(firebaseConfig);
-let analytics;
-try {
-    analytics = getAnalytics(app);
-} catch (e) {
-    console.warn("Firebase Analytics bloqué ou non supporté.");
-}
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Expose auth for landing-page inline script
+// 🟢 EXPOSITION INDISPENSABLE POUR LA PAGE INDEX.HTML :
 window._fbAuth = auth;
 
 // Variables globales
@@ -86,14 +56,13 @@ const DEFAULT_EDU_EXERCISES = [
     { id: 'coucher',        name: 'Se coucher (Couché)',             icon: 'fa-bed' },
     { id: 'rappel',         name: 'Le Rappel au pied',               icon: 'fa-dog' },
     { id: 'pas-bouger',     name: 'Pas bouger (Statique)',           icon: 'fa-hand' },
-    { id: 'proprete',       name: 'La Propreté',                     icon: 'fa-droplet-slash' },
+    { id: 'proprete',       name: 'La Propreté',                      icon: 'fa-droplet-slash' },
     { id: 'marche-laisse',  name: 'Marche en laisse détendue',       icon: 'fa-bezier-curve' },
     { id: 'solitude',       name: 'Gestion de la solitude',          icon: 'fa-house-chimney-user' }
 ];
 
 // ==========================================
-// ==========================================
-// AUTHENTIFICATION
+// AUTHENTIFICATION (FIREBASE)
 // ==========================================
 onAuthStateChanged(auth, async (user) => {
     const authPage = document.getElementById('auth-page');
@@ -234,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initGlobalConfig() {
-    // Theme: index.html uses .light-mode on body (default is dark)
     const saved = localStorage.getItem(GLOBAL_CONFIG_ID);
     if (saved) {
         const config = JSON.parse(saved);
@@ -242,8 +210,6 @@ function initGlobalConfig() {
     }
 }
 
-// toggleTheme is declared in index.html inline — we hook into it from here
-// The inline version already toggles .light-mode on body, so we just persist
 const _originalToggleTheme = window.toggleTheme;
 window.toggleTheme = () => {
     if (typeof _originalToggleTheme === 'function') _originalToggleTheme();
@@ -365,7 +331,7 @@ window.confirmCreateNewPet = function() {
 
     closePetModal();
     switchPet(newId);
-};
+}
 
 function loadCurrentPetData() {
     initPetProfile();
@@ -400,8 +366,7 @@ window.deleteCurrentPet = function() {
 };
 
 // ==========================================
-// ==========================================
-// PROFIL & ENCYCLOPÉDIE (GROQ)
+// PROFIL & ENCYCLOPÉDIE (GROQ SECURE ROUTER)
 // ==========================================
 async function updateBreedAdviceUI() {
     const adviceCard      = document.getElementById('breed-advice-card');
@@ -425,12 +390,10 @@ Structure ta réponse en HTML propre avec ces sections en balises <h4> (avec emo
 <h4>Conseil d'éducation</h4>
 Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de conclusion, envoie uniquement le HTML propre.`;
 
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        // Appel unifié au proxy Vercel pour court-circuiter le CORS
+        const response = await fetch("/api/pablo-chat", {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${GROQ_API_KEY}`
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: "llama-3.3-70b-specdec",
                 messages: [{ role: "user", content: prompt }]
@@ -450,7 +413,7 @@ Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de con
 }
 
 // ==========================================
-// NUTRITION (GROQ)
+// NUTRITION (GROQ SECURE ROUTER)
 // ==========================================
 window.updateNutritionUI = async function() {
     const nutritionRationText = document.getElementById('nutrition-ration-text');
@@ -467,12 +430,10 @@ window.updateNutritionUI = async function() {
     try {
         const prompt = `Calcule la ration de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, activité ${activitySelector.value}. Réponds UNIQUEMENT par le chiffre suivi de la lettre g. Exemple : 420g`;
         
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        // Routage sécurisé anti-CORS via Vercel Serverless
+        const response = await fetch("/api/pablo-chat", {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${GROQ_API_KEY}`
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: "llama-3.3-70b-specdec",
                 messages: [{ role: "user", content: prompt }]
@@ -496,7 +457,7 @@ window.updateNutritionUI = async function() {
 };
 
 // ==========================================
-// CHAT ASSISTANT (GROQ)
+// CHAT ASSISTANT (GROQ SECURE ROUTER)
 // ==========================================
 window.sendMessage = async function() {
     const input = document.getElementById('chat-input-field');
@@ -519,12 +480,10 @@ window.sendMessage = async function() {
         .map(m => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }));
 
     try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        // Routage sécurisé anti-CORS via Vercel Serverless
+        const response = await fetch("/api/pablo-chat", {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${GROQ_API_KEY}`
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: "llama-3.3-70b-specdec",
                 messages: [
@@ -548,8 +507,98 @@ window.sendMessage = async function() {
 };
 
 // ==========================================
-// POIDS & NUTRITION
+// POIDS & NUTRITION (LOCAL ASSIGNMENTS)
 // ==========================================
+function initPetProfile() {
+    petProfile = getLocalData(currentPetId, 'profile', {});
+
+    const breedEl = document.getElementById('header-pet-breed');
+    if (breedEl) breedEl.innerText = petProfile.breed || 'Compagnon santé';
+
+    const topNameEl = document.getElementById('current-pet-display-top');
+    if (topNameEl) topNameEl.innerText = petProfile.name || 'Pablo';
+
+    const profileImg         = document.getElementById('profile-pet-image');
+    const profilePlaceholder = document.getElementById('profile-avatar-placeholder');
+    if (petProfile.avatar) {
+        if (profileImg)         { profileImg.src = petProfile.avatar; profileImg.style.display = 'block'; }
+        if (profilePlaceholder) profilePlaceholder.style.display = 'none';
+    } else {
+        if (profileImg)         profileImg.style.display = 'none';
+        if (profilePlaceholder) {
+            profilePlaceholder.style.display = 'flex';
+            profilePlaceholder.innerText     = (petProfile.name || 'P').charAt(0).toUpperCase();
+        }
+    }
+
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+    setVal('profile-name',    petProfile.name);
+    setVal('profile-breed',   petProfile.breed);
+    setVal('profile-age',     petProfile.age);
+    setVal('profile-size',    petProfile.size);
+    setVal('profile-weight',  petProfile.weight);
+
+    const allergyInput = document.getElementById('profile-allergies');
+    if (allergyInput) allergyInput.value = (getLocalData(currentPetId, 'healthExtras', {})).allergies || '';
+
+    document.querySelectorAll('.dynamic-pet-name').forEach(el => el.innerText = petProfile.name || 'Pablo');
+
+    updateBreedAdviceUI();
+}
+
+window.savePetProfile = function() {
+    const name      = document.getElementById('profile-name').value.trim();
+    if (!name) { showToast("Le nom est obligatoire.", "⚠️", "error"); return; }
+    const weight    = parseFloat(document.getElementById('profile-weight').value);
+    const newBreed  = document.getElementById('profile-breed').value.trim();
+
+    if (petProfile.breed !== newBreed) petProfile.breedAdvice = '';
+    petProfile.name  = name;
+    petProfile.breed = newBreed;
+    petProfile.age   = parseInt(document.getElementById('profile-age').value)  || 0;
+    petProfile.size  = parseInt(document.getElementById('profile-size').value) || 0;
+
+    if (weight && weight !== petProfile.weight) {
+        weightHistory.push({ date: new Date().toISOString().split('T')[0], weight });
+        saveLocalData(currentPetId, 'weight', weightHistory);
+    }
+    petProfile.weight = weight || petProfile.weight;
+    saveLocalData(currentPetId, 'profile', petProfile);
+
+    const allergyInput = document.getElementById('profile-allergies');
+    if (allergyInput) {
+        healthExtras.allergies = allergyInput.value.trim();
+        saveLocalData(currentPetId, 'healthExtras', healthExtras);
+    }
+
+    const petObj = petsList.find(p => p.id === currentPetId);
+    if (petObj) {
+        petObj.name = name;
+        localStorage.setItem('app_pets_list', JSON.stringify(petsList));
+        if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+        renderPetSelector();
+    }
+
+    loadCurrentPetData();
+    showToast(`Profil de ${name} enregistré ! 🐾`);
+    navigateTo('screen-home');
+};
+
+window.uploadPetPhoto = function() {
+    const file = document.getElementById('file-upload-input').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        petProfile.avatar = reader.result;
+        const img         = document.getElementById('profile-pet-image');
+        const placeholder = document.getElementById('profile-avatar-placeholder');
+        if (img)         { img.src = reader.result; img.style.display = 'block'; }
+        if (placeholder) placeholder.style.display = 'none';
+        saveLocalData(currentPetId, 'profile', petProfile);
+    };
+    reader.readAsDataURL(file);
+};
+
 function initWeightHistory() {
     weightHistory = getLocalData(currentPetId, 'weight', []);
     updateWeightUI();
@@ -579,47 +628,6 @@ function updateWeightUI() {
     updateNutritionUI();
     generateTransitionPlan();
 }
-
-window.updateNutritionUI = async function() {
-    const nutritionRationText = document.getElementById('nutrition-ration-text');
-    const activitySelector    = document.getElementById('activity-level-selector');
-    if (!petProfile.weight || !nutritionRationText || !activitySelector) return;
-
-    // Local fallback first
-    let baseRation = petProfile.weight * 13.5;
-    if (activitySelector.value === 'calm')   baseRation *= 0.85;
-    if (activitySelector.value === 'active') baseRation *= 1.15;
-
-    nutritionRationText.style.fontSize = '16px';
-    nutritionRationText.innerText      = 'Calcul…';
-
-    try {
-        const prompt = `Calcule la ration de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, activité ${activitySelector.value}. Réponds UNIQUEMENT par le chiffre suivi de la lettre g. Exemple : 420g`;
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1000,
-                messages: [{ role: "user", content: prompt }]
-            })
-        });
-        const data    = await response.json();
-        const aiText  = data.content?.map(b => b.text || '').join('').trim() || '';
-        nutritionRationText.style.fontSize = '';
-
-        const match = aiText.match(/\d+\s*g/i);
-        if (match) {
-            nutritionRationText.innerText = match[0].toLowerCase().replace(' ', '');
-        } else {
-            const nums = aiText.match(/\d+/);
-            nutritionRationText.innerText = nums ? nums[0] + 'g' : Math.round(baseRation) + 'g';
-        }
-    } catch (e) {
-        nutritionRationText.style.fontSize = '';
-        nutritionRationText.innerText      = Math.round(baseRation) + 'g';
-    }
-};
 
 window.addNewWeight = function() {
     const weightVal = parseFloat(document.getElementById('weight-input').value);
@@ -754,7 +762,6 @@ function renderReminders() {
     const today = new Date();
     let hasReminders = false;
 
-    // 1. Rappels médicaux
     const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30, 'Toilettage': 90, 'Dents': 7, 'Oreilles': 30, 'Griffes': 60 };
     Object.keys(rules).forEach(type => {
         const eventsOfType = medicalEvents.filter(e => e.type === type);
@@ -771,7 +778,6 @@ function renderReminders() {
         }
     });
 
-    // 2. Rappels élevage — naissance prévue
     if (proData.gender !== 'Mâle' && proData.expectedBirth && !proData.actualBirth) {
         const birthDate   = new Date(proData.expectedBirth);
         const daysToBirth = Math.ceil((birthDate - today) / 86400000);
@@ -785,7 +791,6 @@ function renderReminders() {
         }
     }
 
-    // 3. Rappel chaleurs
     if (proData.gender !== 'Mâle' && proData.heatReminder && proHistory.heats.length > 0) {
         const sorted   = [...proHistory.heats].sort((a, b) => new Date(b.date) - new Date(a.date));
         const lastHeat = new Date(sorted[0].date);
@@ -802,7 +807,6 @@ function renderReminders() {
         }
     }
 
-    // 4. Concours à venir
     const upcoming = proEvents.filter(e => new Date(e.date) > today).sort((a, b) => new Date(a.date) - new Date(b.date));
     if (upcoming.length > 0) {
         hasReminders = true;
@@ -934,9 +938,6 @@ window.addBudgetExpense = function() {
 
 window.exportToPDF = () => window.print();
 
-// ==========================================
-// CHAT — Assistant IA via Anthropic API
-// ==========================================
 function initChat() {
     chatHistory = getLocalData(currentPetId, 'chat', [{
         sender: 'bot',
@@ -974,76 +975,20 @@ window.askPreset = function(questionText) {
     sendMessage();
 };
 
-window.sendMessage = async function() {
-    const input = document.getElementById('chat-input-field');
-    const text  = input?.value.trim();
-    if (!text) return;
-
-    chatHistory.push({ sender: 'user', text });
-    input.value = '';
-
-    // Loading indicator
-    const loadingId  = Date.now();
-    const loadingTxt = `<span class="running-dog">🐶</span> <em style="font-size:13px; color:var(--text-muted); margin-left:8px;">Pablo renifle une piste…</em>`;
-    chatHistory.push({ sender: 'bot', text: loadingTxt, _id: loadingId });
-    renderChat();
-
-    const systemPrompt = `Tu es l'assistant Pablo, spécialisé en bien-être animal. Tu aides le maître de : ${petProfile.name || 'l\'animal'}, Espèce: ${petProfile.species || 'Chien'}, Race: ${petProfile.breed || 'Inconnue'}, Âge: ${petProfile.age || '?'} mois, Poids: ${petProfile.weight || '?'} kg. Sois concis, bienveillant et finis toujours par un wouf ou un miaou !`;
-
-    // Build messages array for Anthropic (system goes as separate param, not in messages)
-    const apiMessages = chatHistory
-        .filter(m => !m._id)
-        .slice(-10)
-        .map(m => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }));
-
-    // Ensure last message is user (required by Anthropic)
-    if (apiMessages.length === 0 || apiMessages[apiMessages.length - 1].role !== 'user') {
-        apiMessages.push({ role: 'user', content: text });
-    }
-
-    try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1000,
-                system: systemPrompt,
-                messages: apiMessages
-            })
-        });
-        const data    = await response.json();
-        const replyTx = data.content?.map(b => b.text || '').join('').trim() || "Wouf… je n'ai pas compris.";
-
-        chatHistory = chatHistory.filter(m => m._id !== loadingId);
-        chatHistory.push({ sender: 'bot', text: replyTx });
-        renderChat();
-        saveLocalData(currentPetId, 'chat', chatHistory);
-    } catch (e) {
-        chatHistory = chatHistory.filter(m => m._id !== loadingId);
-        chatHistory.push({ sender: 'bot', text: `Wouf… Erreur de connexion. (${e.message})` });
-        renderChat();
-    }
-};
-
 // ==========================================
 // NAVIGATION
 // ==========================================
 window.navigateTo = function(screenId) {
-    // Screens
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(screenId);
     if (target) target.classList.add('active');
 
-    // Sidebar nav items
     document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
     document.querySelectorAll(`.sidebar-nav li[onclick="navigateTo('${screenId}')"]`).forEach(li => li.classList.add('active'));
 
-    // Mobile nav items
     document.querySelectorAll('.nav-item').forEach(ni => ni.classList.remove('active'));
     document.querySelectorAll(`.nav-item[onclick="navigateTo('${screenId}')"]`).forEach(ni => ni.classList.add('active'));
 
-    // Page title
     const titles = {
         'screen-home':    "Vue d'ensemble",
         'screen-carnet':  "Carnet de Santé & Suivi",
@@ -1192,7 +1137,6 @@ function initProData() {
     setVal('pro-club-name', proData.clubName);
     setVal('pro-club-date', proData.clubDate);
 
-    // Reproduction fields (index.html IDs)
     setVal('pro-optimal-date',  proData.optimalDate);
     setVal('pro-expected-birth', proData.expectedBirth);
     setVal('pro-actual-birth',   proData.actualBirth);
@@ -1207,7 +1151,6 @@ function initProData() {
 
 window.toggleBreederFields = function() {
     const gender = document.getElementById('pro-gender')?.value;
-    // These IDs match index.html exactly
     const femaleFields = ['field-chaleurs-history', 'field-fec-opti', 'field-naissance-prevue', 'field-mise-a-bas', 'field-rappel-chaleurs'];
     femaleFields.forEach(id => {
         const el = document.getElementById(id);
@@ -1235,7 +1178,6 @@ window.saveProData = function() {
     showToast('Profil Officiel & Élevage mis à jour ! 🐾');
 };
 
-// PORTÉES — IDs from index.html: litter-date, litter-partner, litter-count
 window.addLitter = function() {
     const date    = document.getElementById('litter-date')?.value;
     const partner = document.getElementById('litter-partner')?.value;
@@ -1268,7 +1210,6 @@ function renderLitters() {
     });
 }
 
-// ÉVÉNEMENTS & CONCOURS — IDs from index.html: pro-event-type, pro-event-date, pro-event-details
 window.addProEvent = function() {
     const type    = document.getElementById('pro-event-type')?.value;
     const date    = document.getElementById('pro-event-date')?.value;
@@ -1312,7 +1253,6 @@ function initProHistory() {
     renderMatingHistory();
 }
 
-// IDs from index.html: new-heat-date, heat-history-list, heat-average
 window.addHeatRecord = function() {
     const date = document.getElementById('new-heat-date')?.value;
     if (!date) return;
@@ -1347,7 +1287,6 @@ function renderHeatHistory() {
     if (sorted.length === 0) list.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">Aucune chaleur enregistrée.</p>';
 }
 
-// IDs from index.html: mating-date, mating-partner, mating-coi, mating-history-list
 window.addMatingRecord = function() {
     const date    = document.getElementById('mating-date')?.value;
     const partner = document.getElementById('mating-partner')?.value;
@@ -1389,7 +1328,6 @@ function initMemories() {
     document.querySelectorAll('.dynamic-pet-name').forEach(el => el.innerText = petProfile.name || 'Pablo');
 }
 
-// IDs from index.html: memory-date, memory-title, memories-timeline
 window.addMemory = function() {
     const date  = document.getElementById('memory-date')?.value;
     const title = document.getElementById('memory-title')?.value.trim();
