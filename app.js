@@ -471,7 +471,7 @@ window.sendMessage = async function() {
     chatHistory.push({ sender: 'bot', text: loadingTxt, _id: loadingId });
     renderChat();
 
-    const systemPrompt = `Tu es l'assistant Pablo, spécialisé en bien-être animal. Tu aides le maître de : ${petProfile.name || 'l\'animal'}, Espèce: ${petProfile.species || 'Chien'}, Race: ${petProfile.breed || 'Inconnue'}, Âge: ${petProfile.age || '?'} mois, Poids: ${petProfile.weight || '?'} kg. Sois concis, bienveillant et finis toujours par un wouf ou un miaou !`;
+    const systemPrompt = `Tu es l'assistant Pablo, spécialisé en bien-être animal. Tu aides le maître de : ${petProfile.name || 'l\'animal'}, Espèce: ${petProfile.species || 'Chien'}, Race: ${petProfile.breed || 'Inconnue'}, Âge: ${petProfile.age || '?'} mois, Poids: ${petProfile.weight || '?'} kg. Sois concis, bienveillant, ne repondsw que a des sujets sur des choses enrapport avec lers animaux et finis toujours par un wouf ou un miaou !`;
 
     const apiMessages = chatHistory
         .filter(m => !m._id)
