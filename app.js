@@ -32,7 +32,7 @@ const db = getFirestore(app);
 window._fbAuth = auth;
 
 // 🔑 METS TA CLÉ GROQ ICI UNE SEULE FOIS POUR TOUTE L'APP :
-const GROQ_API_KEY = "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"; // Remplace gsk_...
+const GROQ_API_KEY = "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"; // Remplace gsk_...
 
 // CONFIGURATION GLOBALE
 // ==========================================
