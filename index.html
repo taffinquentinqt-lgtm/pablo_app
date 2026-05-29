@@ -2081,9 +2081,6 @@
      UI SCRIPTS
 ============================================================ -->
 <script>
-    /* ---- Auth mode ---- */
-    let _authLoginMode = true;
-
     window.enterApp = () => {
         document.getElementById('landing-page').style.display = 'none';
         if (!window._fbAuth?.currentUser) {
@@ -2092,17 +2089,19 @@
     };
 
     window.toggleAuthMode = () => {
-        _authLoginMode = !_authLoginMode;
         const btn      = document.getElementById('auth-action-btn');
         const sub      = document.getElementById('auth-subtitle');
         const switchTx = document.getElementById('auth-switch-text');
         const switchLk = document.getElementById('auth-switch-link');
         const pwInput  = document.getElementById('auth-password');
-        btn.textContent      = _authLoginMode ? 'Se connecter' : 'Créer mon compte';
-        sub.textContent      = _authLoginMode ? 'Connectez-vous pour retrouver votre compagnon.' : 'Rejoignez la meute et gérez la santé de votre chien.';
-        switchTx.textContent = _authLoginMode ? 'Pas encore de compte ?' : 'Déjà un compte ?';
-        switchLk.textContent = _authLoginMode ? 'Créer un compte' : 'Se connecter';
-        pwInput.autocomplete = _authLoginMode ? 'current-password' : 'new-password';
+        
+        const isLogin = btn.textContent === 'Se connecter';
+        
+        btn.textContent      = isLogin ? 'Créer mon compte' : 'Se connecter';
+        sub.textContent      = isLogin ? 'Rejoignez la meute et gérez la santé de votre chien.' : 'Connectez-vous pour retrouver votre compagnon.';
+        switchTx.textContent = isLogin ? 'Déjà un compte ?' : 'Pas encore de compte ?';
+        switchLk.textContent = isLogin ? 'Se connecter' : 'Créer un compte';
+        pwInput.autocomplete = isLogin ? 'new-password' : 'current-password';
     };
 
     window.switchToResetMode = () => {
@@ -2115,7 +2114,7 @@
         document.getElementById('auth-switch-text').textContent = 'Vous vous en rappelez ?';
         document.getElementById('auth-switch-link').textContent = 'Se connecter';
         document.getElementById('auth-switch-link').setAttribute('onclick', 'switchToLoginMode()');
-        showAuthMsg('', '');
+        window.showAuthMsg('', '');
     };
 
     window.switchToLoginMode = () => {
@@ -2128,11 +2127,12 @@
         document.getElementById('auth-switch-text').textContent = 'Pas encore de compte ?';
         document.getElementById('auth-switch-link').textContent = 'Créer un compte';
         document.getElementById('auth-switch-link').setAttribute('onclick', 'toggleAuthMode()');
-        showAuthMsg('', '');
+        window.showAuthMsg('', '');
     };
 
     window.showAuthMsg = (text, type) => {
         const box = document.getElementById('auth-msg-box');
+        if (!box) return;
         if (!text) { box.style.display = 'none'; return; }
         box.className = `auth-msg ${type}`;
         box.textContent = text;

@@ -1,7 +1,7 @@
 {
   "name": "Pablo - Compagnon Santé",
   "short_name": "Pablo",
-  "description": "Le carnet de santé intelligent connecté à votre vétérinaire IA.",
+  "description": "Le carnet de santé intelligent connecté à votre assistant.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
