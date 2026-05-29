@@ -435,7 +435,7 @@ window.updateNutritionUI = async function() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "llama-3.3-70b-specdec",
+                model: "llama-3.3-70b-versatile",
                 messages: [{ role: "user", content: prompt }]
             })
         });
@@ -483,7 +483,7 @@ window.sendMessage = async function() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "llama-3.3-70b-specdec",
+                model: "llama-3.3-70b-versatile",
                 messages: [
                     { role: "system", content: systemPrompt },
                     ...apiMessages
