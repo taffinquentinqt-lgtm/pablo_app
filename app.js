@@ -458,7 +458,6 @@ window.updateNutritionUI = async function() {
 
 // ==========================================
 // CHAT ASSISTANT (GROQ SECURE ROUTER)
-// ==========================================
 window.sendMessage = async function() {
     const input = document.getElementById('chat-input-field');
     const text  = input?.value.trim();
@@ -480,7 +479,6 @@ window.sendMessage = async function() {
         .map(m => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }));
 
     try {
-        // Routage sécurisé anti-CORS via Vercel Serverless
         const response = await fetch("/api/pablo-chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -492,16 +490,26 @@ window.sendMessage = async function() {
                 ]
             })
         });
-        const data    = await response.json();
-        const replyTx = data.choices?.[0]?.message?.content?.trim() || "Wouf… je n'ai pas compris.";
-
+        const data = await response.json();
+        
         chatHistory = chatHistory.filter(m => m._id !== loadingId);
-        chatHistory.push({ sender: 'bot', text: replyTx });
+
+        // 🟢 S'il y a une erreur renvoyée par Groq ou le serveur, on l'affiche !
+        if (data.error) {
+            chatHistory.push({ 
+                sender: 'bot', 
+                text: `❌ Erreur de configuration : ${data.error.message || JSON.stringify(data.error)}` 
+            });
+        } else {
+            const replyTx = data.choices?.[0]?.message?.content?.trim() || "Wouf… aucune réponse reçue.";
+            chatHistory.push({ sender: 'bot', text: replyTx });
+        }
+
         renderChat();
         saveLocalData(currentPetId, 'chat', chatHistory);
     } catch (e) {
         chatHistory = chatHistory.filter(m => m._id !== loadingId);
-        chatHistory.push({ sender: 'bot', text: `Wouf… Erreur de connexion API. (${e.message})` });
+        chatHistory.push({ sender: 'bot', text: `Wouf… Erreur réseau ou fichier /api manquant. (${e.message})` });
         renderChat();
     }
 };
