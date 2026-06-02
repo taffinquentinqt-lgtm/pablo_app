@@ -7,21 +7,29 @@ import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 // CONFIGURATION GLOBALE
 // ==========================================
 const GLOBAL_CONFIG_ID = "pablo_global_config";
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL   = "llama-3.3-70b-versatile";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+
+function trackEvent(name) {
+    if (typeof window.clarity === 'function') window.clarity('event', name);
+}
 
 async function groqChat(messages) {
-    const key = (import.meta.env.VITE_GROQ_API_KEY || '').trim().replace(/^["']|["']$/g, '');
-    if (!key) throw new Error("VITE_GROQ_API_KEY manquante dans .env");
-    const res = await fetch(GROQ_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
-        body: JSON.stringify({ model: GROQ_MODEL, messages })
-    });
-    if (!res.ok) throw new Error(`Groq ${res.status}`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message || 'Erreur Groq');
-    return data.choices?.[0]?.message?.content?.trim() || '';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+        const res = await fetch("/api/pablo-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: GROQ_MODEL, messages }),
+            signal: controller.signal
+        });
+        if (!res.ok) throw new Error(`Groq ${res.status}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message || 'Erreur Groq');
+        return data.choices?.[0]?.message?.content?.trim() || '';
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 const firebaseConfig = {
@@ -100,6 +108,9 @@ onAuthStateChanged(auth, async (user) => {
 
         if (landing)  landing.style.display  = 'none';
         if (authPage) authPage.style.display  = 'none';
+
+        if (typeof window.clarity === 'function')
+            window.clarity('identify', user.uid, undefined, undefined, user.displayName || user.email || '');
 
         initApp();
 
@@ -352,6 +363,7 @@ window.confirmCreateNewPet = function() {
     saveLocalData(newId, 'memories',    []);
     saveLocalData(newId, 'gamification', { streak: 0, lastLogin: null, badges: [] });
 
+    trackEvent('pet_created');
     closePetModal();
     switchPet(newId);
 }
@@ -471,6 +483,7 @@ window.sendMessage = async function() {
 
     chatHistory.push({ sender: 'user', text });
     input.value = '';
+    trackEvent('chat_sent');
 
     const loadingId  = Date.now();
     const loadingTxt = `<span class="running-dog">🐶</span> <em style="font-size:13px; color:var(--text-muted); margin-left:8px;">Pablo renifle une piste…</em>`;
@@ -496,7 +509,10 @@ window.sendMessage = async function() {
         await saveLocalData(currentPetId, 'chat', chatHistory);
     } catch (e) {
         chatHistory = chatHistory.filter(m => m._id !== loadingId);
-        chatHistory.push({ sender: 'bot', text: `❌ Erreur : ${e.message}` });
+        const errMsg = e.name === 'AbortError'
+            ? '⏱️ Pablo met trop de temps à répondre. Réessaie dans un instant !'
+            : '❌ Impossible de contacter Pablo. Vérifie ta connexion internet.';
+        chatHistory.push({ sender: 'bot', text: errMsg });
         renderChat();
     }
 };
@@ -629,6 +645,7 @@ window.addNewWeight = function() {
     const dateVal   = document.getElementById('weight-date').value;
     if (!weightVal || !dateVal || weightVal <= 0) { showToast("Valeurs invalides.", "⚠️", "error"); return; }
     weightHistory.push({ date: dateVal, weight: weightVal });
+    trackEvent('weight_added');
     saveLocalData(currentPetId, 'weight', weightHistory);
     updateWeightUI();
     renderWeightChart();
@@ -721,6 +738,7 @@ window.addMedicalEvent = function() {
     const date = document.getElementById('event-date').value;
     if (!date) { showToast("Sélectionnez une date.", "⚠️", "error"); return; }
     medicalEvents.push({ type, date });
+    trackEvent('medical_event_added');
     saveLocalData(currentPetId, 'medical', medicalEvents);
     renderMedicalHistory();
     renderReminders();
@@ -925,6 +943,7 @@ window.addBudgetExpense = function() {
     const amount = parseFloat(document.getElementById('budget-amount').value);
     if (!title || !amount || amount <= 0) { showToast("Valeurs invalides.", "⚠️", "error"); return; }
     budgetExpenses.push({ id: Date.now(), title, amount, date: new Date().toISOString().split('T')[0] });
+    trackEvent('expense_added');
     saveLocalData(currentPetId, 'budget', budgetExpenses);
     updateBudgetUI();
     document.getElementById('budget-title').value  = '';
@@ -978,6 +997,7 @@ window.navigateTo = function(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(screenId);
     if (target) target.classList.add('active');
+    trackEvent('screen_' + screenId.replace('screen-', ''));
 
     document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
     document.querySelectorAll(`.sidebar-nav li[onclick="navigateTo('${screenId}')"]`).forEach(li => li.classList.add('active'));
