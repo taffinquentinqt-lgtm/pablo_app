@@ -7,6 +7,22 @@ import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 // CONFIGURATION GLOBALE
 // ==========================================
 const GLOBAL_CONFIG_ID = "pablo_global_config";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL   = "llama-3.3-70b-versatile";
+
+async function groqChat(messages) {
+    const key = (import.meta.env.VITE_GROQ_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+    if (!key) throw new Error("VITE_GROQ_API_KEY manquante dans .env");
+    const res = await fetch(GROQ_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+        body: JSON.stringify({ model: GROQ_MODEL, messages })
+    });
+    if (!res.ok) throw new Error(`Groq ${res.status}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || 'Erreur Groq');
+    return data.choices?.[0]?.message?.content?.trim() || '';
+}
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuz7iwOzeEFsFDU1G5aAe69JCczaduI44",
@@ -89,7 +105,7 @@ onAuthStateChanged(auth, async (user) => {
 
         if (mainApp) {
             mainApp.style.display = 'flex';
-            setTimeout(() => { if (typeof renderWeightChart === 'function') renderWeightChart(); }, 150);
+            setTimeout(() => renderWeightChart(), 150);
         }
     } else {
         if (mainApp) mainApp.style.display = 'none';
@@ -210,27 +226,34 @@ function initGlobalConfig() {
     }
 }
 
-const _originalToggleTheme = window.toggleTheme;
 window.toggleTheme = () => {
-    if (typeof _originalToggleTheme === 'function') _originalToggleTheme();
+    document.body.classList.toggle('light-mode');
     const isLight = document.body.classList.contains('light-mode');
     localStorage.setItem(GLOBAL_CONFIG_ID, JSON.stringify({ lightMode: isLight }));
-    if (typeof renderWeightChart === 'function') renderWeightChart();
+    renderWeightChart();
 };
 
+const _cloudSaveTimers = {};
 async function saveLocalData(petId, key, data) {
-    localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
-    if (auth.currentUser) {
+    const storageKey = `${key}_${petId}`;
+    localStorage.setItem(storageKey, JSON.stringify(data));
+    if (!auth.currentUser) return;
+    clearTimeout(_cloudSaveTimers[storageKey]);
+    _cloudSaveTimers[storageKey] = setTimeout(async () => {
         try {
             const userDocRef = doc(db, "users", auth.currentUser.uid);
-            await setDoc(userDocRef, { [`${key}_${petId}`]: data }, { merge: true });
+            await setDoc(userDocRef, { [storageKey]: data }, { merge: true });
         } catch (e) { console.error("Erreur sync Cloud :", e); }
-    }
+    }, 500);
 }
 
 function getLocalData(petId, key, defaultValue) {
     const data = localStorage.getItem(`${key}_${petId}`);
     return data ? JSON.parse(data) : defaultValue;
+}
+
+function escHtml(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // ==========================================
@@ -349,7 +372,10 @@ function loadCurrentPetData() {
 }
 
 window.deleteCurrentPet = function() {
-    if (!confirm(`⚠️ Êtes-vous sûr de vouloir supprimer ${petProfile.name} ?`)) return;
+    showConfirm(`Supprimer ${escHtml(petProfile.name)} ?`, () => { _doDeleteCurrentPet(); });
+};
+
+function _doDeleteCurrentPet() {
     const keys = ['profile','weight','medical','education','daily','chat','budget','proData','proEvents','proLitters','healthExtras','proHistory','memories','gamification','custom_exercises'];
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
     petsList = petsList.filter(p => p.id !== currentPetId);
@@ -363,7 +389,7 @@ window.deleteCurrentPet = function() {
     } else {
         switchPet(petsList[0].id);
     }
-};
+}
 
 // ==========================================
 // PROFIL & ENCYCLOPÉDIE (GROQ SECURE ROUTER)
@@ -390,17 +416,7 @@ Structure ta réponse en HTML propre avec ces sections en balises <h4> (avec emo
 <h4>Conseil d'éducation</h4>
 Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de conclusion, envoie uniquement le HTML propre.`;
 
-        // Appel unifié au proxy Vercel pour court-circuiter le CORS
-        const response = await fetch("/api/pablo-chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [{ role: "user", content: prompt }]
-            })
-        });
-        const data = await response.json();
-        const text = data.choices?.[0]?.message?.content?.trim() || '';
+        const text  = await groqChat([{ role: "user", content: prompt }]);
         const clean = text.replace(/```html|```/g, '').trim();
 
         petProfile.breedAdvice = clean;
@@ -408,7 +424,7 @@ Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de con
         if (adviceContent) adviceContent.innerHTML = clean;
     } catch (error) {
         console.error("Erreur encyclopédie Groq:", error);
-        if (adviceContent) adviceContent.innerText = "Documentation temporairement indisponible.";
+        if (adviceContent) adviceContent.innerText = `Documentation indisponible (${error.message}).`;
     }
 }
 
@@ -429,18 +445,8 @@ window.updateNutritionUI = async function() {
 
     try {
         const prompt = `Calcule la ration de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, activité ${activitySelector.value}. Réponds UNIQUEMENT par le chiffre suivi de la lettre g. Exemple : 420g`;
-        
-        // Routage sécurisé anti-CORS via Vercel Serverless
-        const response = await fetch("/api/pablo-chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [{ role: "user", content: prompt }]
-            })
-        });
-        const data    = await response.json();
-        const aiText  = data.choices?.[0]?.message?.content?.trim() || '';
+
+        const aiText = await groqChat([{ role: "user", content: prompt }]);
         nutritionRationText.style.fontSize = '';
 
         const match = aiText.match(/\d+\s*g/i);
@@ -471,7 +477,7 @@ window.sendMessage = async function() {
     chatHistory.push({ sender: 'bot', text: loadingTxt, _id: loadingId });
     renderChat();
 
-    const systemPrompt = `Tu es l'assistant Pablo, spécialisé en bien-être animal. Tu aides le maître de : ${petProfile.name || 'l\'animal'}, Espèce: ${petProfile.species || 'Chien'}, Race: ${petProfile.breed || 'Inconnue'}, Âge: ${petProfile.age || '?'} mois, Poids: ${petProfile.weight || '?'} kg. Sois concis, bienveillant, ne repondsw que a des sujets sur des choses enrapport avec lers animaux et finis toujours par un wouf ou un miaou !`;
+    const systemPrompt = `Tu es l'assistant Pablo, spécialisé en bien-être animal. Tu aides le maître de : ${petProfile.name || 'l\'animal'}, Espèce: ${petProfile.species || 'Chien'}, Race: ${petProfile.breed || 'Inconnue'}, Âge: ${petProfile.age || '?'} mois, Poids: ${petProfile.weight || '?'} kg. Sois concis, bienveillant, ne réponds qu'à des sujets en rapport avec les animaux et finis toujours par un wouf ou un miaou !`;
 
     const apiMessages = chatHistory
         .filter(m => !m._id)
@@ -479,37 +485,18 @@ window.sendMessage = async function() {
         .map(m => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }));
 
     try {
-        const response = await fetch("/api/pablo-chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    ...apiMessages
-                ]
-            })
-        });
-        const data = await response.json();
-        
+        const replyTx = await groqChat([
+            { role: "system", content: systemPrompt },
+            ...apiMessages
+        ]);
+
         chatHistory = chatHistory.filter(m => m._id !== loadingId);
-
-        // 🟢 S'il y a une erreur renvoyée par Groq ou le serveur, on l'affiche !
-        if (data.error) {
-            chatHistory.push({ 
-                sender: 'bot', 
-                text: `❌ Erreur de configuration : ${data.error.message || JSON.stringify(data.error)}` 
-            });
-        } else {
-            const replyTx = data.choices?.[0]?.message?.content?.trim() || "Wouf… aucune réponse reçue.";
-            chatHistory.push({ sender: 'bot', text: replyTx });
-        }
-
+        chatHistory.push({ sender: 'bot', text: replyTx });
         renderChat();
-        saveLocalData(currentPetId, 'chat', chatHistory);
+        await saveLocalData(currentPetId, 'chat', chatHistory);
     } catch (e) {
         chatHistory = chatHistory.filter(m => m._id !== loadingId);
-        chatHistory.push({ sender: 'bot', text: `Wouf… Erreur réseau ou fichier /api manquant. (${e.message})` });
+        chatHistory.push({ sender: 'bot', text: `❌ Erreur : ${e.message}` });
         renderChat();
     }
 };
@@ -710,8 +697,8 @@ function updateTrackersUI() {
     if (walkEl)  walkEl.innerText  = `${dailyTrackers.walk} min`;
 }
 
-window.addWater = function()          { dailyTrackers.water += 250; saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); showToast('+250 ml 💧'); };
-window.addWalk  = function()          { dailyTrackers.walk  += 15;  saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); showToast('+15 min 🐾'); };
+window.addWater = function(delta = 250) { dailyTrackers.water = Math.max(0, dailyTrackers.water + delta); saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); showToast(delta > 0 ? `+${delta} ml 💧` : `${delta} ml 💧`); };
+window.addWalk  = function(delta = 15)  { dailyTrackers.walk  = Math.max(0, dailyTrackers.walk  + delta); saveLocalData(currentPetId, 'daily', dailyTrackers); updateTrackersUI(); showToast(delta > 0 ? `+${delta} min 🐾` : `${delta} min 🐾`); };
 window.resetDailyTrackers = function() {
     dailyTrackers.water = 0;
     dailyTrackers.walk  = 0;
@@ -756,11 +743,12 @@ function renderMedicalHistory() {
 }
 
 window.clearMedicalHistory = function() {
-    if (!confirm(`Vider l'historique de ${petProfile.name} ?`)) return;
-    medicalEvents = [];
-    saveLocalData(currentPetId, 'medical', medicalEvents);
-    renderMedicalHistory();
-    renderReminders();
+    showConfirm(`Vider l'historique de ${escHtml(petProfile.name)} ?`, () => {
+        medicalEvents = [];
+        saveLocalData(currentPetId, 'medical', medicalEvents);
+        renderMedicalHistory();
+        renderReminders();
+    });
 };
 
 function renderReminders() {
@@ -922,7 +910,7 @@ function renderBudgetHistory(expenses) {
         const item       = document.createElement('div');
         item.className   = 'log-item';
         item.innerHTML   = `
-            <span style="color:var(--text-sub);">${expense.title}</span>
+            <span style="color:var(--text-sub);">${escHtml(expense.title)}</span>
             <div style="display:flex; align-items:center; gap:10px;">
                 <strong style="color:var(--gold);">${expense.amount.toFixed(2)} €</strong>
                 <span style="color:var(--text-muted); font-size:12px;">${new Date(expense.date).toLocaleDateString('fr-FR', { day:'numeric', month:'short' })}</span>
@@ -936,7 +924,7 @@ window.addBudgetExpense = function() {
     const title  = document.getElementById('budget-title').value.trim();
     const amount = parseFloat(document.getElementById('budget-amount').value);
     if (!title || !amount || amount <= 0) { showToast("Valeurs invalides.", "⚠️", "error"); return; }
-    budgetExpenses.push({ id: Date.now(), title, amount, date: new Date().toISOString() });
+    budgetExpenses.push({ id: Date.now(), title, amount, date: new Date().toISOString().split('T')[0] });
     saveLocalData(currentPetId, 'budget', budgetExpenses);
     updateBudgetUI();
     document.getElementById('budget-title').value  = '';
@@ -970,7 +958,7 @@ function renderChat() {
                 <div class="msg-bubble">${msg.text}</div>`;
         } else {
             msgDiv.className = 'msg msg-user';
-            msgDiv.innerHTML = `<div class="msg-bubble">${msg.text}</div>`;
+            msgDiv.innerHTML = `<div class="msg-bubble">${escHtml(msg.text)}</div>`;
         }
         container.appendChild(msgDiv);
     });
@@ -1211,9 +1199,9 @@ function renderLitters() {
             <div class="reminder-item">
                 <div>
                     <h4>Portée du ${new Date(l.date).toLocaleDateString('fr-FR')}</h4>
-                    <span>Partenaire : ${l.partner || 'Non précisé'}</span>
+                    <span>Partenaire : ${escHtml(l.partner) || 'Non précisé'}</span>
                 </div>
-                <span class="badge badge-gold">${l.count || '?'} chiot(s)</span>
+                <span class="badge badge-gold">${escHtml(l.count) || '?'} chiot(s)</span>
             </div>`;
     });
 }
@@ -1244,8 +1232,8 @@ function renderProEvents() {
         list.innerHTML += `
             <div class="reminder-item">
                 <div>
-                    <h4>${ev.type}</h4>
-                    <span>${new Date(ev.date).toLocaleDateString('fr-FR')}${ev.details ? ' — ' + ev.details : ''}</span>
+                    <h4>${escHtml(ev.type)}</h4>
+                    <span>${new Date(ev.date).toLocaleDateString('fr-FR')}${ev.details ? ' — ' + escHtml(ev.details) : ''}</span>
                 </div>
                 ${isFuture ? '<span class="badge badge-gold">À VENIR</span>' : '<span class="badge badge-success">Passé</span>'}
             </div>`;
@@ -1319,9 +1307,9 @@ function renderMatingHistory() {
             <div class="log-item" style="flex-direction:column; align-items:flex-start; gap:2px;">
                 <div style="display:flex; justify-content:space-between; width:100%;">
                     <strong>Saillie du ${new Date(m.date).toLocaleDateString('fr-FR')}</strong>
-                    <span class="badge badge-gold">COI: ${m.coi || '?'}%</span>
+                    <span class="badge badge-gold">COI: ${escHtml(m.coi) || '?'}%</span>
                 </div>
-                <span style="color:var(--text-muted); font-size:12.5px;">Partenaire : ${m.partner || 'Inconnu'}</span>
+                <span style="color:var(--text-muted); font-size:12.5px;">Partenaire : ${escHtml(m.partner) || 'Inconnu'}</span>
             </div>`;
     });
     if (sorted.length === 0) list.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">Aucune saillie enregistrée.</p>';
@@ -1358,13 +1346,36 @@ function renderMemories() {
             <div style="position:relative; margin-bottom:16px;">
                 <div style="position:absolute; left:-22px; top:4px; width:10px; height:10px; border-radius:50%; background:var(--gold); border:2px solid var(--bg);"></div>
                 <div style="font-size:11.5px; color:var(--text-muted);">${new Date(m.date).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' })}</div>
-                <div style="font-weight:600; color:var(--text); font-size:13.5px;">${m.title}</div>
+                <div style="font-weight:600; color:var(--text); font-size:13.5px;">${escHtml(m.title)}</div>
             </div>`;
     });
 }
 
 window.generateAvatar = function() {
     showToast(`Avatar de ${petProfile.name || 'votre compagnon'} bientôt disponible ! 🪄`, '🎨');
+};
+
+// ==========================================
+// MODALE DE CONFIRMATION
+// ==========================================
+window.showConfirm = function(message, onConfirm) {
+    const modal = document.getElementById('confirm-modal');
+    const msgEl = document.getElementById('confirm-modal-message');
+    if (!modal || !msgEl) { if (confirm(message)) onConfirm(); return; }
+    msgEl.textContent = message;
+    modal.classList.add('open');
+    window._confirmCallback = onConfirm;
+};
+
+window.closeConfirmModal = function() {
+    const modal = document.getElementById('confirm-modal');
+    if (modal) modal.classList.remove('open');
+    window._confirmCallback = null;
+};
+
+window.acceptConfirmModal = function() {
+    closeConfirmModal();
+    if (typeof window._confirmCallback === 'function') window._confirmCallback();
 };
 
 // ==========================================
@@ -1383,38 +1394,3 @@ window.requestNotificationPermission = function() {
     });
 };
 
-// ==========================================
-// EXPORTS WINDOW
-// ==========================================
-window.switchPet                  = switchPet;
-window.createNewPet               = window.createNewPet;
-window.closePetModal              = window.closePetModal;
-window.confirmCreateNewPet        = window.confirmCreateNewPet;
-window.updateNutritionUI          = window.updateNutritionUI;
-window.addWater                   = window.addWater;
-window.addWalk                    = window.addWalk;
-window.resetDailyTrackers         = window.resetDailyTrackers;
-window.addNewWeight               = window.addNewWeight;
-window.addMedicalEvent            = window.addMedicalEvent;
-window.clearMedicalHistory        = window.clearMedicalHistory;
-window.addBudgetExpense           = window.addBudgetExpense;
-window.uploadPetPhoto             = window.uploadPetPhoto;
-window.savePetProfile             = window.savePetProfile;
-window.deleteCurrentPet           = window.deleteCurrentPet;
-window.navigateTo                 = window.navigateTo;
-window.saveProData                = window.saveProData;
-window.addProEvent                = window.addProEvent;
-window.addLitter                  = window.addLitter;
-window.toggleBreederFields        = window.toggleBreederFields;
-window.callVet                    = window.callVet;
-window.callPoisonControl          = window.callPoisonControl;
-window.refillKibbleBag            = window.refillKibbleBag;
-window.addHeatRecord              = window.addHeatRecord;
-window.addMatingRecord            = window.addMatingRecord;
-window.addMemory                  = window.addMemory;
-window.generateAvatar             = window.generateAvatar;
-window.updateEduLevel             = window.updateEduLevel;
-window.addCustomExercise          = window.addCustomExercise;
-window.exportToPDF                = window.exportToPDF;
-window.requestNotificationPermission = window.requestNotificationPermission;
-window.renderWeightChart          = renderWeightChart;

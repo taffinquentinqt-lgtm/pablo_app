@@ -1529,18 +1529,28 @@
                                 <div class="stat-label">Hydratation</div>
                                 <div class="stat-value" id="water-current-text">0 ml</div>
                             </div>
-                            <button class="btn-stat" onclick="addWater()" title="+250 ml">
-                                <i class="fa-solid fa-glass-water"></i>
-                            </button>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-stat" onclick="addWater(-250)" title="-250 ml" style="background:var(--bg-elevated); color:var(--text-muted);">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+                                <button class="btn-stat" onclick="addWater()" title="+250 ml">
+                                    <i class="fa-solid fa-glass-water"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="stat-card">
                             <div>
                                 <div class="stat-label">Promenade</div>
                                 <div class="stat-value" id="walk-current-text">0 min</div>
                             </div>
-                            <button class="btn-stat" onclick="addWalk()" title="+15 min">
-                                <i class="fa-solid fa-shoe-prints"></i>
-                            </button>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-stat" onclick="addWalk(-15)" title="-15 min" style="background:var(--bg-elevated); color:var(--text-muted);">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+                                <button class="btn-stat" onclick="addWalk()" title="+15 min">
+                                    <i class="fa-solid fa-shoe-prints"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <button class="btn btn-outline btn-full btn-sm" onclick="resetDailyTrackers()" style="margin-bottom:22px;">
@@ -2071,6 +2081,20 @@
     </div>
 </div>
 
+<!-- MODALE CONFIRMATION -->
+<div id="confirm-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width:360px;">
+        <div class="modal-head">
+            <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirmation</h3>
+        </div>
+        <p id="confirm-modal-message" style="color:var(--text-sub); font-size:14px; margin:0 0 24px;"></p>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="closeConfirmModal()">Annuler</button>
+            <button class="btn btn-gold" onclick="acceptConfirmModal()">Confirmer</button>
+        </div>
+    </div>
+</div>
+
 <!-- TOAST -->
 <div id="global-toast">
     <span id="toast-icon">🐾</span>
@@ -2151,10 +2175,7 @@
     };
 
     /* ---- Theme toggle (light / dark) ---- */
-    window.toggleTheme = () => {
-        document.body.classList.toggle('light-mode');
-        if (typeof renderWeightChart === 'function') renderWeightChart();
-    };
+    window.toggleTheme = () => document.body.classList.toggle('light-mode');
 </script>
 
 <script>
