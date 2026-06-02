@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pablo — Compagnon Santé</title>
+    <meta name="description" content="Pablo — Le tableau de bord ultime pour maîtres et éleveurs. Suivi de santé, nutrition, éducation, budget et assistant IA pour votre chien ou chat. 100% gratuit, sans pub.">
 
     <meta property="og:title" content="Pablo — Le tableau de bord de votre compagnon">
     <meta property="og:description" content="L'assistant de poche qui chasse la charge mentale des maîtres et des éleveurs. 100% gratuit et indépendant.">
@@ -25,7 +26,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
     <style>
         /* ============================================================
@@ -1203,6 +1204,7 @@
             color: var(--text-muted); cursor: pointer;
             transition: color 0.2s ease;
             letter-spacing: 0.5px; text-transform: uppercase;
+            background: none; border: none; padding: 0; font-family: var(--font-body);
         }
         .nav-item i { font-size: 18px; }
         .nav-item.active { color: var(--gold); }
@@ -1325,6 +1327,36 @@
             border-top: 1px dashed var(--card-border);
             margin: 16px 0;
         }
+
+        /* FAQ landing */
+        .l-faq { width: 100%; animation: fadeUp 1s 0.5s var(--ease-out) both; }
+        .l-faq-header { text-align: center; margin-bottom: 32px; }
+        .l-faq-list { display: flex; flex-direction: column; gap: 10px; max-width: 720px; margin: 0 auto; }
+        .l-faq-item {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: border-color 0.25s ease;
+        }
+        .l-faq-item:hover { border-color: rgba(200,146,42,0.2); }
+        .l-faq-item.open  { border-color: rgba(200,146,42,0.3); }
+        .l-faq-q {
+            width: 100%; display: flex; justify-content: space-between; align-items: center;
+            gap: 16px; padding: 18px 22px; background: transparent; border: none; cursor: pointer;
+            text-align: left; font-family: var(--font-body); font-size: 14px; font-weight: 600;
+            color: #f0e8d8; transition: color 0.2s ease;
+        }
+        .l-faq-q:hover { color: #c8922a; }
+        .l-faq-q i { color: #c8922a; flex-shrink: 0; transition: transform 0.3s var(--ease-out); font-size: 13px; }
+        .l-faq-item.open .l-faq-q i { transform: rotate(180deg); }
+        .l-faq-a {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.4s var(--ease-out), padding 0.3s ease;
+            font-size: 13.5px; color: rgba(240,232,216,0.5); line-height: 1.75; padding: 0 22px;
+        }
+        .l-faq-item.open .l-faq-a { max-height: 300px; padding: 0 22px 18px; }
+        .l-faq-a strong { color: rgba(240,232,216,0.8); }
     </style>
 </head>
 <body>
@@ -1376,6 +1408,99 @@
                 <div class="l-feat-icon"><i class="fa-solid fa-heart-pulse"></i></div>
                 <h3>Santé &amp; Budget</h3>
                 <p>Graphiques de croissance, rappels de soins, dépenses et export PDF.</p>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="l-faq" id="faq">
+            <div class="l-faq-header">
+                <div class="l-eyebrow"><i class="fa-solid fa-circle-question"></i> FAQ</div>
+                <h2 style="font-family:var(--font-display); font-size:clamp(28px,5vw,42px); font-weight:300; font-style:italic; color:#f0e8d8; margin-top:12px; line-height:1.2;">
+                    Questions fréquentes
+                </h2>
+            </div>
+            <div class="l-faq-list">
+
+                <div class="l-faq-item">
+                    <button class="l-faq-q" onclick="toggleFaq(this)">
+                        <span>Cette application est-elle gratuite ?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="l-faq-a">
+                        Oui, Pablo est 100&nbsp;% gratuit et sans publicité. Le projet est indépendant et passionnel — aucun abonnement, aucune limite cachée.
+                    </div>
+                </div>
+
+                <div class="l-faq-item">
+                    <button class="l-faq-q" onclick="toggleFaq(this)">
+                        <span>L'application convient-elle à toutes les races ?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="l-faq-a">
+                        Oui, Pablo s'adapte à toutes les races de chiens et de chats. L'encyclopédie et les conseils sont générés dynamiquement par l'IA en fonction de la race renseignée dans le profil de votre animal.
+                    </div>
+                </div>
+
+                <div class="l-faq-item">
+                    <button class="l-faq-q" onclick="toggleFaq(this)">
+                        <span>Comment sont conservées mes données ?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="l-faq-a">
+                        Vos données sont stockées localement sur votre appareil. Si vous créez un compte, une sauvegarde chiffrée est synchronisée sur nos serveurs Firebase uniquement pour restaurer vos données sur un nouvel appareil. Elles ne sont jamais vendues ni partagées avec des tiers.
+                    </div>
+                </div>
+
+                <div class="l-faq-item">
+                    <button class="l-faq-q" onclick="toggleFaq(this)">
+                        <span>Puis-je gérer plusieurs animaux ?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="l-faq-a">
+                        Oui ! Vous pouvez ajouter autant d'animaux que vous le souhaitez. Chaque profil est totalement indépendant (poids, santé, éducation, budget…) et vous pouvez passer de l'un à l'autre en un clic depuis le sélecteur en haut de l'application.
+                    </div>
+                </div>
+
+                <div class="l-faq-item">
+                    <button class="l-faq-q" onclick="toggleFaq(this)">
+                        <span>Faut-il une connexion internet pour utiliser Pablo ?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="l-faq-a">
+                        La majorité des fonctionnalités (suivi de poids, carnet médical, éducation, budget…) fonctionne hors-ligne. Seuls l'assistant Hey&nbsp;Pablo et l'encyclopédie de race nécessitent une connexion, car ils utilisent une IA en ligne.
+                    </div>
+                </div>
+
+                <div class="l-faq-item">
+                    <button class="l-faq-q" onclick="toggleFaq(this)">
+                        <span>L'assistant Hey Pablo répond-il à tout ?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="l-faq-a">
+                        L'assistant est spécialisé en bien-être animal : alimentation, santé, éducation, comportement… Il refuse volontairement de répondre aux sujets hors de ce domaine. Il connaît le profil de votre animal (race, âge, poids) pour personnaliser ses réponses.
+                    </div>
+                </div>
+
+                <div class="l-faq-item">
+                    <button class="l-faq-q" onclick="toggleFaq(this)">
+                        <span>Pablo fonctionne-t-il sur mobile ?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="l-faq-a">
+                        Oui, Pablo est une Progressive Web App (PWA). Sur mobile, vous pouvez l'ajouter à votre écran d'accueil depuis votre navigateur pour une expérience identique à une application native, sans passer par l'App Store.
+                    </div>
+                </div>
+
+                <div class="l-faq-item">
+                    <button class="l-faq-q" onclick="toggleFaq(this)">
+                        <span>Comment supprimer mon compte et mes données ?</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="l-faq-a">
+                        Depuis l'application, allez dans <strong>Profil → Options Système → Supprimer définitivement ce profil</strong>. Pour supprimer votre compte Firebase, contactez-nous à l'adresse indiquée dans les mentions légales.
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -1473,7 +1598,7 @@
 
             <div class="sidebar-footer">
                 <span class="sidebar-footer-name" id="current-pet-display-top">Pablo</span>
-                <button class="btn-logout" onclick="logoutApp()" title="Déconnexion">
+                <button class="btn-logout" onclick="logoutApp()" title="Déconnexion" aria-label="Déconnexion">
                     <i class="fa-solid fa-power-off"></i>
                 </button>
             </div>
@@ -1487,10 +1612,10 @@
                     <select id="mobile-pet-selector"
                         style="display:none; padding:6px 10px; border-radius:var(--radius-xs); font-size:12.5px; max-width:120px;">
                     </select>
-                    <div class="btn-icon-header" onclick="toggleTheme()" title="Thème">
+                    <div class="btn-icon-header" onclick="toggleTheme()" title="Thème" role="button" tabindex="0" aria-label="Basculer le thème">
                         <i class="fa-solid fa-circle-half-stroke"></i>
                     </div>
-                    <div class="btn-icon-header" onclick="navigateTo('screen-profile')" title="Paramètres">
+                    <div class="btn-icon-header" onclick="navigateTo('screen-profile')" title="Paramètres" role="button" tabindex="0" aria-label="Paramètres du profil">
                         <i class="fa-solid fa-gear"></i>
                     </div>
                 </div>
@@ -1530,10 +1655,10 @@
                                 <div class="stat-value" id="water-current-text">0 ml</div>
                             </div>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn-stat" onclick="addWater(-250)" title="-250 ml" style="background:var(--bg-elevated); color:var(--text-muted);">
+                                <button class="btn-stat" onclick="addWater(-250)" title="-250 ml" aria-label="Retirer 250 ml" style="background:var(--bg-elevated); color:var(--text-muted);">
                                     <i class="fa-solid fa-minus"></i>
                                 </button>
-                                <button class="btn-stat" onclick="addWater()" title="+250 ml">
+                                <button class="btn-stat" onclick="addWater()" title="+250 ml" aria-label="Ajouter 250 ml">
                                     <i class="fa-solid fa-glass-water"></i>
                                 </button>
                             </div>
@@ -1544,10 +1669,10 @@
                                 <div class="stat-value" id="walk-current-text">0 min</div>
                             </div>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn-stat" onclick="addWalk(-15)" title="-15 min" style="background:var(--bg-elevated); color:var(--text-muted);">
+                                <button class="btn-stat" onclick="addWalk(-15)" title="-15 min" aria-label="Retirer 15 minutes" style="background:var(--bg-elevated); color:var(--text-muted);">
                                     <i class="fa-solid fa-minus"></i>
                                 </button>
-                                <button class="btn-stat" onclick="addWalk()" title="+15 min">
+                                <button class="btn-stat" onclick="addWalk()" title="+15 min" aria-label="Ajouter 15 minutes">
                                     <i class="fa-solid fa-shoe-prints"></i>
                                 </button>
                             </div>
@@ -1902,30 +2027,30 @@
                     <div class="card">
                         <div class="card-title"><i class="fa-solid fa-suitcase"></i> La Valise de <span class="dynamic-pet-name">Pablo</span></div>
                         <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Cochez avant de partir en vacances :</p>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:13.5px;">
+                        <div id="valise-list" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:13.5px;">
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-sub);">
-                                <input type="checkbox" style="width:auto; accent-color:var(--gold);"> Passeport / Carnet
+                                <input type="checkbox" id="valise-passeport" style="width:auto; accent-color:var(--gold);"> Passeport / Carnet
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-sub);">
-                                <input type="checkbox" style="width:auto; accent-color:var(--gold);"> Croquettes &amp; Eau
+                                <input type="checkbox" id="valise-croquettes" style="width:auto; accent-color:var(--gold);"> Croquettes &amp; Eau
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-sub);">
-                                <input type="checkbox" style="width:auto; accent-color:var(--gold);"> Laisse &amp; Collier
+                                <input type="checkbox" id="valise-laisse" style="width:auto; accent-color:var(--gold);"> Laisse &amp; Collier
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-sub);">
-                                <input type="checkbox" style="width:auto; accent-color:var(--gold);"> Pince à tiques
+                                <input type="checkbox" id="valise-tiques" style="width:auto; accent-color:var(--gold);"> Pince à tiques
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-sub);">
-                                <input type="checkbox" style="width:auto; accent-color:var(--gold);"> Trousse de secours
+                                <input type="checkbox" id="valise-secours" style="width:auto; accent-color:var(--gold);"> Trousse de secours
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-sub);">
-                                <input type="checkbox" style="width:auto; accent-color:var(--gold);"> Médicaments
+                                <input type="checkbox" id="valise-medicaments" style="width:auto; accent-color:var(--gold);"> Médicaments
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-sub);">
-                                <input type="checkbox" style="width:auto; accent-color:var(--gold);"> Jouet favori
+                                <input type="checkbox" id="valise-jouet" style="width:auto; accent-color:var(--gold);"> Jouet favori
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-sub);">
-                                <input type="checkbox" style="width:auto; accent-color:var(--gold);"> Sacs à crottes
+                                <input type="checkbox" id="valise-crottes" style="width:auto; accent-color:var(--gold);"> Sacs à crottes
                             </label>
                         </div>
                     </div>
@@ -2027,21 +2152,21 @@
             <!-- MOBILE NAV -->
             <nav class="mobile-nav">
                 <div class="mobile-nav-inner">
-                    <div class="nav-item active" onclick="navigateTo('screen-home')">
+                    <button class="nav-item active" onclick="navigateTo('screen-home')" aria-label="Accueil">
                         <i class="fa-solid fa-house"></i>Accueil
-                    </div>
-                    <div class="nav-item" onclick="navigateTo('screen-carnet')">
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('screen-carnet')" aria-label="Carnet de suivi">
                         <i class="fa-solid fa-book-medical"></i>Carnet
-                    </div>
-                    <div class="nav-item" onclick="navigateTo('screen-chat')">
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('screen-chat')" aria-label="Assistant Pablo">
                         <i class="fa-solid fa-comment-medical"></i>Pablo
-                    </div>
-                    <div class="nav-item" onclick="navigateTo('screen-pro')">
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('screen-pro')" aria-label="Élevage et officiel">
                         <i class="fa-solid fa-award"></i>Élevage
-                    </div>
-                    <div class="nav-item" onclick="navigateTo('screen-tools')">
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('screen-tools')" aria-label="Outils et souvenirs">
                         <i class="fa-solid fa-toolbox"></i>Outils
-                    </div>
+                    </button>
                 </div>
             </nav>
 
@@ -2050,11 +2175,11 @@
 </div><!-- /main-app-layout -->
 
 <!-- MODAL AJOUT ANIMAL -->
-<div id="add-pet-modal" class="modal-overlay">
+<div id="add-pet-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-add-pet-title">
     <div class="modal-box">
         <div class="modal-head">
-            <h3><i class="fa-solid fa-paw"></i> Nouveau compagnon</h3>
-            <button class="btn-close" onclick="closePetModal()"><i class="fa-solid fa-xmark"></i></button>
+            <h3 id="modal-add-pet-title"><i class="fa-solid fa-paw"></i> Nouveau compagnon</h3>
+            <button class="btn-close" onclick="closePetModal()" aria-label="Fermer"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div style="display:flex; flex-direction:column; gap:12px;">
             <div>
@@ -2082,10 +2207,10 @@
 </div>
 
 <!-- MODALE CONFIRMATION -->
-<div id="confirm-modal" class="modal-overlay">
+<div id="confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
     <div class="modal-box" style="max-width:360px;">
         <div class="modal-head">
-            <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirmation</h3>
+            <h3 id="modal-confirm-title"><i class="fa-solid fa-triangle-exclamation"></i> Confirmation</h3>
         </div>
         <p id="confirm-modal-message" style="color:var(--text-sub); font-size:14px; margin:0 0 24px;"></p>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
@@ -2176,6 +2301,32 @@
 
     /* ---- Theme toggle (light / dark) ---- */
     window.toggleTheme = () => document.body.classList.toggle('light-mode');
+
+    /* ---- Valise checkboxes ---- */
+    const VALISE_IDS = ['valise-passeport','valise-croquettes','valise-laisse','valise-tiques','valise-secours','valise-medicaments','valise-jouet','valise-crottes'];
+    function saveValise() {
+        const state = {};
+        VALISE_IDS.forEach(id => { const el = document.getElementById(id); if (el) state[id] = el.checked; });
+        localStorage.setItem('pablo_valise', JSON.stringify(state));
+    }
+    function restoreValise() {
+        const saved = localStorage.getItem('pablo_valise');
+        if (!saved) return;
+        const state = JSON.parse(saved);
+        VALISE_IDS.forEach(id => { const el = document.getElementById(id); if (el && state[id] !== undefined) el.checked = state[id]; });
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        restoreValise();
+        VALISE_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', saveValise); });
+    });
+
+    /* ---- FAQ accordion ---- */
+    window.toggleFaq = (btn) => {
+        const item = btn.closest('.l-faq-item');
+        const isOpen = item.classList.contains('open');
+        document.querySelectorAll('.l-faq-item.open').forEach(el => el.classList.remove('open'));
+        if (!isOpen) item.classList.add('open');
+    };
 </script>
 
 <script>
