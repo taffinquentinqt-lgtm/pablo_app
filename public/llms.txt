@@ -1,0 +1,30 @@
+# Pablo — Tableau de bord santé pour maîtres et éleveurs
+
+> Pablo est une application web progressive (PWA) gratuite, sans publicité, dédiée aux maîtres et éleveurs de chiens et chats.
+
+## Fonctionnalités principales
+
+- **Assistant IA "Hey Pablo"** : assistant contextuel spécialisé en bien-être animal, nourri par le profil de l'animal (race, âge, poids)
+- **Suivi de poids** : enregistrement et courbes de croissance
+- **Carnet médical** : vaccins, vermifuges, visites vétérinaires, rappels
+- **Nutrition** : calcul de ration, gestion du stock de croquettes, alertes
+- **Éducation** : suivi des exercices et niveaux comportementaux
+- **Budget** : dépenses liées à l'animal, export PDF
+- **Module Élevage** : chaleurs, saillies, portées, calcul automatique du COI%
+- **Souvenirs** : photos et moments marquants
+- **Multi-animaux** : gestion illimitée de profils indépendants
+
+## Technologie
+
+- PWA installable sur iOS et Android sans passer par un store
+- Données stockées localement (localStorage) + synchronisation optionnelle via Firebase
+- IA propulsée par Groq (modèle Llama 3.3 70B)
+- Authentification Firebase (email/mot de passe + Google)
+
+## Auteur
+
+Quentin Taffin — développeur passionné, fils d'éleveur de Bergers Allemands.
+
+## URL
+
+https://pablo-app-roan.vercel.app

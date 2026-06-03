@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pablo-app-roan.vercel.app/sitemap.xml
