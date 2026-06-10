@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 
 // CONFIGURATION GLOBALE
 // ==========================================
@@ -52,6 +52,13 @@ try {
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Capture immédiate d'un lien de cession (?cession=...) AVANT que l'auth ne réagisse,
+// pour que la récupération se déclenche dès la connexion. Banni des logs Clarity.
+try {
+    const _cp = new URLSearchParams(window.location.search).get('cession');
+    if (_cp) localStorage.setItem('_pendingCession', _cp);
+} catch (e) { /* no-op */ }
+
 // 🟢 EXPOSITION INDISPENSABLE POUR LA PAGE INDEX.HTML :
 window._fbAuth = auth;
 
@@ -88,6 +95,30 @@ const DEFAULT_EDU_EXERCISES = [
 // ==========================================
 // AUTHENTIFICATION (FIREBASE)
 // ==========================================
+
+// Efface les données applicatives locales SANS toucher à la session Firebase.
+function clearAppLocalData() {
+    Object.keys(localStorage).forEach(k => {
+        if (k.startsWith('firebase')) return;                       // garder l'auth
+        if (k.startsWith('clarity') || k.startsWith('_clarity')) return;
+        if (k === '_pendingCession') return;                        // garder la cession à récupérer
+        localStorage.removeItem(k);
+    });
+}
+
+// Pousse une seule fois les données locales "orphelines" (mode test) vers le compte cloud.
+async function migrateLocalToCloud(uid) {
+    const payload = {};
+    Object.keys(localStorage).forEach(k => {
+        if (k.startsWith('firebase') || k.startsWith('clarity') || k.startsWith('_clarity') || k === '_pablo_owner_uid' || k === '_pendingCession') return;
+        try { payload[k] = JSON.parse(localStorage.getItem(k)); }
+        catch (e) { payload[k] = localStorage.getItem(k); }
+    });
+    if (Object.keys(payload).length === 0) return;
+    try { await setDoc(doc(db, "users", uid), payload, { merge: true }); }
+    catch (e) { console.error("Migration cloud échouée :", e); }
+}
+
 onAuthStateChanged(auth, async (user) => {
     const authPage = document.getElementById('auth-page');
     const mainApp  = document.getElementById('main-app-layout');
@@ -96,14 +127,26 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         console.log("🟢 Connecté :", user.email);
         try {
+            const prevUid    = localStorage.getItem('_pablo_owner_uid');
             const userDocRef = doc(db, "users", user.uid);
             const userDoc    = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-                const cloudData = userDoc.data();
-                Object.keys(cloudData).forEach(key => {
-                    localStorage.setItem(key, JSON.stringify(cloudData[key]));
-                });
+            const cloudData  = userDoc.exists() ? userDoc.data() : null;
+            const cloudEmpty = !cloudData || Object.keys(cloudData).length === 0;
+            const hasLocal   = !!localStorage.getItem('app_pets_list');
+            const loadCloud  = () => { if (cloudData) Object.keys(cloudData).forEach(key => localStorage.setItem(key, JSON.stringify(cloudData[key]))); };
+
+            if (prevUid === user.uid) {
+                // Même utilisateur (rafraîchissement) : garder le local + superposer le cloud.
+                loadCloud();
+            } else if (!prevUid && cloudEmpty && hasLocal) {
+                // 1re connexion sur ce navigateur avec des données orphelines : ce compte les adopte.
+                await migrateLocalToCloud(user.uid);
+            } else {
+                // Autre utilisateur (ou données qui ne lui appartiennent pas) : nettoyage puis chargement de SON cloud.
+                clearAppLocalData();
+                loadCloud();
             }
+            localStorage.setItem('_pablo_owner_uid', user.uid);
         } catch (e) { console.error("Erreur de restauration Cloud :", e); }
 
         if (landing)  landing.style.display  = 'none';
@@ -118,7 +161,13 @@ onAuthStateChanged(auth, async (user) => {
             mainApp.style.display = 'flex';
             setTimeout(() => renderWeightChart(), 150);
         }
+
+        // Brique 2b : un éleveur a transmis un carnet → on l'importe dans cet espace.
+        const _pending = localStorage.getItem('_pendingCession');
+        if (_pending) claimCession(_pending);
     } else {
+        // Déconnecté : on masque l'app. Les données locales restantes seront nettoyées
+        // à la prochaine connexion d'un autre compte (voir branche ci-dessus).
         if (mainApp) mainApp.style.display = 'none';
         if (landing) landing.style.display = 'block';
     }
@@ -203,7 +252,8 @@ window.processResetPassword = async () => {
 window.logoutApp = async () => {
     try { 
         await signOut(auth); 
-        localStorage.removeItem('current_pet_id');
+        clearAppLocalData();
+        localStorage.removeItem('_pablo_owner_uid');
         location.reload(); 
     } catch (error) { 
         console.error("Erreur déconnexion:", error); 
@@ -215,6 +265,10 @@ window.logoutApp = async () => {
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     initGlobalConfig();
+
+    // Lien de cession reçu : on affiche la bannière d'invitation.
+    const _pendingCession = localStorage.getItem('_pendingCession') || getCessionParam();
+    if (_pendingCession) showPendingCessionBanner(_pendingCession);
 
     const chatInput = document.getElementById('chat-input-field');
     if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
@@ -275,23 +329,19 @@ function initApp() {
     petsList = savedPets ? JSON.parse(savedPets) : [];
 
     if (petsList.length === 0) {
-        const defaultId = 'pet_' + Date.now();
-        petsList.push({ id: defaultId, name: 'Pablo' });
-        localStorage.setItem('app_pets_list', JSON.stringify(petsList));
-
-        const defaultProfile = { name: "Pablo", species: "Chien", breed: "Berger Allemand", age: 14, size: 65, weight: 31.5, avatar: "", breedAdvice: "" };
-        saveLocalData(defaultId, 'profile', defaultProfile);
-        saveLocalData(defaultId, 'weight', [{ date: new Date().toISOString().split('T')[0], weight: 31.5 }]);
-        saveLocalData(defaultId, 'education', {});
-
-        currentPetId = defaultId;
-        localStorage.setItem('current_pet_id', currentPetId);
-
-        if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
-    } else {
-        currentPetId = localStorage.getItem('current_pet_id') || petsList[0].id;
+        // Aucun chien de démo : nouvel utilisateur = espace vierge.
+        currentPetId = null;
+        localStorage.removeItem('current_pet_id');
+        renderPetSelector();
+        // On invite à créer son animal — sauf si une cession est en cours
+        // de récupération (dans ce cas, le chiot sera importé automatiquement).
+        if (!localStorage.getItem('_pendingCession') && typeof window.createNewPet === 'function') {
+            setTimeout(() => window.createNewPet(), 350);
+        }
+        return;
     }
 
+    currentPetId = localStorage.getItem('current_pet_id') || petsList[0].id;
     renderPetSelector();
     loadCurrentPetData();
 }
@@ -369,6 +419,7 @@ window.confirmCreateNewPet = function() {
 }
 
 function loadCurrentPetData() {
+    if (!currentPetId) return; // espace vide : aucun animal sélectionné
     initPetProfile();
     initWeightHistory();
     initMedicalRecords();
@@ -1339,6 +1390,104 @@ async function populateCessionQRs() {
             catch (e) { /* QR non bloquant */ }
         }
     }));
+}
+
+// --- Récupération d'un passeport côté acheteur (brique 2b) -------------------
+function getCessionParam() {
+    try { return new URLSearchParams(window.location.search).get('cession'); }
+    catch (e) { return null; }
+}
+
+function cleanCessionUrl() {
+    try { history.replaceState({}, '', window.location.origin + window.location.pathname); }
+    catch (e) { /* no-op */ }
+}
+
+// Affiche une bannière d'invitation tant que l'acheteur n'est pas connecté.
+async function showPendingCessionBanner(cessionId) {
+    if (!cessionId || document.getElementById('cession-banner')) return;
+    try {
+        const snap = await getDoc(doc(db, 'cessions', cessionId));
+        if (!snap.exists()) return;
+        const d = snap.data() || {};
+        const name   = escHtml(d.puppy?.name || 'un chiot');
+        const affixe = escHtml(d.breeder?.affixe || 'Un éleveur');
+
+        const host = document.getElementById('landing-page') || document.body;
+        const div = document.createElement('div');
+        div.id = 'cession-banner';
+        div.style.cssText = 'position:relative;z-index:50;padding:14px 18px;background:#1f6f54;color:#fff;text-align:center;font-size:14px;line-height:1.45;';
+        div.innerHTML = d.claimed
+            ? `<i class="fa-solid fa-ticket"></i> Le carnet de <strong>${name}</strong> (${affixe}) a déjà été récupéré.`
+            : `<i class="fa-solid fa-ticket"></i> <strong>${affixe}</strong> vous transmet le carnet de <strong>${name}</strong>.<br>Connectez-vous ou créez un compte pour le récupérer dans votre espace.`;
+        host.prepend(div);
+    } catch (e) { console.warn('Bannière cession :', e); }
+}
+
+// Importe le chiot comme animal de l'acheteur et marque la cession récupérée.
+async function claimCession(cessionId) {
+    if (!cessionId || !auth.currentUser) return;
+    try {
+        const ref  = doc(db, 'cessions', cessionId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) { localStorage.removeItem('_pendingCession'); cleanCessionUrl(); return; }
+        const d = snap.data() || {};
+
+        if (d.claimed) {
+            showToast("Ce carnet a déjà été récupéré.", "⚠️", "error");
+            localStorage.removeItem('_pendingCession'); cleanCessionUrl();
+            return;
+        }
+
+        const p = d.puppy || {};
+        const petName = p.name || 'Mon chien';
+
+        // Crée l'animal dans l'espace de l'acheteur.
+        const newId = 'pet_' + Date.now();
+        petsList.push({ id: newId, name: petName });
+        localStorage.setItem('app_pets_list', JSON.stringify(petsList));
+        if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+
+        // Âge approximatif depuis la date de naissance.
+        let age = 0;
+        if (p.birthDate) {
+            const diff = Date.now() - new Date(p.birthDate).getTime();
+            if (diff > 0) age = +(diff / (365.25 * 86400000)).toFixed(1);
+        }
+
+        saveLocalData(newId, 'profile',      { name: petName, species: d.species || 'Chien', breed: d.breed || '', age, size: 0, weight: 0, avatar: '', breedAdvice: '' });
+        saveLocalData(newId, 'weight',       []);
+        saveLocalData(newId, 'medical',      []);
+        saveLocalData(newId, 'education',    {});
+        saveLocalData(newId, 'daily',        { water: 0, walk: 0, date: new Date().toISOString().split('T')[0] });
+        saveLocalData(newId, 'chat',         [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petName}. Comment puis-je aider ?` }]);
+        saveLocalData(newId, 'budget',       []);
+        saveLocalData(newId, 'proData',      { gender: p.sex || 'Non spécifié', chip: p.chip || '', lof: '', pedigree: '', breederAffixe: d.breeder?.affixe || '', sire: p.sire || '', dam: p.dam || '' });
+        saveLocalData(newId, 'proEvents',    []);
+        saveLocalData(newId, 'proLitters',   []);
+        saveLocalData(newId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
+        saveLocalData(newId, 'proHistory',   { heats: [], matings: [] });
+        saveLocalData(newId, 'memories',     []);
+        saveLocalData(newId, 'gamification', { streak: 0, lastLogin: null, badges: [] });
+
+        // Marque la cession comme récupérée (autorisé une seule fois par les règles).
+        try {
+            await updateDoc(ref, { claimed: true, claimedBy: auth.currentUser.uid, claimedAt: Date.now() });
+        } catch (e) { console.warn('Maj claim (non bloquant) :', e); }
+
+        localStorage.removeItem('_pendingCession');
+        cleanCessionUrl();
+        if (typeof trackEvent === 'function') trackEvent('cession_claimed');
+
+        const banner = document.getElementById('cession-banner');
+        if (banner) banner.remove();
+
+        switchPet(newId);
+        showToast(`Carnet de ${petName} récupéré ! 🐶`, '✅');
+    } catch (e) {
+        console.error('Erreur récupération cession :', e);
+        showToast("Impossible de récupérer ce carnet.", "⚠️", "error");
+    }
 }
 
 function renderLitters() {
