@@ -1199,7 +1199,9 @@ window.addLitter = function() {
     const partner = document.getElementById('litter-partner')?.value;
     const count   = document.getElementById('litter-count')?.value;
     if (!date) { showToast("Sélectionnez une date.", "⚠️", "error"); return; }
-    proLitters.push({ id: Date.now(), date, partner, count });
+    // La mère de la portée = l'animal courant ; le père = le partenaire saisi.
+    const damName = (getLocalData(currentPetId, 'profile', {})?.name) || 'Mère inconnue';
+    proLitters.push({ id: Date.now(), date, partner, count, dam: damName, sire: partner || '', puppies: [] });
     saveLocalData(currentPetId, 'proLitters', proLitters);
     if (document.getElementById('litter-date'))    document.getElementById('litter-date').value    = '';
     if (document.getElementById('litter-partner')) document.getElementById('litter-partner').value = '';
@@ -1208,22 +1210,225 @@ window.addLitter = function() {
     showToast('Portée enregistrée ! 🐶', '✅');
 };
 
+// Ajoute un chiot (fiche individuelle) à une portée donnée.
+window.addPuppy = function(litterId) {
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    if (!litter) return;
+    if (!Array.isArray(litter.puppies)) litter.puppies = [];
+
+    const name  = document.getElementById(`pup-name-${litterId}`)?.value?.trim();
+    const sex   = document.getElementById(`pup-sex-${litterId}`)?.value || 'Femelle';
+    const color = document.getElementById(`pup-color-${litterId}`)?.value?.trim();
+    const chip  = document.getElementById(`pup-chip-${litterId}`)?.value?.trim();
+    if (!name) { showToast("Donnez un nom (ou un identifiant) au chiot.", "⚠️", "error"); return; }
+
+    litter.puppies.push({
+        id: 'pup_' + Date.now(),
+        name, sex, color: color || '', chip: chip || '',
+        birthDate: litter.date,                 // hérite de la date de la portée
+        dam: litter.dam || '',                  // hérite de la mère
+        sire: litter.sire || litter.partner || '', // hérite du père
+        status: 'En élevage',                   // En élevage | Cédé (utilisé en brique 2)
+        createdAt: Date.now()
+    });
+    saveLocalData(currentPetId, 'proLitters', proLitters);
+    renderLitters();
+    showToast(`${name} ajouté à la portée ! 🐶`, '✅');
+};
+
+// Retire un chiot d'une portée.
+window.removePuppy = function(litterId, puppyId) {
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    if (!litter || !Array.isArray(litter.puppies)) return;
+    litter.puppies = litter.puppies.filter(p => String(p.id) !== String(puppyId));
+    saveLocalData(currentPetId, 'proLitters', proLitters);
+    renderLitters();
+    showToast('Chiot retiré.', '🗑️');
+};
+
+// --- Passeport de cession (brique 2a) ---------------------------------------
+// Chargement paresseux de la lib QR depuis un CDN (aucun npm install requis).
+// Si le CDN est injoignable, l'app continue (le lien reste copiable, sans QR).
+let _QRCodeLib = undefined; // undefined = pas encore tenté, null = indisponible
+async function ensureQRCode() {
+    if (_QRCodeLib !== undefined) return _QRCodeLib;
+    try { _QRCodeLib = (await import(/* @vite-ignore */ 'https://esm.sh/qrcode@1.5.4')).default; }
+    catch (e) { console.warn('Lib QR indisponible :', e); _QRCodeLib = null; }
+    return _QRCodeLib;
+}
+
+function cessionLink(cessionId) {
+    return `${window.location.origin}/?cession=${cessionId}`;
+}
+
+// Génère le passeport partageable d'un chiot et bascule son statut en "Cédé".
+window.cederChiot = async function(litterId, puppyId) {
+    if (!auth.currentUser) { showToast("Connecte-toi pour générer un passeport.", "⚠️", "error"); return; }
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    if (!litter) return;
+    const puppy = (litter.puppies || []).find(p => String(p.id) === String(puppyId));
+    if (!puppy) return;
+
+    // Si déjà cédé, on réaffiche simplement le lien existant.
+    if (puppy.status === 'Cédé' && puppy.cessionId) { renderLitters(); return; }
+
+    const profile = getLocalData(currentPetId, 'profile', {}) || {};
+    const affixe  = (proData && proData.clubName) ? proData.clubName
+                  : (auth.currentUser.displayName || 'Élevage');
+
+    const cessionId = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'cess_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+
+    const passport = {
+        v: 1,
+        species: 'Chien',
+        breed: profile.breed || '',
+        puppy: {
+            name: puppy.name || '',
+            sex: puppy.sex || '',
+            color: puppy.color || '',
+            chip: puppy.chip || '',
+            birthDate: puppy.birthDate || litter.date || '',
+            dam: puppy.dam || litter.dam || '',
+            sire: puppy.sire || litter.sire || litter.partner || ''
+        },
+        breeder: { affixe: affixe, uid: auth.currentUser.uid },
+        createdAt: Date.now(),
+        claimed: false,
+        claimedBy: null,
+        claimedAt: null
+    };
+
+    try {
+        await setDoc(doc(db, 'cessions', cessionId), passport);
+    } catch (e) {
+        console.error('Erreur création cession :', e);
+        showToast("Échec de la génération (règles Firestore ?).", "⚠️", "error");
+        return;
+    }
+
+    puppy.status = 'Cédé';
+    puppy.cessionId = cessionId;
+    saveLocalData(currentPetId, 'proLitters', proLitters);
+    renderLitters();
+    showToast(`Passeport de ${puppy.name} généré ! 🎫`, '✅');
+};
+
+window.copierLienCession = function(cessionId) {
+    const url = cessionLink(cessionId);
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(
+            () => showToast('Lien copié ! 📋', '✅'),
+            () => showToast('Copie impossible, copie le lien à la main.', '⚠️', 'error')
+        );
+    } else {
+        showToast('Copie le lien manuellement : ' + url, '📋');
+    }
+};
+
+// Après le rendu, dessine les QR codes pour chaque chiot cédé.
+async function populateCessionQRs() {
+    const Q = await ensureQRCode();
+    if (!Q) return;
+    proLitters.forEach(l => (l.puppies || []).forEach(async p => {
+        if (p.status === 'Cédé' && p.cessionId) {
+            const img = document.getElementById(`qrimg-${p.id}`);
+            if (!img) return;
+            try { img.src = await Q.toDataURL(cessionLink(p.cessionId), { width: 150, margin: 1 }); }
+            catch (e) { /* QR non bloquant */ }
+        }
+    }));
+}
+
 function renderLitters() {
     const list = document.getElementById('litters-list');
     if (!list) return;
     list.innerHTML = '';
     const sorted = [...proLitters].sort((a, b) => new Date(b.date) - new Date(a.date));
     if (sorted.length === 0) { list.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center;">Aucune portée enregistrée.</p>'; return; }
+
     sorted.forEach(l => {
+        const puppies = Array.isArray(l.puppies) ? l.puppies : [];
+        const nbDisplay = puppies.length > 0 ? puppies.length : (escHtml(l.count) || '?');
+
+        // Liste des fiches chiots de la portée
+        let puppiesHtml = '';
+        if (puppies.length === 0) {
+            puppiesHtml = '<p style="color:var(--text-muted); font-size:12.5px; margin:8px 0;">Aucun chiot enregistré dans cette portée.</p>';
+        } else {
+            puppies.forEach(p => {
+                const sexIcon = (p.sex === 'Mâle') ? '♂' : '♀';
+                const isCeded = p.status === 'Cédé';
+                const cederBtn = isCeded ? '' : `
+                            <button class="btn-secondary btn-sm" title="Générer le passeport de cession" onclick="cederChiot('${l.id}','${p.id}')">
+                                <i class="fa-solid fa-share-nodes"></i> Céder
+                            </button>`;
+                // Panneau lien + QR pour un chiot cédé
+                const cessionPanel = (isCeded && p.cessionId) ? `
+                        <div style="margin:4px 0 10px; padding:10px; border:1px dashed var(--gold, #c8a24a); border-radius:10px;">
+                            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:6px;">
+                                <i class="fa-solid fa-ticket"></i> Passeport à transmettre au nouveau propriétaire :
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <img id="qrimg-${p.id}" alt="QR du passeport" width="110" height="110" style="border-radius:8px; background:#fff;">
+                                <div style="flex:1; min-width:160px;">
+                                    <input type="text" readonly value="${cessionLink(p.cessionId)}" onclick="this.select()" style="width:100%; font-size:12px;">
+                                    <button class="btn-gold btn-sm btn-full" style="margin-top:6px;" onclick="copierLienCession('${p.cessionId}')">
+                                        <i class="fa-solid fa-copy"></i> Copier le lien
+                                    </button>
+                                </div>
+                            </div>
+                        </div>` : '';
+                puppiesHtml += `
+                    <div class="log-item" style="justify-content:space-between;">
+                        <div>
+                            <strong>${sexIcon} ${escHtml(p.name)}</strong>
+                            <span style="color:var(--text-muted); font-size:12.5px;">
+                                ${escHtml(p.color) || 'Robe n.c.'}${p.chip ? ' · Puce : ' + escHtml(p.chip) : ''}
+                            </span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="badge ${isCeded ? 'badge-success' : 'badge-gold'}">${escHtml(p.status || 'En élevage')}</span>
+                            ${cederBtn}
+                            <button class="btn-danger-outline btn-sm" title="Retirer" onclick="removePuppy('${l.id}','${p.id}')">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${cessionPanel}`;
+            });
+        }
+
+        // Mini-formulaire d'ajout de chiot, propre à cette portée
+        const addFormHtml = `
+            <div class="g2" style="margin-top:10px; gap:8px;">
+                <input type="text"   id="pup-name-${l.id}"  placeholder="Nom / identifiant">
+                <select id="pup-sex-${l.id}">
+                    <option value="Femelle">Femelle ♀</option>
+                    <option value="Mâle">Mâle ♂</option>
+                </select>
+                <input type="text" id="pup-color-${l.id}" placeholder="Robe / couleur">
+                <input type="text" id="pup-chip-${l.id}"  placeholder="N° puce (optionnel)">
+            </div>
+            <button class="btn-secondary btn-sm btn-full" style="margin-top:8px;" onclick="addPuppy('${l.id}')">
+                <i class="fa-solid fa-plus"></i> Ajouter un chiot
+            </button>`;
+
         list.innerHTML += `
-            <div class="reminder-item">
-                <div>
-                    <h4>Portée du ${new Date(l.date).toLocaleDateString('fr-FR')}</h4>
-                    <span>Partenaire : ${escHtml(l.partner) || 'Non précisé'}</span>
+            <div class="card" style="margin-bottom:12px; padding:14px;">
+                <div class="reminder-item" style="margin:0;">
+                    <div>
+                        <h4>Portée du ${new Date(l.date).toLocaleDateString('fr-FR')}</h4>
+                        <span>Mère : ${escHtml(l.dam) || 'n.c.'} · Père : ${escHtml(l.sire || l.partner) || 'Non précisé'}</span>
+                    </div>
+                    <span class="badge badge-gold">${nbDisplay} chiot(s)</span>
                 </div>
-                <span class="badge badge-gold">${escHtml(l.count) || '?'} chiot(s)</span>
+                <div style="margin-top:10px;">${puppiesHtml}</div>
+                ${addFormHtml}
             </div>`;
     });
+    populateCessionQRs();
 }
 
 window.addProEvent = function() {
@@ -1413,4 +1618,3 @@ window.requestNotificationPermission = function() {
         }
     });
 };
-
