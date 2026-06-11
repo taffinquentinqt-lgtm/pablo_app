@@ -345,22 +345,56 @@ function initApp() {
 }
 
 function renderPetSelector() {
-    const selector       = document.getElementById('pet-selector');
-    const mobileSelector = document.getElementById('mobile-pet-selector');
+    // -- dropdown custom sidebar --
+    const label    = document.getElementById('pet-selector-label');
+    const list     = document.getElementById('pet-selector-list');
+    const current  = petsList.find(p => p.id === currentPetId);
+    if (label) label.textContent = current ? current.name : '—';
+    if (list) {
+        list.innerHTML = '';
+        petsList.forEach(pet => {
+            const div = document.createElement('div');
+            div.className = 'custom-pet-select__option' + (pet.id === currentPetId ? ' selected' : '');
+            div.textContent = pet.name;
+            div.onclick = () => { closePetDropdowns(); switchPet(pet.id); };
+            list.appendChild(div);
+        });
+    }
 
-    if (selector)       selector.innerHTML       = '';
-    if (mobileSelector) mobileSelector.innerHTML = '';
-
-    petsList.forEach(pet => {
-        const option      = document.createElement('option');
-        option.value      = pet.id;
-        option.textContent = pet.name;
-        if (pet.id === currentPetId) option.selected = true;
-
-        if (selector)       selector.appendChild(option);
-        if (mobileSelector) mobileSelector.appendChild(option.cloneNode(true));
-    });
+    // -- dropdown custom mobile --
+    const mLabel   = document.getElementById('mobile-pet-selector-label');
+    const mList    = document.getElementById('mobile-pet-selector-list');
+    const mWrap    = document.getElementById('mobile-pet-selector-wrap');
+    if (mLabel) mLabel.textContent = current ? current.name : '—';
+    if (mWrap)  mWrap.style.display = petsList.length > 0 ? '' : 'none';
+    if (mList) {
+        mList.innerHTML = '';
+        petsList.forEach(pet => {
+            const div = document.createElement('div');
+            div.className = 'custom-pet-select__option' + (pet.id === currentPetId ? ' selected' : '');
+            div.textContent = pet.name;
+            div.onclick = () => { closePetDropdowns(); switchPet(pet.id); };
+            mList.appendChild(div);
+        });
+    }
 }
+
+window.togglePetDropdown = function(wrapId) {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    const isOpen = wrap.classList.contains('open');
+    closePetDropdowns();
+    if (!isOpen) wrap.classList.add('open');
+};
+
+function closePetDropdowns() {
+    document.querySelectorAll('.custom-pet-select.open').forEach(el => el.classList.remove('open'));
+}
+
+// Ferme le dropdown si on clique ailleurs
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-pet-select')) closePetDropdowns();
+});
 
 window.switchPet = function(petId) {
     currentPetId = petId;

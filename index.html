@@ -677,16 +677,79 @@
             display: block;
             margin-bottom: 7px;
         }
-        .pet-select-block select {
+        .pet-select-block select { display:none; }
+
+        /* ── Dropdown custom chien ── */
+        .custom-pet-select {
+            position: relative;
             width: 100%;
+            font-family: var(--font-body);
+            font-size: 13px;
+        }
+        .custom-pet-select__trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             padding: 8px 10px;
             background: rgba(255,255,255,0.05);
             color: var(--text);
             border: 1px solid rgba(255,255,255,0.07);
             border-radius: var(--radius-xs);
-            font-family: var(--font-body);
-            font-size: 13px;
             cursor: pointer;
+            user-select: none;
+            transition: border-color .2s;
+        }
+        .custom-pet-select__trigger:hover {
+            border-color: rgba(200,146,42,0.4);
+        }
+        .custom-pet-select__arrow {
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform .2s;
+        }
+        .custom-pet-select.open .custom-pet-select__arrow {
+            transform: rotate(180deg);
+        }
+        .custom-pet-select__list {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0; right: 0;
+            background: #1a1a2e;
+            border: 1px solid rgba(200,146,42,0.25);
+            border-radius: var(--radius-xs);
+            z-index: 9999;
+            max-height: 220px;
+            overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,.5);
+        }
+        .custom-pet-select.open .custom-pet-select__list {
+            display: block;
+        }
+        .custom-pet-select__option {
+            padding: 9px 12px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+            transition: background .15s;
+        }
+        .custom-pet-select__option:hover {
+            background: rgba(200,146,42,0.12);
+        }
+        .custom-pet-select__option.selected {
+            color: #c8922a;
+            font-weight: 600;
+        }
+        /* version mobile (header) : plus compacte */
+        .custom-pet-select--mobile .custom-pet-select__trigger {
+            padding: 5px 9px;
+            font-size: 12.5px;
+            max-width: 140px;
+            background: rgba(255,255,255,0.04);
+        }
+        .custom-pet-select--mobile .custom-pet-select__list {
+            right: 0; left: auto;
+            min-width: 160px;
         }
         .btn-add-pet {
             width: 100%;
@@ -1332,7 +1395,6 @@
             .screens-wrap { padding: 14px; padding-bottom: 76px; }
             .chat-wrapper  { height: calc(100dvh - 175px); }
             .main-header   { padding: 0 14px; }
-            #mobile-pet-selector { display: block !important; max-width: 120px; }
         }
 
         /* ============================================================
@@ -1618,7 +1680,13 @@
 
             <div class="pet-select-block">
                 <label class="pet-select-label">Profil actif</label>
-                <select id="pet-selector"></select>
+                <div class="custom-pet-select" id="pet-selector-wrap">
+                    <div class="custom-pet-select__trigger" id="pet-selector-trigger" onclick="togglePetDropdown('pet-selector-wrap')">
+                        <span id="pet-selector-label">—</span>
+                        <i class="fa-solid fa-chevron-down custom-pet-select__arrow"></i>
+                    </div>
+                    <div class="custom-pet-select__list" id="pet-selector-list"></div>
+                </div>
                 <button class="btn-add-pet" onclick="createNewPet()">
                     <i class="fa-solid fa-plus"></i> Ajouter un animal
                 </button>
@@ -1655,9 +1723,14 @@
             <header class="main-header">
                 <span class="main-header-title" id="page-title">Vue d'ensemble</span>
                 <div class="header-actions">
-                    <select id="mobile-pet-selector"
-                        style="display:none; padding:6px 10px; border-radius:var(--radius-xs); font-size:12.5px; max-width:120px;">
-                    </select>
+                    <!-- Dropdown custom mobile -->
+                    <div class="custom-pet-select custom-pet-select--mobile" id="mobile-pet-selector-wrap" style="display:none;">
+                        <div class="custom-pet-select__trigger" onclick="togglePetDropdown('mobile-pet-selector-wrap')">
+                            <span id="mobile-pet-selector-label">—</span>
+                            <i class="fa-solid fa-chevron-down custom-pet-select__arrow"></i>
+                        </div>
+                        <div class="custom-pet-select__list" id="mobile-pet-selector-list"></div>
+                    </div>
                     <div class="btn-icon-header" onclick="toggleTheme()" title="Thème" role="button" tabindex="0" aria-label="Basculer le thème">
                         <i class="fa-solid fa-circle-half-stroke"></i>
                     </div>
