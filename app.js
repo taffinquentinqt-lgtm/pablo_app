@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { getMessaging, getToken } from "firebase/messaging";
 
 // CONFIGURATION GLOBALE
 // ==========================================
@@ -1795,7 +1796,6 @@ const VAPID_KEY = 'BEz6BhtY1kDVqbgEaRTIJKMzqSS7c-Zvva7XnxTqPml5OXEhWYAgPlkFH8ZBs
 
 async function getFCMToken() {
     try {
-        const { getMessaging, getToken } = await import('https://www.gstatic.com/firebasejs/12.13.0/firebase-messaging.js');
         const messaging = getMessaging(app);
         const token = await getToken(messaging, {
             vapidKey: VAPID_KEY,
