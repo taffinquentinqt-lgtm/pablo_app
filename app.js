@@ -1785,17 +1785,64 @@ window.acceptConfirmModal = function() {
 };
 
 // ==========================================
-// NOTIFICATIONS
 // ==========================================
-window.requestNotificationPermission = function() {
-    if (!('Notification' in window)) { showToast("Votre navigateur ne supporte pas les notifications.", "⚠️", "error"); return; }
-    Notification.requestPermission().then(permission => {
-        const btn = document.getElementById('btn-enable-notifications');
-        if (permission === 'granted') {
-            if (btn) { btn.innerHTML = '<i class="fa-solid fa-check"></i> Notifications activées !'; btn.style.color = 'var(--success)'; btn.style.borderColor = 'rgba(82,201,122,0.4)'; btn.disabled = true; }
-            new Notification('Félicitations !', { body: 'Les rappels Pablo sont actifs.', icon: '/pablo.jpg' });
-        } else {
-            showToast("Notifications refusées.", "⚠️", "error");
-        }
-    });
+// NOTIFICATIONS FCM
+// ==========================================
+
+// Clé VAPID — à remplacer par ta clé Firebase Cloud Messaging
+// Firebase Console → Project Settings → Cloud Messaging → Web Push certificates → Generate key pair
+const VAPID_KEY = 'BEz6BhtY1kDVqbgEaRTIJKMzqSS7c-Zvva7XnxTqPml5OXEhWYAgPlkFH8ZBsd3EqUruAbS57IxFICYoMUwR_WY';
+
+async function getFCMToken() {
+    try {
+        const { getMessaging, getToken } = await import('https://www.gstatic.com/firebasejs/12.13.0/firebase-messaging.js');
+        const messaging = getMessaging(app);
+        const token = await getToken(messaging, {
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: await navigator.serviceWorker.ready
+        });
+        return token;
+    } catch (e) {
+        console.warn('Erreur récupération token FCM :', e);
+        return null;
+    }
+}
+
+window.requestNotificationPermission = async function() {
+    if (!('Notification' in window)) {
+        showToast("Votre navigateur ne supporte pas les notifications.", "⚠️", "error");
+        return;
+    }
+    const btn = document.getElementById('btn-enable-notifications');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Activation…'; }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+        showToast("Notifications refusées.", "⚠️", "error");
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-bell"></i> Activer les rappels'; }
+        return;
+    }
+
+    const token = await getFCMToken();
+    if (!token) {
+        showToast("Impossible d'activer les notifications (token FCM manquant).", "⚠️", "error");
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-bell"></i> Activer les rappels'; }
+        return;
+    }
+
+    // Sauvegarde du token dans Firestore pour que la Cloud Function puisse l'utiliser
+    if (auth.currentUser) {
+        try {
+            await setDoc(doc(db, 'users', auth.currentUser.uid), { fcmToken: token }, { merge: true });
+        } catch (e) { console.warn('Erreur sauvegarde token FCM :', e); }
+    }
+
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Notifications activées !';
+        btn.style.color = 'var(--success)';
+        btn.style.borderColor = 'rgba(82,201,122,0.4)';
+        btn.disabled = true;
+    }
+    showToast('Rappels Pablo activés ! 🔔', '✅');
+    trackEvent('notifications_enabled');
 };
