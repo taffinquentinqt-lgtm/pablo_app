@@ -101,7 +101,6 @@ function clearAppLocalData() {
     Object.keys(localStorage).forEach(k => {
         if (k.startsWith('firebase')) return;                       // garder l'auth
         if (k.startsWith('clarity') || k.startsWith('_clarity')) return;
-        if (k === '_pendingCession') return;                        // garder la cession à récupérer
         localStorage.removeItem(k);
     });
 }
@@ -131,19 +130,18 @@ onAuthStateChanged(auth, async (user) => {
             const userDocRef = doc(db, "users", user.uid);
             const userDoc    = await getDoc(userDocRef);
             const cloudData  = userDoc.exists() ? userDoc.data() : null;
-            const cloudEmpty = !cloudData || Object.keys(cloudData).length === 0;
-            const hasLocal   = !!localStorage.getItem('app_pets_list');
             const loadCloud  = () => { if (cloudData) Object.keys(cloudData).forEach(key => localStorage.setItem(key, JSON.stringify(cloudData[key]))); };
 
             if (prevUid === user.uid) {
                 // Même utilisateur (rafraîchissement) : garder le local + superposer le cloud.
                 loadCloud();
-            } else if (!prevUid && cloudEmpty && hasLocal) {
-                // 1re connexion sur ce navigateur avec des données orphelines : ce compte les adopte.
-                await migrateLocalToCloud(user.uid);
             } else {
-                // Autre utilisateur (ou données qui ne lui appartiennent pas) : nettoyage puis chargement de SON cloud.
+                // Nouveau compte ou changement de compte : nettoyage complet strict.
+                // La cession en attente vit dans Firestore + l'URL, pas besoin
+                // de la garder en localStorage — on la relit depuis l'URL après le wipe.
                 clearAppLocalData();
+                const _recp = getCessionParam();
+                if (_recp) localStorage.setItem('_pendingCession', _recp);
                 loadCloud();
             }
             localStorage.setItem('_pablo_owner_uid', user.uid);
