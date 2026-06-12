@@ -1796,11 +1796,25 @@ const VAPID_KEY = 'BEz6BhtY1kDVqbgEaRTIJKMzqSS7c-Zvva7XnxTqPml5OXEhWYAgPlkFH8ZBs
 
 async function getFCMToken() {
     try {
+        // Enregistrement explicite du service worker FCM
+        let swReg;
+        try {
+            swReg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            // Attente max 5 secondes que le SW soit actif
+            await Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('SW timeout')), 5000))
+            ]);
+        } catch (e) {
+            console.warn('SW non prêt, tentative sans SW explicite :', e);
+            swReg = undefined;
+        }
+
         const messaging = getMessaging(app);
-        const token = await getToken(messaging, {
-            vapidKey: VAPID_KEY,
-            serviceWorkerRegistration: await navigator.serviceWorker.ready
-        });
+        const tokenOptions = { vapidKey: VAPID_KEY };
+        if (swReg) tokenOptions.serviceWorkerRegistration = swReg;
+
+        const token = await getToken(messaging, tokenOptions);
         return token;
     } catch (e) {
         console.warn('Erreur récupération token FCM :', e);
