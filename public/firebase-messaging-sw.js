@@ -1,7 +1,6 @@
 importScripts('https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/12.13.0/firebase-messaging-compat.js');
 
-// Config Firebase (même que dans app.js)
 firebase.initializeApp({
     apiKey: "AIzaSyBuz7iwOzeEFsFDU1G5aAe69JCczaduI44",
     authDomain: "pablo-app-f6057.firebaseapp.com",
@@ -18,8 +17,8 @@ messaging.onBackgroundMessage(payload => {
     const { title, body, icon } = payload.notification || {};
     self.registration.showNotification(title || 'Pablo 🐾', {
         body: body || 'Un rappel pour votre animal.',
-        icon: icon || '/pablo.jpg',
-        badge: '/pablo.jpg',
+        icon: icon || 'https://pablo-app-roan.vercel.app/pablo.jpg',
+        badge: 'https://pablo-app-roan.vercel.app/pablo.jpg',
         data: payload.data || {}
     });
 });
@@ -35,31 +34,5 @@ self.addEventListener('notificationclick', event => {
             }
             return clients.openWindow('/');
         })
-    );
-});
-
-// Cache PWA (inchangé)
-const CACHE_NAME = 'pablo-app-cache-v2';
-const urlsToCache = ['/', '/index.html', '/app.js', '/pablo.jpg', '/manifest.json'];
-
-self.addEventListener('install', event => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-    );
-    self.skipWaiting();
-});
-
-self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-        )
-    );
-    self.clients.claim();
-});
-
-self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request).then(response => response || fetch(event.request))
     );
 });
