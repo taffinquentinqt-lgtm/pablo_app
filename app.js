@@ -97,16 +97,14 @@ const DEFAULT_EDU_EXERCISES = [
 // AUTHENTIFICATION (FIREBASE)
 // ==========================================
 
-// Efface les données applicatives locales SANS toucher à la session Firebase.
 function clearAppLocalData() {
     Object.keys(localStorage).forEach(k => {
-        if (k.startsWith('firebase')) return;                       // garder l'auth
+        if (k.startsWith('firebase')) return;
         if (k.startsWith('clarity') || k.startsWith('_clarity')) return;
         localStorage.removeItem(k);
     });
 }
 
-// Pousse une seule fois les données locales "orphelines" (mode test) vers le compte cloud.
 async function migrateLocalToCloud(uid) {
     const payload = {};
     Object.keys(localStorage).forEach(k => {
@@ -134,12 +132,8 @@ onAuthStateChanged(auth, async (user) => {
             const loadCloud  = () => { if (cloudData) Object.keys(cloudData).forEach(key => localStorage.setItem(key, JSON.stringify(cloudData[key]))); };
 
             if (prevUid === user.uid) {
-                // Même utilisateur (rafraîchissement) : garder le local + superposer le cloud.
                 loadCloud();
             } else {
-                // Nouveau compte ou changement de compte : nettoyage complet strict.
-                // La cession en attente vit dans Firestore + l'URL, pas besoin
-                // de la garder en localStorage — on la relit depuis l'URL après le wipe.
                 clearAppLocalData();
                 const _recp = getCessionParam();
                 if (_recp) localStorage.setItem('_pendingCession', _recp);
@@ -161,12 +155,9 @@ onAuthStateChanged(auth, async (user) => {
             setTimeout(() => renderWeightChart(), 150);
         }
 
-        // Brique 2b : un éleveur a transmis un carnet → on l'importe dans cet espace.
         const _pending = localStorage.getItem('_pendingCession');
         if (_pending) claimCession(_pending);
     } else {
-        // Déconnecté : on masque l'app. Les données locales restantes seront nettoyées
-        // à la prochaine connexion d'un autre compte (voir branche ci-dessus).
         if (mainApp) mainApp.style.display = 'none';
         if (landing) landing.style.display = 'block';
     }
@@ -265,7 +256,6 @@ window.logoutApp = async () => {
 document.addEventListener('DOMContentLoaded', () => {
     initGlobalConfig();
 
-    // Lien de cession reçu : on affiche la bannière d'invitation.
     const _pendingCession = localStorage.getItem('_pendingCession') || getCessionParam();
     if (_pendingCession) showPendingCessionBanner(_pendingCession);
 
@@ -328,12 +318,9 @@ function initApp() {
     petsList = savedPets ? JSON.parse(savedPets) : [];
 
     if (petsList.length === 0) {
-        // Aucun chien de démo : nouvel utilisateur = espace vierge.
         currentPetId = null;
         localStorage.removeItem('current_pet_id');
         renderPetSelector();
-        // On invite à créer son animal — sauf si une cession est en cours
-        // de récupération (dans ce cas, le chiot sera importé automatiquement).
         if (!localStorage.getItem('_pendingCession') && typeof window.createNewPet === 'function') {
             setTimeout(() => window.createNewPet(), 350);
         }
@@ -346,7 +333,6 @@ function initApp() {
 }
 
 function renderPetSelector() {
-    // -- dropdown custom sidebar --
     const label    = document.getElementById('pet-selector-label');
     const list     = document.getElementById('pet-selector-list');
     const current  = petsList.find(p => p.id === currentPetId);
@@ -362,7 +348,6 @@ function renderPetSelector() {
         });
     }
 
-    // -- dropdown custom mobile --
     const mLabel   = document.getElementById('mobile-pet-selector-label');
     const mList    = document.getElementById('mobile-pet-selector-list');
     const mWrap    = document.getElementById('mobile-pet-selector-wrap');
@@ -392,7 +377,6 @@ function closePetDropdowns() {
     document.querySelectorAll('.custom-pet-select.open').forEach(el => el.classList.remove('open'));
 }
 
-// Ferme le dropdown si on clique ailleurs
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.custom-pet-select')) closePetDropdowns();
 });
@@ -452,7 +436,7 @@ window.confirmCreateNewPet = function() {
 }
 
 function loadCurrentPetData() {
-    if (!currentPetId) return; // espace vide : aucun animal sélectionné
+    if (!currentPetId) return; 
     initPetProfile();
     initWeightHistory();
     initMedicalRecords();
@@ -525,36 +509,71 @@ Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de con
 }
 
 // ==========================================
-// NUTRITION (GROQ SECURE ROUTER)
+// NUTRITION EXPERTE (ÂGE + RACE)
 // ==========================================
 window.updateNutritionUI = async function() {
     const nutritionRationText = document.getElementById('nutrition-ration-text');
     const activitySelector    = document.getElementById('activity-level-selector');
+
     if (!petProfile.weight || !nutritionRationText || !activitySelector) return;
 
-    let baseRation = petProfile.weight * 13.5;
-    if (activitySelector.value === 'calm')   baseRation *= 0.85;
-    if (activitySelector.value === 'active') baseRation *= 1.15;
+    const weight = parseFloat(petProfile.weight);
+    const ageMonths = parseInt(petProfile.age) || 24; // Par défaut adulte si non renseigné
+    const breed = petProfile.breed || 'Inconnue';
+    const species = (petProfile.species || 'chien').toLowerCase();
+    const activity = activitySelector.value;
 
     nutritionRationText.style.fontSize = '16px';
     nutritionRationText.innerText      = 'Calcul…';
 
     try {
-        const prompt = `Calcule la ration de croquettes idéale pour un ${petProfile.species || 'chien'} de race ${petProfile.breed || 'Inconnue'}, pesant ${petProfile.weight} kg, activité ${activitySelector.value}. Réponds UNIQUEMENT par le chiffre suivi de la lettre g. Exemple : 420g`;
+        // PROMPT EXPERT : On force l'IA à utiliser la race et l'âge pour le calcul
+        const prompt = `Tu es un vétérinaire nutritionniste expert. Calcule la ration QUOTIDIENNE (en grammes) de croquettes pour ce profil strict :
+        - Espèce : ${species}
+        - Race : ${breed} (très important : adapte le métabolisme selon si c'est une race naine, géante, de travail, ou prédisposée à l'obésité)
+        - Âge : ${ageMonths} mois (si c'est un chiot, prends en compte la courbe de croissance propre à sa race)
+        - Poids actuel : ${weight} kg
+        - Niveau d'activité : ${activity}
+        
+        Calcule le besoin énergétique (RER/MER) en fonction de sa RACE et de son ÂGE. On estime que des croquettes standard font environ 380 kcal/100g.
+        NE FAIS AUCUNE PHRASE. Réponds UNIQUEMENT par le chiffre suivi de la lettre g (ex: 420g).`;
 
         const aiText = await groqChat([{ role: "user", content: prompt }]);
         nutritionRationText.style.fontSize = '';
 
+        // Extraction du résultat
         const match = aiText.match(/\d+\s*g/i);
         if (match) {
             nutritionRationText.innerText = match[0].toLowerCase().replace(' ', '');
         } else {
             const nums = aiText.match(/\d+/);
-            nutritionRationText.innerText = nums ? nums[0] + 'g' : Math.round(baseRation) + 'g';
+            if (nums) nutritionRationText.innerText = nums[0] + 'g';
+            else throw new Error("Format IA non reconnu");
         }
     } catch (e) {
+        // FALLBACK HORS-LIGNE : Si pas d'internet, on utilise un calcul d'urgence basé sur l'âge et le poids
+        console.warn("Calcul IA échoué, utilisation de la formule locale (Poids + Âge).");
+        
+        const RER = 70 * Math.pow(weight, 0.75);
+        let factor = 1.6; // Base adulte
+        
+        if (species === 'chien') {
+            if (ageMonths < 4) factor = 3.0;
+            else if (ageMonths < 12) factor = 2.0;
+            else if (activity === 'calm') factor = 1.2;
+            else if (activity === 'active') factor = 2.0;
+        } else {
+            if (ageMonths < 6) factor = 2.5;
+            else if (ageMonths < 12) factor = 2.0;
+            else if (activity === 'calm') factor = 1.0;
+            else if (activity === 'active') factor = 1.4;
+        }
+        
+        const MER = RER * factor;
+        const baseRation = Math.round(MER / 3.8); // 3.8 kcal/g
+        
         nutritionRationText.style.fontSize = '';
-        nutritionRationText.innerText      = Math.round(baseRation) + 'g';
+        nutritionRationText.innerText = baseRation + 'g';
     }
 };
 
@@ -1283,7 +1302,6 @@ window.addLitter = function() {
     const partner = document.getElementById('litter-partner')?.value;
     const count   = document.getElementById('litter-count')?.value;
     if (!date) { showToast("Sélectionnez une date.", "⚠️", "error"); return; }
-    // La mère de la portée = l'animal courant ; le père = le partenaire saisi.
     const damName = (getLocalData(currentPetId, 'profile', {})?.name) || 'Mère inconnue';
     proLitters.push({ id: Date.now(), date, partner, count, dam: damName, sire: partner || '', puppies: [] });
     saveLocalData(currentPetId, 'proLitters', proLitters);
@@ -1309,10 +1327,10 @@ window.addPuppy = function(litterId) {
     litter.puppies.push({
         id: 'pup_' + Date.now(),
         name, sex, color: color || '', chip: chip || '',
-        birthDate: litter.date,                 // hérite de la date de la portée
-        dam: litter.dam || '',                 // hérite de la mère
-        sire: litter.sire || litter.partner || '', // hérite du père
-        status: 'En élevage',                   // En élevage | Cédé (utilisé en brique 2)
+        birthDate: litter.date,
+        dam: litter.dam || '',
+        sire: litter.sire || litter.partner || '',
+        status: 'En élevage',
         createdAt: Date.now()
     });
     saveLocalData(currentPetId, 'proLitters', proLitters);
@@ -1331,9 +1349,7 @@ window.removePuppy = function(litterId, puppyId) {
 };
 
 // --- Passeport de cession (brique 2a) ---------------------------------------
-// Chargement paresseux de la lib QR depuis un CDN (aucun npm install requis).
-// Si le CDN est injoignable, l'app continue (le lien reste copiable, sans QR).
-let _QRCodeLib = undefined; // undefined = pas encore tenté, null = indisponible
+let _QRCodeLib = undefined;
 async function ensureQRCode() {
     if (_QRCodeLib !== undefined) return _QRCodeLib;
     try { _QRCodeLib = (await import(/* @vite-ignore */ 'https://esm.sh/qrcode@1.5.4')).default; }
@@ -1353,7 +1369,6 @@ window.cederChiot = async function(litterId, puppyId) {
     const puppy = (litter.puppies || []).find(p => String(p.id) === String(puppyId));
     if (!puppy) return;
 
-    // Si déjà cédé, on réaffiche simplement le lien existant.
     if (puppy.status === 'Cédé' && puppy.cessionId) { renderLitters(); return; }
 
     const profile = getLocalData(currentPetId, 'profile', {}) || {};
@@ -1376,7 +1391,6 @@ window.cederChiot = async function(litterId, puppyId) {
             birthDate: puppy.birthDate || litter.date || '',
             dam: puppy.dam || litter.dam || '',
             sire: puppy.sire || litter.sire || litter.partner || '',
-            // TRANSMISSION DE L'HISTORIQUE POIDS ET SOINS
             weights: puppy.weights || [], 
             acts: puppy.acts || []
         },
@@ -1478,20 +1492,17 @@ async function claimCession(cessionId) {
         const p = d.puppy || {};
         const petName = p.name || 'Mon chien';
 
-        // Crée l'animal dans l'espace de l'acheteur.
         const newId = 'pet_' + Date.now();
         petsList.push({ id: newId, name: petName });
         localStorage.setItem('app_pets_list', JSON.stringify(petsList));
         if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
 
-        // Âge approximatif depuis la date de naissance.
         let age = 0;
         if (p.birthDate) {
             const diff = Date.now() - new Date(p.birthDate).getTime();
             if (diff > 0) age = +(diff / (365.25 * 86400000)).toFixed(1);
         }
 
-        // Calcul du dernier poids connu
         let latestWeight = 0;
         if (p.weights && p.weights.length > 0) {
             const sortedWeights = [...p.weights].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1500,13 +1511,11 @@ async function claimCession(cessionId) {
 
         // --- IMPORTATION DES DONNÉES RÉCUPÉRÉES ---
         saveLocalData(newId, 'profile',      { name: petName, species: d.species || 'Chien', breed: d.breed || '', age, size: 0, weight: latestWeight, avatar: '', breedAdvice: '' });
-        
         saveLocalData(newId, 'weight',       p.weights || []);
         
         const importedActs = (p.acts || []).map(act => ({ type: act.type, date: act.date }));
         saveLocalData(newId, 'medical',      importedActs);
 
-        // -- Le reste est réinitialisé à zéro pour le nouveau maître --
         saveLocalData(newId, 'education',    {});
         saveLocalData(newId, 'daily',        { water: 0, walk: 0, date: new Date().toISOString().split('T')[0] });
         saveLocalData(newId, 'chat',         [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petName}. Comment puis-je aider ?` }]);
@@ -1519,7 +1528,6 @@ async function claimCession(cessionId) {
         saveLocalData(newId, 'memories',     []);
         saveLocalData(newId, 'gamification', { streak: 0, lastLogin: null, badges: [] });
 
-        // Marque la cession comme récupérée (autorisé une seule fois par les règles).
         try {
             await updateDoc(ref, { claimed: true, claimedBy: auth.currentUser.uid, claimedAt: Date.now() });
         } catch (e) { console.warn('Maj claim (non bloquant) :', e); }
@@ -1550,7 +1558,6 @@ function renderLitters() {
         const puppies = Array.isArray(l.puppies) ? l.puppies : [];
         const nbDisplay = puppies.length > 0 ? puppies.length : (escHtml(l.count) || '?');
 
-        // Liste des fiches chiots de la portée
         let puppiesHtml = '';
         if (puppies.length === 0) {
             puppiesHtml = '<p style="color:var(--text-muted); font-size:12.5px; margin:8px 0;">Aucun chiot enregistré dans cette portée.</p>';
@@ -1562,7 +1569,6 @@ function renderLitters() {
                             <button class="btn-secondary btn-sm" title="Générer le passeport de cession" onclick="cederChiot('${l.id}','${p.id}')">
                                 <i class="fa-solid fa-share-nodes"></i> Céder
                             </button>`;
-                // Panneau lien + QR pour un chiot cédé
                 const cessionPanel = (isCeded && p.cessionId) ? `
                         <div style="margin:4px 0 10px; padding:10px; border:1px dashed var(--gold, #c8a24a); border-radius:10px;">
                             <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:6px;">
@@ -1600,7 +1606,6 @@ function renderLitters() {
             });
         }
 
-        // Mini-formulaire d'ajout de chiot, propre à cette portée
         const addFormHtml = `
             <div class="g2" style="margin-top:10px; gap:8px;">
                 <input type="text"   id="pup-name-${l.id}"  placeholder="Nom / identifiant">
@@ -1711,13 +1716,11 @@ function renderHeatHistory() {
 window.addMatingRecord = function() {
     const date    = document.getElementById('mating-date')?.value;
     const partner = document.getElementById('mating-partner')?.value;
-    const coi     = document.getElementById('mating-coi')?.value;
     if (!date) return;
-    proHistory.matings.push({ id: Date.now(), date, partner, coi });
+    proHistory.matings.push({ id: Date.now(), date, partner });
     saveLocalData(currentPetId, 'proHistory', proHistory);
     if (document.getElementById('mating-date'))    document.getElementById('mating-date').value    = '';
     if (document.getElementById('mating-partner')) document.getElementById('mating-partner').value = '';
-    if (document.getElementById('mating-coi'))     document.getElementById('mating-coi').value     = '';
     renderMatingHistory();
     showToast('Saillie enregistrée !', '❤️');
 };
@@ -1732,7 +1735,6 @@ function renderMatingHistory() {
             <div class="log-item" style="flex-direction:column; align-items:flex-start; gap:2px;">
                 <div style="display:flex; justify-content:space-between; width:100%;">
                     <strong>Saillie du ${new Date(m.date).toLocaleDateString('fr-FR')}</strong>
-                    <span class="badge badge-gold">COI: ${escHtml(m.coi) || '?'}%</span>
                 </div>
                 <span style="color:var(--text-muted); font-size:12.5px;">Partenaire : ${escHtml(m.partner) || 'Inconnu'}</span>
             </div>`;
@@ -1808,17 +1810,13 @@ window.acceptConfirmModal = function() {
 // NOTIFICATIONS FCM
 // ==========================================
 
-// Clé VAPID — à remplacer par ta clé Firebase Cloud Messaging
-// Firebase Console → Project Settings → Cloud Messaging → Web Push certificates → Generate key pair
 const VAPID_KEY = 'BEz6BhtY1kDVqbgEaRTIJKMzqSS7c-Zvva7XnxTqPml5OXEhWYAgPlkFH8ZBsd3EqUruAbS57IxFICYoMUwR_WY';
 
 async function getFCMToken() {
     try {
-        // Enregistrement explicite du service worker FCM
         let swReg;
         try {
             swReg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-            // Attente max 5 secondes que le SW soit actif
             await Promise.race([
                 navigator.serviceWorker.ready,
                 new Promise((_, reject) => setTimeout(() => reject(new Error('SW timeout')), 5000))
@@ -1862,7 +1860,6 @@ window.requestNotificationPermission = async function() {
         return;
     }
 
-    // Sauvegarde du token dans Firestore pour que la Cloud Function puisse l'utiliser
     if (auth.currentUser) {
         try {
             await setDoc(doc(db, 'users', auth.currentUser.uid), { fcmToken: token }, { merge: true });
