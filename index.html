@@ -8,18 +8,18 @@
     <title>Pablo — Tableau de bord santé pour maîtres et éleveurs</title>
     <meta name="description" content="Pablo, le tableau de bord gratuit pour maîtres et éleveurs. Suivi santé, nutrition, éducation, budget et assistant IA pour chien ou chat.">
 
-    <link rel="canonical" href="https://pablo-app-roan.vercel.app">
+    <link rel="canonical" href="https://www.pablocanin.fr">
 
     <meta property="og:title" content="Pablo — Tableau de bord santé pour maîtres et éleveurs">
     <meta property="og:description" content="Pablo, le tableau de bord gratuit pour maîtres et éleveurs. Suivi santé, nutrition, éducation, budget et assistant IA pour chien ou chat.">
-    <meta property="og:image" content="https://pablo-app-roan.vercel.app/pablo.jpg">
-    <meta property="og:url" content="https://pablo-app-roan.vercel.app">
+    <meta property="og:image" content="https://www.pablocanin.fr/pablo.jpg">
+    <meta property="og:url" content="https://www.pablocanin.fr">
     <meta property="og:type" content="website">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Pablo — Tableau de bord santé pour maîtres et éleveurs">
     <meta name="twitter:description" content="Pablo, le tableau de bord gratuit pour maîtres et éleveurs. Suivi santé, nutrition, éducation, budget et assistant IA pour chien ou chat.">
-    <meta name="twitter:image" content="https://pablo-app-roan.vercel.app/pablo.jpg">
+    <meta name="twitter:image" content="https://www.pablocanin.fr/pablo.jpg">
 
     <script type="application/ld+json">
     {
@@ -28,7 +28,7 @@
         {
           "@type": "SoftwareApplication",
           "name": "Pablo",
-          "url": "https://pablo-app-roan.vercel.app",
+          "url": "https://www.pablocanin.fr",
           "applicationCategory": "HealthApplication",
           "operatingSystem": "Web, iOS, Android",
           "description": "Tableau de bord gratuit pour maîtres et éleveurs : suivi santé, nutrition, éducation, budget et assistant IA pour chien ou chat.",
@@ -39,12 +39,12 @@
           "@type": "Person",
           "name": "Quentin Taffin",
           "description": "Développeur passionné, fils d'éleveur de Bergers Allemands, créateur de l'application Pablo.",
-          "url": "https://pablo-app-roan.vercel.app"
+          "url": "https://www.pablocanin.fr"
         },
         {
           "@type": "WebSite",
           "name": "Pablo",
-          "url": "https://pablo-app-roan.vercel.app",
+          "url": "https://www.pablocanin.fr",
           "description": "Tableau de bord santé pour maîtres et éleveurs de chiens et chats."
         }
       ]
@@ -2337,6 +2337,57 @@
         <div style="display:flex; gap:10px; justify-content:flex-end;">
             <button class="btn btn-outline" onclick="closeConfirmModal()">Annuler</button>
             <button class="btn btn-gold" onclick="acceptConfirmModal()">Confirmer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE SUIVI INDIVIDUEL CHIOT -->
+<div id="puppy-tracking-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-puppy-title">
+    <div class="modal-box" style="max-width:520px; max-height:90vh; overflow-y:auto;">
+        <div class="modal-head">
+            <h3 id="modal-puppy-title"><i class="fa-solid fa-paw"></i> <span id="puppy-modal-name">Chiot</span></h3>
+            <button class="btn-close" onclick="closePuppyModal()" aria-label="Fermer"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="puppy-modal-infos" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;"></div>
+        <div style="margin-bottom:20px;">
+            <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">
+                <i class="fa-solid fa-weight-scale" style="color:var(--gold);"></i> Courbe de croissance
+            </div>
+            <div style="height:140px; width:100%; margin-bottom:10px;"><canvas id="puppyWeightChart"></canvas></div>
+            <div style="display:flex; gap:8px;">
+                <input type="number" step="0.01" id="puppy-weight-input" placeholder="Poids (kg)" min="0" style="flex:1;">
+                <input type="date" id="puppy-weight-date" style="flex:1;">
+                <button class="btn btn-gold btn-round" onclick="addPuppyWeight()" title="Ajouter"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div id="puppy-weight-list" style="margin-top:10px; font-size:13px;"></div>
+        </div>
+        <hr class="dashed-sep">
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">
+                <i class="fa-solid fa-syringe" style="color:var(--gold);"></i> Soins <!-- TOAST -->amp; Actes
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <select id="puppy-act-type" style="flex:2;">
+                    <option value="Vaccin">Vaccination D83dDc89</option>
+                    <option value="Vermifuge">Vermifuge D83dDc8a</option>
+                    <option value="Puce">Identification D83dDd16</option>
+                    <option value="Toilettage">Toilettage 2702Fe0f</option>
+                    <option value="Consultation">Consultation D83eDe7a</option>
+                    <option value="Autre">Autre</option>
+                </select>
+                <input type="date" id="puppy-act-date" style="flex:1;">
+                <button class="btn btn-gold btn-round" onclick="addPuppyAct()" title="Ajouter"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div id="puppy-acts-list" style="font-size:13px;"></div>
+        </div>
+        <hr class="dashed-sep">
+        <div>
+            <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">Statut</div>
+            <select id="puppy-status-select" onchange="updatePuppyStatus()" style="width:100%;">
+                <option value="En 00e9levage">En 00e9levage D83cDfe0</option>
+                <option value="R00e9serv00e9">R00e9serv00e9 D83eDd1d</option>
+                <option value="C00e9d00e9">C00e9d00e9 2705</option>
+            </select>
         </div>
     </div>
 </div>

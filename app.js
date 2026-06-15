@@ -1569,9 +1569,11 @@ function renderLitters() {
                             <span style="color:var(--text-muted); font-size:12.5px;">
                                 ${escHtml(p.color) || 'Robe n.c.'}${p.chip ? ' · Puce : ' + escHtml(p.chip) : ''}
                             </span>
+                            <span style="color:var(--text-muted); font-size:11px; display:block;">⚖️ ${Array.isArray(p.weights) ? p.weights.length : 0} pesée(s) · 💉 ${Array.isArray(p.acts) ? p.acts.length : 0} soin(s)</span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                             <span class="badge ${isCeded ? 'badge-success' : 'badge-gold'}">${escHtml(p.status || 'En élevage')}</span>
+                            <button class="btn btn-outline btn-sm" onclick="openPuppyTracking('${l.id}','${p.id}')" title="Suivi poids & soins"><i class="fa-solid fa-chart-line"></i> Suivi</button>
                             ${cederBtn}
                             <button class="btn-danger-outline btn-sm" title="Retirer" onclick="removePuppy('${l.id}','${p.id}')">
                                 <i class="fa-solid fa-xmark"></i>
@@ -1859,4 +1861,151 @@ window.requestNotificationPermission = async function() {
     }
     showToast('Rappels Pablo activés ! 🔔', '✅');
     trackEvent('notifications_enabled');
+};
+
+// ==========================================
+// SUIVI INDIVIDUEL CHIOTS
+// ==========================================
+let _currentPuppyRef = null;
+let _puppyWeightChart = null;
+
+window.openPuppyTracking = function(litterId, puppyId) {
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    if (!litter) return;
+    const puppy = (litter.puppies || []).find(p => String(p.id) === String(puppyId));
+    if (!puppy) return;
+    _currentPuppyRef = { litterId, puppyId };
+
+    const nameEl = document.getElementById('puppy-modal-name');
+    if (nameEl) nameEl.textContent = puppy.name;
+
+    const infosEl = document.getElementById('puppy-modal-infos');
+    if (infosEl) {
+        const sexIcon = puppy.sex === 'Mâle' ? '♂' : '♀';
+        infosEl.innerHTML = `
+            <span class="badge badge-gold">${sexIcon} ${escHtml(puppy.sex || '')}</span>
+            ${puppy.color ? `<span class="badge badge-warning">${escHtml(puppy.color)}</span>` : ''}
+            ${puppy.chip  ? `<span class="badge badge-success">Puce : ${escHtml(puppy.chip)}</span>` : ''}
+            ${puppy.birthDate ? `<span class="badge" style="background:var(--bg-elevated); color:var(--text-muted); border:1px solid var(--card-border);">Né le ${new Date(puppy.birthDate).toLocaleDateString('fr-FR')}</span>` : ''}
+        `;
+    }
+
+    const dateInput = document.getElementById('puppy-weight-date');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    const actDate = document.getElementById('puppy-act-date');
+    if (actDate) actDate.value = new Date().toISOString().split('T')[0];
+    const statusSel = document.getElementById('puppy-status-select');
+    if (statusSel) statusSel.value = puppy.status || 'En élevage';
+
+    renderPuppyWeights(puppy);
+    renderPuppyActs(puppy);
+
+    const modal = document.getElementById('puppy-tracking-modal');
+    if (modal) modal.classList.add('open');
+};
+
+window.closePuppyModal = function() {
+    const modal = document.getElementById('puppy-tracking-modal');
+    if (modal) modal.classList.remove('open');
+    _currentPuppyRef = null;
+    if (_puppyWeightChart) { _puppyWeightChart.destroy(); _puppyWeightChart = null; }
+};
+
+function getCurrentPuppy() {
+    if (!_currentPuppyRef) return null;
+    const litter = proLitters.find(l => String(l.id) === String(_currentPuppyRef.litterId));
+    if (!litter) return null;
+    return (litter.puppies || []).find(p => String(p.id) === String(_currentPuppyRef.puppyId));
+}
+
+function savePuppyData() {
+    saveLocalData(currentPetId, 'proLitters', proLitters);
+}
+
+window.addPuppyWeight = function() {
+    const puppy = getCurrentPuppy();
+    if (!puppy) return;
+    const w = parseFloat(document.getElementById('puppy-weight-input')?.value);
+    const d = document.getElementById('puppy-weight-date')?.value;
+    if (!w || w <= 0 || !d) { showToast('Poids ou date invalide.', '⚠️', 'error'); return; }
+    if (!Array.isArray(puppy.weights)) puppy.weights = [];
+    puppy.weights.push({ date: d, weight: w });
+    savePuppyData();
+    document.getElementById('puppy-weight-input').value = '';
+    renderPuppyWeights(puppy);
+    showToast(`${w} kg enregistré pour ${puppy.name} !`, '⚖️');
+};
+
+function renderPuppyWeights(puppy) {
+    const list   = document.getElementById('puppy-weight-list');
+    const canvas = document.getElementById('puppyWeightChart');
+    const weights = Array.isArray(puppy.weights) ? [...puppy.weights].sort((a, b) => new Date(a.date) - new Date(b.date)) : [];
+
+    if (list) {
+        list.innerHTML = '';
+        if (weights.length === 0) {
+            list.innerHTML = '<p style="color:var(--text-muted); font-size:12.5px;">Aucune pesée enregistrée.</p>';
+        } else {
+            [...weights].reverse().slice(0, 5).forEach(w => {
+                list.innerHTML += `<div class="log-item"><span style="color:var(--text-sub);">${new Date(w.date).toLocaleDateString('fr-FR')}</span><strong style="color:var(--gold);">${w.weight} kg</strong></div>`;
+            });
+        }
+    }
+
+    if (!canvas) return;
+    if (_puppyWeightChart) { _puppyWeightChart.destroy(); _puppyWeightChart = null; }
+    if (weights.length < 2) return;
+
+    const isLight = document.body.classList.contains('light-mode');
+    const lc = isLight ? '#a87020' : '#c8922a';
+    const bc = isLight ? 'rgba(168,112,32,0.08)' : 'rgba(200,146,42,0.1)';
+    const gc = isLight ? '#e8dfc8' : '#2a2215';
+    const tc = isLight ? '#6b5038' : '#b8a88a';
+
+    _puppyWeightChart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: weights.map(w => new Date(w.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })),
+            datasets: [{ label: 'Poids (kg)', data: weights.map(w => w.weight), borderColor: lc, backgroundColor: bc, borderWidth: 2, tension: 0.3, fill: true, pointBackgroundColor: lc, pointRadius: 4 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: gc }, ticks: { color: tc } },
+                x: { grid: { display: false }, ticks: { color: tc } }
+            }
+        }
+    });
+}
+
+window.addPuppyAct = function() {
+    const puppy = getCurrentPuppy();
+    if (!puppy) return;
+    const type = document.getElementById('puppy-act-type')?.value;
+    const date = document.getElementById('puppy-act-date')?.value;
+    if (!date) { showToast('Sélectionnez une date.', '⚠️', 'error'); return; }
+    if (!Array.isArray(puppy.acts)) puppy.acts = [];
+    puppy.acts.push({ id: Date.now(), type, date });
+    savePuppyData();
+    renderPuppyActs(puppy);
+    showToast(`${type} enregistré !`, '✅');
+};
+
+function renderPuppyActs(puppy) {
+    const list = document.getElementById('puppy-acts-list');
+    if (!list) return;
+    const acts = Array.isArray(puppy.acts) ? [...puppy.acts].sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
+    list.innerHTML = acts.length === 0
+        ? '<p style="color:var(--text-muted); font-size:12.5px;">Aucun soin enregistré.</p>'
+        : acts.map(a => `<div class="log-item"><span style="color:var(--text-sub);">${escHtml(a.type)}</span><strong style="color:var(--text-muted); font-size:12px;">${new Date(a.date).toLocaleDateString('fr-FR')}</strong></div>`).join('');
+}
+
+window.updatePuppyStatus = function() {
+    const puppy = getCurrentPuppy();
+    if (!puppy) return;
+    puppy.status = document.getElementById('puppy-status-select')?.value || 'En élevage';
+    savePuppyData();
+    renderLitters();
+    showToast(`Statut : ${puppy.status}`, '✅');
 };
