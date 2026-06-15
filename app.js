@@ -84,7 +84,7 @@ let gamification = { streak: 0, lastLogin: null, badges: [] };
 let weightChartInstance = null;
 
 const DEFAULT_EDU_EXERCISES = [
-    { id: 'assis',          name: "S'asseoir (Assis)",              icon: 'fa-arrow-down' },
+    { id: 'assis',          name: "S'asseoir (Assis)",             icon: 'fa-arrow-down' },
     { id: 'coucher',        name: 'Se coucher (Couché)',             icon: 'fa-bed' },
     { id: 'rappel',         name: 'Le Rappel au pied',               icon: 'fa-dog' },
     { id: 'pas-bouger',     name: 'Pas bouger (Statique)',           icon: 'fa-hand' },
@@ -431,7 +431,7 @@ window.confirmCreateNewPet = function() {
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
     if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
 
-    saveLocalData(newId, 'profile',     { name, species, breed, age: 0, size: 0, weight: 0, avatar: "", breedAdvice: "" });
+    saveLocalData(newId, 'profile',      { name, species, breed, age: 0, size: 0, weight: 0, avatar: "", breedAdvice: "" });
     saveLocalData(newId, 'weight',      []);
     saveLocalData(newId, 'medical',     []);
     saveLocalData(newId, 'education',   {});
@@ -1090,9 +1090,9 @@ window.navigateTo = function(screenId) {
     document.querySelectorAll(`.nav-item[onclick="navigateTo('${screenId}')"]`).forEach(ni => ni.classList.add('active'));
 
     const titles = {
-        'screen-home':    "Vue d'ensemble",
+        'screen-home':   "Vue d'ensemble",
         'screen-carnet':  "Carnet de Santé & Suivi",
-        'screen-chat':    "Hey Pablo",
+        'screen-chat':   "Hey Pablo",
         'screen-pro':     "Officiel & Élevage",
         'screen-tools':   "Outils & Souvenirs",
         'screen-profile': "Configuration du Profil"
@@ -1310,7 +1310,7 @@ window.addPuppy = function(litterId) {
         id: 'pup_' + Date.now(),
         name, sex, color: color || '', chip: chip || '',
         birthDate: litter.date,                 // hérite de la date de la portée
-        dam: litter.dam || '',                  // hérite de la mère
+        dam: litter.dam || '',                 // hérite de la mère
         sire: litter.sire || litter.partner || '', // hérite du père
         status: 'En élevage',                   // En élevage | Cédé (utilisé en brique 2)
         createdAt: Date.now()
@@ -1375,7 +1375,10 @@ window.cederChiot = async function(litterId, puppyId) {
             chip: puppy.chip || '',
             birthDate: puppy.birthDate || litter.date || '',
             dam: puppy.dam || litter.dam || '',
-            sire: puppy.sire || litter.sire || litter.partner || ''
+            sire: puppy.sire || litter.sire || litter.partner || '',
+            // TRANSMISSION DE L'HISTORIQUE POIDS ET SOINS
+            weights: puppy.weights || [], 
+            acts: puppy.acts || []
         },
         breeder: { affixe: affixe, uid: auth.currentUser.uid },
         createdAt: Date.now(),
@@ -1488,9 +1491,22 @@ async function claimCession(cessionId) {
             if (diff > 0) age = +(diff / (365.25 * 86400000)).toFixed(1);
         }
 
-        saveLocalData(newId, 'profile',      { name: petName, species: d.species || 'Chien', breed: d.breed || '', age, size: 0, weight: 0, avatar: '', breedAdvice: '' });
-        saveLocalData(newId, 'weight',       []);
-        saveLocalData(newId, 'medical',      []);
+        // Calcul du dernier poids connu
+        let latestWeight = 0;
+        if (p.weights && p.weights.length > 0) {
+            const sortedWeights = [...p.weights].sort((a, b) => new Date(a.date) - new Date(b.date));
+            latestWeight = sortedWeights[sortedWeights.length - 1].weight;
+        }
+
+        // --- IMPORTATION DES DONNÉES RÉCUPÉRÉES ---
+        saveLocalData(newId, 'profile',      { name: petName, species: d.species || 'Chien', breed: d.breed || '', age, size: 0, weight: latestWeight, avatar: '', breedAdvice: '' });
+        
+        saveLocalData(newId, 'weight',       p.weights || []);
+        
+        const importedActs = (p.acts || []).map(act => ({ type: act.type, date: act.date }));
+        saveLocalData(newId, 'medical',      importedActs);
+
+        // -- Le reste est réinitialisé à zéro pour le nouveau maître --
         saveLocalData(newId, 'education',    {});
         saveLocalData(newId, 'daily',        { water: 0, walk: 0, date: new Date().toISOString().split('T')[0] });
         saveLocalData(newId, 'chat',         [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${petName}. Comment puis-je aider ?` }]);
