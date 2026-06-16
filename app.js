@@ -1598,6 +1598,7 @@ function renderLitters() {
                         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                             <span class="badge ${isCeded ? 'badge-success' : 'badge-gold'}">${escHtml(p.status || 'En élevage')}</span>
                             <button class="btn btn-outline btn-sm" onclick="openPuppyTracking('${l.id}','${p.id}')" title="Suivi poids & soins"><i class="fa-solid fa-chart-line"></i> Suivi</button>
+                            <button class="btn btn-outline btn-sm" onclick="openPdfExportModal('${l.id}','${p.id}')" title="Carnet santé PDF"><i class="fa-solid fa-file-pdf" style="color:#e05252;"></i> PDF</button>
                             ${cederBtn}
                             <button class="btn-danger-outline btn-sm" title="Retirer" onclick="removePuppy('${l.id}','${p.id}')">
                                 <i class="fa-solid fa-xmark"></i>
@@ -1633,6 +1634,12 @@ function renderLitters() {
                 </div>
                 <div style="margin-top:10px;">${puppiesHtml}</div>
                 ${addFormHtml}
+                <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--card-border); display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <span style="font-size:12px; color:var(--text-muted); flex:1;">Adoptants en attente : <strong style="color:var(--gold);">${Array.isArray(l.waitlist) ? l.waitlist.length : 0}</strong></span>
+                    <button class="btn btn-outline btn-sm" onclick="openWaitlistModal('${l.id}')">
+                        <i class="fa-solid fa-list-ul"></i> Liste d'attente
+                    </button>
+                </div>
             </div>`;
     });
     populateCessionQRs();
@@ -2323,4 +2330,279 @@ window.exportContratVentePDF = function(litterId, puppyId) {
     } else {
         generatePDF();
     }
+};
+// ==========================================
+// LISTE D'ATTENTE ADOPTANTS
+// ==========================================
+let _currentWaitlistLitterId = null;
+
+window.openWaitlistModal = function(litterId) {
+    _currentWaitlistLitterId = litterId;
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    if (!litter) return;
+
+    const nameEl = document.getElementById('waitlist-litter-name');
+    if (nameEl) nameEl.textContent = 'Portée du ' + new Date(litter.date).toLocaleDateString('fr-FR');
+
+    // Reset form
+    ['wl-name','wl-phone','wl-email','wl-puppy','wl-notes'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const depEl = document.getElementById('wl-deposit');
+    if (depEl) depEl.value = '';
+    const stEl = document.getElementById('wl-status');
+    if (stEl) stEl.value = 'En attente';
+
+    renderWaitlistEntries(litter);
+    document.getElementById('waitlist-modal')?.classList.add('open');
+};
+
+window.closeWaitlistModal = function() {
+    document.getElementById('waitlist-modal')?.classList.remove('open');
+    _currentWaitlistLitterId = null;
+};
+
+window.addWaitlistEntry = function() {
+    const litter = proLitters.find(l => String(l.id) === String(_currentWaitlistLitterId));
+    if (!litter) return;
+    if (!Array.isArray(litter.waitlist)) litter.waitlist = [];
+
+    const name = document.getElementById('wl-name')?.value.trim();
+    if (!name) { showToast("Renseignez le nom de l'adoptant.", '⚠️', 'error'); return; }
+
+    litter.waitlist.push({
+        id: Date.now(),
+        name,
+        phone:   document.getElementById('wl-phone')?.value.trim() || '—',
+        email:   document.getElementById('wl-email')?.value.trim() || '—',
+        puppy:   document.getElementById('wl-puppy')?.value.trim() || '—',
+        deposit: parseFloat(document.getElementById('wl-deposit')?.value) || 0,
+        status:  document.getElementById('wl-status')?.value || 'En attente',
+        notes:   document.getElementById('wl-notes')?.value.trim() || '',
+        createdAt: Date.now()
+    });
+
+    saveLocalData(currentPetId, 'proLitters', proLitters);
+    renderWaitlistEntries(litter);
+    renderLitters();
+
+    ['wl-name','wl-phone','wl-email','wl-puppy','wl-notes'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.getElementById('wl-deposit').value = '';
+    document.getElementById('wl-status').value  = 'En attente';
+
+    showToast(`${name} ajouté à la liste !`, '✅');
+    trackEvent('waitlist_entry_added');
+};
+
+function renderWaitlistEntries(litter) {
+    const container = document.getElementById('waitlist-entries');
+    if (!container) return;
+    const list = Array.isArray(litter.waitlist) ? litter.waitlist : [];
+
+    if (list.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:10px 0;">Aucun adoptant en liste d\'attente.</p>';
+        return;
+    }
+
+    const statusColors = {
+        'En attente':    { bg: 'var(--gold-dim)',     color: 'var(--gold)',    border: 'var(--gold-border)' },
+        'Acompte versé': { bg: 'rgba(82,201,122,0.1)', color: 'var(--success)', border: 'rgba(82,201,122,0.2)' },
+        'Confirmé':      { bg: 'rgba(82,201,122,0.15)', color: 'var(--success)', border: 'rgba(82,201,122,0.3)' },
+        'Annulé':        { bg: 'var(--danger-dim)',   color: 'var(--danger)',  border: 'rgba(224,82,82,0.2)' }
+    };
+
+    container.innerHTML = list.map((e, i) => {
+        const sc = statusColors[e.status] || statusColors['En attente'];
+        return `
+        <div style="background:var(--bg-elevated); border:1px solid var(--card-border); border-radius:12px; padding:14px 16px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                <div>
+                    <strong style="font-size:14px; color:var(--text);">${escHtml(e.name)}</strong>
+                    ${e.deposit > 0 ? `<span style="margin-left:8px; background:var(--success-dim); color:var(--success); border:1px solid rgba(82,201,122,0.2); padding:2px 8px; border-radius:100px; font-size:11px; font-weight:700;">${e.deposit} € versés</span>` : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="background:${sc.bg}; color:${sc.color}; border:1px solid ${sc.border}; padding:3px 9px; border-radius:100px; font-size:11px; font-weight:700;">${escHtml(e.status)}</span>
+                    <select onchange="updateWaitlistStatus('${litter.id}','${e.id}',this.value)" style="font-size:11px; padding:2px 4px; background:var(--bg-elevated); color:var(--text-muted); border:1px solid var(--card-border); border-radius:6px; cursor:pointer; width:auto;">
+                        <option ${e.status==='En attente' ? 'selected' : ''}>En attente</option>
+                        <option ${e.status==='Acompte versé' ? 'selected' : ''}>Acompte versé</option>
+                        <option ${e.status==='Confirmé' ? 'selected' : ''}>Confirmé</option>
+                        <option ${e.status==='Annulé' ? 'selected' : ''}>Annulé</option>
+                    </select>
+                    <button onclick="deleteWaitlistEntry('${litter.id}','${e.id}')" style="background:var(--danger-dim); border:1px solid rgba(224,82,82,0.2); color:var(--danger); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:11px;"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:4px; font-size:12.5px; color:var(--text-muted);">
+                ${e.phone !== '—' ? `<span><i class="fa-solid fa-phone" style="color:var(--gold); width:14px;"></i> ${escHtml(e.phone)}</span>` : ''}
+                ${e.email !== '—' ? `<span><i class="fa-solid fa-envelope" style="color:var(--gold); width:14px;"></i> ${escHtml(e.email)}</span>` : ''}
+                ${e.puppy !== '—' ? `<span><i class="fa-solid fa-paw" style="color:var(--gold); width:14px;"></i> Souhaite : ${escHtml(e.puppy)}</span>` : ''}
+                ${e.notes ? `<span style="grid-column:1/-1;"><i class="fa-solid fa-note-sticky" style="color:var(--gold); width:14px;"></i> ${escHtml(e.notes)}</span>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.updateWaitlistStatus = function(litterId, entryId, newStatus) {
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    if (!litter || !Array.isArray(litter.waitlist)) return;
+    const entry = litter.waitlist.find(e => String(e.id) === String(entryId));
+    if (!entry) return;
+    entry.status = newStatus;
+    saveLocalData(currentPetId, 'proLitters', proLitters);
+    renderWaitlistEntries(litter);
+    renderLitters();
+    showToast(`Statut mis à jour : ${newStatus}`, '✅');
+};
+
+window.deleteWaitlistEntry = function(litterId, entryId) {
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    if (!litter || !Array.isArray(litter.waitlist)) return;
+    showConfirm('Supprimer cet adoptant de la liste ?', () => {
+        litter.waitlist = litter.waitlist.filter(e => String(e.id) !== String(entryId));
+        saveLocalData(currentPetId, 'proLitters', proLitters);
+        renderWaitlistEntries(litter);
+        renderLitters();
+        showToast('Adoptant retiré.', '🗑️');
+    });
+};
+
+// ==========================================
+// EXPORT PDF CARNET SANTÉ PAR CHIOT
+// ==========================================
+let _pdfLitterId = null;
+let _pdfPuppyId  = null;
+
+window.openPdfExportModal = function(litterId, puppyId) {
+    _pdfLitterId = litterId;
+    _pdfPuppyId  = puppyId;
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    const puppy  = (litter?.puppies || []).find(p => String(p.id) === String(puppyId));
+    if (!puppy) return;
+    const nameEl = document.getElementById('pdf-puppy-name');
+    if (nameEl) nameEl.textContent = puppy.name;
+    document.getElementById('pdf-export-modal')?.classList.add('open');
+};
+
+window.closePdfModal = function() {
+    document.getElementById('pdf-export-modal')?.classList.remove('open');
+    _pdfLitterId = null; _pdfPuppyId = null;
+};
+
+window.exportPuppyPDF = function() {
+    const litter = proLitters.find(l => String(l.id) === String(_pdfLitterId));
+    const puppy  = (litter?.puppies || []).find(p => String(p.id) === String(_pdfPuppyId));
+    if (!puppy || !litter) return;
+
+    const profile  = getLocalData(currentPetId, 'profile', {});
+    const weights  = Array.isArray(puppy.weights) ? [...puppy.weights].sort((a,b) => new Date(a.date)-new Date(b.date)) : [];
+    const acts     = Array.isArray(puppy.acts)    ? [...puppy.acts].sort((a,b) => new Date(a.date)-new Date(b.date))    : [];
+    const sexLabel = puppy.sex || 'Non précisé';
+    const today    = new Date().toLocaleDateString('fr-FR');
+    const breeder  = proData?.clubName || profile.name || 'Éleveur';
+
+    const weightsRows = weights.length === 0
+        ? '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:10px;">Aucune pesée enregistrée.</td></tr>'
+        : weights.map(w => `<tr><td>${new Date(w.date).toLocaleDateString('fr-FR')}</td><td><strong>${w.weight} kg</strong></td></tr>`).join('');
+
+    const actsRows = acts.length === 0
+        ? '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:10px;">Aucun soin enregistré.</td></tr>'
+        : acts.map(a => `<tr><td>${new Date(a.date).toLocaleDateString('fr-FR')}</td><td>${a.type}</td></tr>`).join('');
+
+    const lastWeight = weights.length > 0 ? weights[weights.length-1].weight + ' kg' : 'Non renseigné';
+
+    const qrUrl = puppy.cessionId ? `https://www.pablocanin.fr/?cession=${puppy.cessionId}` : '';
+    const qrSection = qrUrl
+        ? `<div style="text-align:center; margin-top:20px; padding:16px; border:2px dashed #c8922a; border-radius:10px;">
+               <div style="font-size:13px; color:#c8922a; font-weight:700; margin-bottom:8px;">📱 Passeport numérique Pablo</div>
+               <div style="font-size:11px; color:#888; margin-bottom:6px;">Scannez ou copiez ce lien pour récupérer le carnet numérique :</div>
+               <div style="font-family:monospace; font-size:12px; background:#f5f5f5; padding:8px; border-radius:6px; word-break:break-all;">${qrUrl}</div>
+           </div>`
+        : '';
+
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <title>Carnet Santé — ${puppy.name}</title>
+            <style>
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { font-family: Arial, sans-serif; font-size: 12px; color: #1a1a1a; padding: 30px; }
+                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 3px solid #c8922a; }
+                .logo { font-family: Georgia, serif; font-size: 28px; font-weight: 700; color: #c8922a; font-style: italic; }
+                .logo span { font-style: normal; }
+                .doc-title { font-size: 13px; color: #888; margin-top: 4px; }
+                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+                .info-card { background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; }
+                .info-card h3 { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #c8922a; font-weight: 700; margin-bottom: 10px; }
+                .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+                .info-row .label { color: #888; }
+                .info-row .value { font-weight: 600; color: #1a1a1a; }
+                h2 { font-size: 13px; font-weight: 700; color: #1a1a1a; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: .05em; border-left: 3px solid #c8922a; padding-left: 8px; }
+                table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                th { background: #2d2d2d; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing:.04em; }
+                td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+                tr:nth-child(even) td { background: #fafafa; }
+                .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #aaa; border-top: 1px solid #eee; padding-top: 12px; }
+                @media print { body { padding: 15px; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div>
+                    <div class="logo">Pablo<span>.</span></div>
+                    <div class="doc-title">Carnet de Santé — Document officiel de l'élevage</div>
+                </div>
+                <div style="text-align:right; font-size:11px; color:#888;">
+                    Édité le ${today}<br>
+                    <strong style="color:#1a1a1a;">${breeder}</strong>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>Identité du chiot</h3>
+                    <div class="info-row"><span class="label">Nom</span><span class="value">${puppy.name}</span></div>
+                    <div class="info-row"><span class="label">Sexe</span><span class="value">${sexLabel}</span></div>
+                    <div class="info-row"><span class="label">Robe</span><span class="value">${puppy.color || 'Non renseignée'}</span></div>
+                    <div class="info-row"><span class="label">N° Puce</span><span class="value">${puppy.chip || 'Non renseigné'}</span></div>
+                    <div class="info-row"><span class="label">Date de naissance</span><span class="value">${puppy.birthDate ? new Date(puppy.birthDate).toLocaleDateString('fr-FR') : 'Non renseignée'}</span></div>
+                    <div class="info-row"><span class="label">Statut</span><span class="value">${puppy.status || 'En élevage'}</span></div>
+                </div>
+                <div class="info-card">
+                    <h3>Généalogie & Élevage</h3>
+                    <div class="info-row"><span class="label">Race</span><span class="value">${profile.breed || 'Non renseignée'}</span></div>
+                    <div class="info-row"><span class="label">Mère</span><span class="value">${puppy.dam || litter.dam || 'Non renseignée'}</span></div>
+                    <div class="info-row"><span class="label">Père</span><span class="value">${puppy.sire || litter.sire || litter.partner || 'Non renseigné'}</span></div>
+                    <div class="info-row"><span class="label">Poids actuel</span><span class="value">${lastWeight}</span></div>
+                    <div class="info-row"><span class="label">Éleveur</span><span class="value">${breeder}</span></div>
+                </div>
+            </div>
+
+            <h2>Courbe de croissance — ${weights.length} pesée(s)</h2>
+            <table>
+                <thead><tr><th>Date</th><th>Poids</th></tr></thead>
+                <tbody>${weightsRows}</tbody>
+            </table>
+
+            <h2>Soins & Actes vétérinaires — ${acts.length} acte(s)</h2>
+            <table>
+                <thead><tr><th>Date</th><th>Acte réalisé</th></tr></thead>
+                <tbody>${actsRows}</tbody>
+            </table>
+
+            ${qrSection}
+
+            <div class="footer">
+                Pablo — pablocanin.fr &nbsp;|&nbsp; Carnet généré automatiquement &nbsp;|&nbsp; ${today}
+            </div>
+        </body>
+        </html>
+    `);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); closePdfModal(); }, 400);
+    trackEvent('puppy_pdf_exported');
 };
