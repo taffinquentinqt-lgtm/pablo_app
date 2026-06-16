@@ -1583,10 +1583,61 @@
         .l-nav-cta:hover { background: var(--gold-light); }
         /* Décale le contenu landing pour le nav fixe */
         #landing-page { padding-top: 56px; }
-        @media (max-width: 600px) {
+        /* Hamburger */
+        .l-nav-hamburger {
+            display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+            gap: 5px; width: 36px; height: 36px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px; cursor: pointer;
+        }
+        .l-nav-hamburger span {
+            display: block; width: 18px; height: 2px;
+            background: var(--text-sub); border-radius: 2px;
+            transition: all 0.25s;
+        }
+        .l-nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .l-nav-hamburger.open span:nth-child(2) { opacity: 0; }
+        .l-nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+        /* Mobile menu */
+        .l-nav-mobile-menu {
+            display: none;
+            position: fixed;
+            top: 56px; left: 0; right: 0;
+            background: rgba(10,8,6,0.97);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(200,146,42,0.15);
+            padding: 16px;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 9997;
+        }
+        .l-nav-mobile-menu.open { display: flex; }
+        .l-nav-mobile-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: rgba(240,232,216,0.65);
+            font-size: 14px; font-weight: 500;
+            transition: background 0.15s, color 0.15s;
+        }
+        .l-nav-mobile-item:hover { background: rgba(200,146,42,0.1); color: var(--text); }
+        .l-nav-mobile-item i { color: var(--gold); width: 16px; text-align: center; }
+        .l-nav-mobile-sep { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 0; }
+        .l-nav-mobile-cta {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin-top: 8px; padding: 14px;
+            background: var(--gold); color: #0a0806;
+            font-family: var(--font-body); font-size: 14px; font-weight: 700;
+            border: none; border-radius: 100px; cursor: pointer; width: 100%;
+        }
+        .l-nav-mobile-cta:hover { background: var(--gold-light); }
+        @media (max-width: 640px) {
             .l-nav { padding: 0 16px; }
-            .l-nav-link:not(.l-nav-cta) { display: none; }
-            .l-nav-dropdown-trigger { display: none; }
+            .l-nav-links { display: none; }
+            .l-nav-hamburger { display: flex; }
         }
     </style>
 
@@ -1635,7 +1686,26 @@
                 <i class="fa-solid fa-paw"></i> Ouvrir l'app
             </button>
         </div>
+        <!-- Hamburger mobile -->
+        <button class="l-nav-hamburger" id="l-hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
     </nav>
+
+    <!-- Menu mobile -->
+    <div class="l-nav-mobile-menu" id="l-mobile-menu">
+        <a href="/eleveurs" class="l-nav-mobile-item"><i class="fa-solid fa-award"></i> Pour les éleveurs</a>
+        <div class="l-nav-mobile-sep"></div>
+        <a href="/blog/ration-berger-allemand" class="l-nav-mobile-item"><i class="fa-solid fa-bowl-food"></i> Ration Berger Allemand</a>
+        <a href="/blog/calendrier-vaccins-chiot" class="l-nav-mobile-item"><i class="fa-solid fa-syringe"></i> Calendrier vaccins chiot</a>
+        <a href="/blog/suivi-poids-chiot" class="l-nav-mobile-item"><i class="fa-solid fa-weight-scale"></i> Suivi poids chiot</a>
+        <a href="/blog/alimentation-chiot-croissance" class="l-nav-mobile-item"><i class="fa-solid fa-seedling"></i> Alimentation chiot</a>
+        <div class="l-nav-mobile-sep"></div>
+        <a href="/mentions-legales" class="l-nav-mobile-item"><i class="fa-solid fa-scale-balanced"></i> Mentions légales</a>
+        <button class="l-nav-mobile-cta" onclick="enterApp(); closeMobileMenu();">
+            <i class="fa-solid fa-paw"></i> Ouvrir l'app gratuitement
+        </button>
+    </div>
 
     <div class="landing-inner">
 
@@ -2659,6 +2729,23 @@
         VALISE_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', saveValise); });
     });
 
+
+    /* ---- Hamburger mobile ---- */
+    window.toggleMobileMenu = () => {
+        const menu = document.getElementById('l-mobile-menu');
+        const btn  = document.getElementById('l-hamburger');
+        menu.classList.toggle('open');
+        btn.classList.toggle('open');
+    };
+    window.closeMobileMenu = () => {
+        document.getElementById('l-mobile-menu')?.classList.remove('open');
+        document.getElementById('l-hamburger')?.classList.remove('open');
+    };
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#l-mobile-menu') && !e.target.closest('#l-hamburger')) {
+            closeMobileMenu();
+        }
+    });
 
     /* ---- Blog dropdown nav ---- */
     window.toggleBlogDropdown = () => {
