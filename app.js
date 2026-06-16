@@ -53,14 +53,13 @@ try {
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Capture immédiate d'un lien de cession (?cession=...) AVANT que l'auth ne réagisse,
-// pour que la récupération se déclenche dès la connexion. Banni des logs Clarity.
+// Capture immédiate d'un lien de cession (?cession=...) AVANT que l'auth ne réagisse
 try {
     const _cp = new URLSearchParams(window.location.search).get('cession');
     if (_cp) localStorage.setItem('_pendingCession', _cp);
 } catch (e) { /* no-op */ }
 
-// 🟢 EXPOSITION INDISPENSABLE POUR LA PAGE INDEX.HTML :
+// EXPOSITION INDISPENSABLE POUR LA PAGE INDEX.HTML :
 window._fbAuth = auth;
 
 // Variables globales
@@ -88,7 +87,7 @@ const DEFAULT_EDU_EXERCISES = [
     { id: 'coucher',        name: 'Se coucher (Couché)',             icon: 'fa-bed' },
     { id: 'rappel',         name: 'Le Rappel au pied',               icon: 'fa-dog' },
     { id: 'pas-bouger',     name: 'Pas bouger (Statique)',           icon: 'fa-hand' },
-    { id: 'proprete',       name: 'La Propreté',                      icon: 'fa-droplet-slash' },
+    { id: 'proprete',       name: 'La Propreté',                     icon: 'fa-droplet-slash' },
     { id: 'marche-laisse',  name: 'Marche en laisse détendue',       icon: 'fa-bezier-curve' },
     { id: 'solitude',       name: 'Gestion de la solitude',          icon: 'fa-house-chimney-user' }
 ];
@@ -528,11 +527,10 @@ window.updateNutritionUI = async function() {
     nutritionRationText.innerText      = 'Calcul…';
 
     try {
-        // PROMPT EXPERT : On force l'IA à utiliser la race et l'âge pour le calcul
         const prompt = `Tu es un vétérinaire nutritionniste expert. Calcule la ration QUOTIDIENNE (en grammes) de croquettes pour ce profil strict :
         - Espèce : ${species}
-        - Race : ${breed} (très important : adapte le métabolisme selon si c'est une race naine, géante, de travail, ou prédisposée à l'obésité)
-        - Âge : ${ageMonths} mois (si c'est un chiot, prends en compte la courbe de croissance propre à sa race)
+        - Race : ${breed}
+        - Âge : ${ageMonths} mois
         - Poids actuel : ${weight} kg
         - Niveau d'activité : ${activity}
         
@@ -542,7 +540,6 @@ window.updateNutritionUI = async function() {
         const aiText = await groqChat([{ role: "user", content: prompt }]);
         nutritionRationText.style.fontSize = '';
 
-        // Extraction du résultat
         const match = aiText.match(/\d+\s*g/i);
         if (match) {
             nutritionRationText.innerText = match[0].toLowerCase().replace(' ', '');
@@ -552,11 +549,10 @@ window.updateNutritionUI = async function() {
             else throw new Error("Format IA non reconnu");
         }
     } catch (e) {
-        // FALLBACK HORS-LIGNE : Si pas d'internet, on utilise un calcul d'urgence basé sur l'âge et le poids
         console.warn("Calcul IA échoué, utilisation de la formule locale (Poids + Âge).");
         
         const RER = 70 * Math.pow(weight, 0.75);
-        let factor = 1.6; // Base adulte
+        let factor = 1.6;
         
         if (species === 'chien') {
             if (ageMonths < 4) factor = 3.0;
@@ -571,7 +567,7 @@ window.updateNutritionUI = async function() {
         }
         
         const MER = RER * factor;
-        const baseRation = Math.round(MER / 3.8); // 3.8 kcal/g
+        const baseRation = Math.round(MER / 3.8);
         
         nutritionRationText.style.fontSize = '';
         nutritionRationText.innerText = baseRation + 'g';
@@ -579,7 +575,7 @@ window.updateNutritionUI = async function() {
 };
 
 // ==========================================
-// CHAT ASSISTANT (GROQ SECURE ROUTER)
+// CHAT ASSISTANT
 window.sendMessage = async function() {
     const input = document.getElementById('chat-input-field');
     const text  = input?.value.trim();
@@ -622,7 +618,7 @@ window.sendMessage = async function() {
 };
 
 // ==========================================
-// POIDS & NUTRITION (LOCAL ASSIGNMENTS)
+// POIDS & NUTRITION
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
@@ -1567,9 +1563,14 @@ function renderLitters() {
                 const sexIcon = (p.sex === 'Mâle') ? '♂' : '♀';
                 const isCeded = p.status === 'Cédé';
                 const cederBtn = isCeded ? '' : `
-                            <button class="btn-secondary btn-sm" title="Générer le passeport de cession" onclick="cederChiot('${l.id}','${p.id}')">
-                                <i class="fa-solid fa-share-nodes"></i> Céder
-                            </button>`;
+                            <div style="display:flex; gap:6px; margin-top:4px;">
+                                <button class="btn-secondary btn-sm" title="Générer le passeport de cession" onclick="cederChiot('${l.id}','${p.id}')">
+                                    <i class="fa-solid fa-share-nodes"></i> Céder
+                                </button>
+                                <button class="btn-outline btn-sm" style="color:var(--text); border-color:var(--card-border);" title="Imprimer le contrat de vente PDF" onclick="exportContratVentePDF('${l.id}','${p.id}')">
+                                    <i class="fa-solid fa-file-contract"></i> Contrat
+                                </button>
+                            </div>`;
                 const cessionPanel = (isCeded && p.cessionId) ? `
                         <div style="margin:4px 0 10px; padding:10px; border:1px dashed var(--gold, #c8a24a); border-radius:10px;">
                             <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:6px;">
@@ -2032,7 +2033,6 @@ let registreEntries = [];
 function initRegistre() {
     registreEntries = getLocalData(currentPetId, 'registre', []);
     renderRegistre();
-    // Pré-remplir la date du jour
     const dateEl = document.getElementById('reg-date');
     if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
 }
@@ -2058,7 +2058,6 @@ window.addRegistreEntry = function() {
     saveLocalData(currentPetId, 'registre', registreEntries);
     renderRegistre();
 
-    // Reset formulaire
     ['reg-animal', 'reg-chip', 'reg-person'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -2202,4 +2201,126 @@ window.exportRegistrePDF = function() {
     printWin.document.close();
     printWin.focus();
     setTimeout(() => { printWin.print(); }, 400);
+};
+
+// ==========================================
+// EXPORT PDF DIRECT : CONTRAT DE VENTE CHIOT
+// ==========================================
+window.exportContratVentePDF = function(litterId, puppyId) {
+    const litter = proLitters.find(l => String(l.id) === String(litterId));
+    if (!litter) return;
+    const puppy = (litter.puppies || []).find(p => String(p.id) === String(puppyId));
+    if (!puppy) return;
+
+    // Récupération des données globales
+    const race = petProfile.breed || 'Non renseignée';
+    const eleveurEmail = auth.currentUser ? auth.currentUser.email : '_________________';
+    const affixe = proData.clubName || '_________________';
+    
+    // Formatage des dates
+    const birthDateStr = puppy.birthDate ? new Date(puppy.birthDate).toLocaleDateString('fr-FR') : '_________________';
+    const todayStr = new Date().toLocaleDateString('fr-FR');
+
+    // La fonction qui génère réellement le PDF une fois la librairie chargée
+    const generatePDF = () => {
+        showToast("Génération du contrat en cours...", "⏳");
+
+        // Création d'un conteneur invisible pour stocker le design du PDF
+        const container = document.createElement('div');
+        container.style.padding = "40px";
+        container.style.fontFamily = "Helvetica, Arial, sans-serif";
+        container.style.fontSize = "13px";
+        container.style.color = "#000";
+        container.style.lineHeight = "1.5";
+        
+        container.innerHTML = `
+            <h1 style="text-align: center; font-size: 20px; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px;">
+                Attestation de Cession d'un Animal
+            </h1>
+            
+            <div style="margin-bottom: 20px;">
+                <h2 style="font-size: 15px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; text-transform: uppercase;">1. Le Cédant (Éleveur)</h2>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Nom / Affixe :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${escHtml(affixe)}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Email de contact :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${escHtml(eleveurEmail)}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">N° SIRET / Déclaration :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">______________________________________</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Adresse :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">______________________________________</span></div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h2 style="font-size: 15px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; text-transform: uppercase;">2. L'Acquéreur</h2>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Nom et Prénom :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">______________________________________</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Adresse complète :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">______________________________________</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Téléphone :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">______________________________________</span></div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h2 style="font-size: 15px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; text-transform: uppercase;">3. L'Animal</h2>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Nom de l'animal :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${escHtml(puppy.name)}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Espèce / Race :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">Chien / ${escHtml(race)}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Sexe :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${escHtml(puppy.sex)}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Robe / Couleur :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${escHtml(puppy.color || '_________________')}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Date de naissance :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${birthDateStr}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">N° d'identification (Puce) :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${escHtml(puppy.chip || '_________________')}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Père :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${escHtml(litter.sire || litter.partner || 'Inconnu')}</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Mère :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">${escHtml(litter.dam || 'Inconnue')}</span></div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h2 style="font-size: 15px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; text-transform: uppercase;">4. Conditions de Vente</h2>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Prix de vente (TTC) :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">___________________________________ €</span></div>
+                <div style="display: flex; margin-bottom: 8px;"><strong style="width: 40%;">Modalités de paiement :</strong> <span style="width: 60%; border-bottom: 1px dotted #999;">______________________________________</span></div>
+                <p style="margin-top: 15px;"><strong>Documents remis ce jour à l'acquéreur :</strong></p>
+                <ul style="padding-left: 20px;">
+                    <li style="margin-bottom: 5px;">Le carnet de santé (ou passeport) dûment rempli.</li>
+                    <li style="margin-bottom: 5px;">Le certificat d'identification (I-CAD).</li>
+                    <li style="margin-bottom: 5px;">Un document d'information sur les besoins de l'animal.</li>
+                    <li style="margin-bottom: 5px;">Le certificat vétérinaire avant cession.</li>
+                </ul>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+                <div style="width: 45%; text-align: center;">
+                    <strong>Signature du Cédant</strong><br>
+                    <span style="font-size: 11px;">(Précédé de "Lu et approuvé")</span>
+                    <div style="height: 80px; border: 1px dashed #ccc; margin-top: 10px;"></div>
+                </div>
+                <div style="width: 45%; text-align: center;">
+                    <strong>Signature de l'Acquéreur</strong><br>
+                    <span style="font-size: 11px;">(Précédé de "Lu et approuvé")</span>
+                    <div style="height: 80px; border: 1px dashed #ccc; margin-top: 10px;"></div>
+                </div>
+            </div>
+            
+            <p style="text-align: center; margin-top: 30px; font-size: 11px; color: #666;">
+                Fait en deux exemplaires originaux, à ___________________________, le ${todayStr}.
+            </p>
+        `;
+
+        // Configuration du PDF
+        const opt = {
+            margin:       0,
+            filename:     `Contrat_Vente_${puppy.name.replace(/\s+/g, '_')}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Génération et téléchargement
+        window.html2pdf().set(opt).from(container).save().then(() => {
+            showToast("Contrat PDF téléchargé ! 📄", "✅");
+        });
+    };
+
+    // Injection dynamique de la librairie html2pdf si elle n'est pas encore chargée
+    if (typeof window.html2pdf === 'undefined') {
+        showToast("Préparation de l'outil PDF...", "⚙️");
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+        script.onload = () => {
+            generatePDF();
+        };
+        document.head.appendChild(script);
+    } else {
+        generatePDF();
+    }
 };
