@@ -1,6 +1,10 @@
 {
   "rewrites": [
     { "source": "/mentions-legales", "destination": "/mentions-legales.html" },
-    { "source": "/eleveurs", "destination": "/eleveurs.html" }
+    { "source": "/eleveurs", "destination": "/eleveurs.html" },
+    { "source": "/blog/ration-berger-allemand", "destination": "/blog/ration-berger-allemand.html" },
+    { "source": "/blog/calendrier-vaccins-chiot", "destination": "/blog/calendrier-vaccins-chiot.html" },
+    { "source": "/blog/suivi-poids-chiot", "destination": "/blog/suivi-poids-chiot.html" },
+    { "source": "/blog/alimentation-chiot-croissance", "destination": "/blog/alimentation-chiot-croissance.html" }
   ]
 }
