@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/mentions-legales", "destination": "/mentions-legales.html" }
+  ]
+}
