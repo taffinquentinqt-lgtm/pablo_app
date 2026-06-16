@@ -1488,6 +1488,106 @@
         }
         .l-faq-item.open .l-faq-a { max-height: 300px; padding: 0 22px 18px; }
         .l-faq-a strong { color: rgba(240,232,216,0.8); }
+
+        /* ── Landing Nav ── */
+        .l-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 9998;
+            height: 56px;
+            background: rgba(10,8,6,0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(200,146,42,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+        }
+        .l-nav-brand {
+            display: flex; align-items: center; gap: 9px;
+            text-decoration: none;
+            font-family: var(--font-display);
+            font-size: 22px; font-weight: 600;
+            color: var(--gold-light); letter-spacing: -0.5px;
+            font-style: italic;
+        }
+        .l-nav-brand strong { font-style: normal; color: #c8922a; }
+        .l-nav-links {
+            display: flex; align-items: center; gap: 4px;
+        }
+        .l-nav-link {
+            color: rgba(240,232,216,0.5);
+            font-size: 13px; font-weight: 500;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+            white-space: nowrap;
+        }
+        .l-nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        /* Dropdown */
+        .l-nav-dropdown {
+            position: relative;
+        }
+        .l-nav-dropdown-trigger {
+            display: flex; align-items: center; gap: 5px;
+            color: rgba(240,232,216,0.5);
+            font-size: 13px; font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: color 0.2s, background 0.2s;
+            background: none; border: none; font-family: var(--font-body);
+        }
+        .l-nav-dropdown-trigger:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .l-nav-dropdown-trigger i { font-size: 10px; transition: transform 0.2s; }
+        .l-nav-dropdown.open .l-nav-dropdown-trigger i { transform: rotate(180deg); }
+        .l-nav-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 220px;
+            background: #1a1509;
+            border: 1px solid rgba(200,146,42,0.2);
+            border-radius: 14px;
+            padding: 8px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+        }
+        .l-nav-dropdown.open .l-nav-dropdown-menu { display: block; }
+        .l-nav-dropdown-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: rgba(240,232,216,0.6);
+            font-size: 13px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .l-nav-dropdown-item:hover { background: rgba(200,146,42,0.1); color: var(--text); }
+        .l-nav-dropdown-item i { color: var(--gold); width: 14px; text-align: center; font-size: 12px; }
+        .l-nav-dropdown-sep {
+            height: 1px; background: rgba(255,255,255,0.06);
+            margin: 6px 0;
+        }
+        .l-nav-cta {
+            display: inline-flex; align-items: center; gap: 7px;
+            background: var(--gold); color: #0a0806;
+            font-family: var(--font-body); font-size: 12.5px; font-weight: 700;
+            padding: 7px 16px; border: none; border-radius: 100px;
+            cursor: pointer; text-decoration: none;
+            transition: background 0.2s;
+            margin-left: 8px;
+        }
+        .l-nav-cta:hover { background: var(--gold-light); }
+        /* Décale le contenu landing pour le nav fixe */
+        #landing-page { padding-top: 56px; }
+        @media (max-width: 600px) {
+            .l-nav { padding: 0 16px; }
+            .l-nav-link:not(.l-nav-cta) { display: none; }
+            .l-nav-dropdown-trigger { display: none; }
+        }
     </style>
 
     <!-- Microsoft Clarity -->
@@ -1505,6 +1605,38 @@
      LANDING PAGE
 ============================================================ -->
 <div id="landing-page">
+
+    <!-- NAV LANDING -->
+    <nav class="l-nav">
+        <a href="/" class="l-nav-brand"><em>Pablo</em><strong>.</strong></a>
+        <div class="l-nav-links">
+            <a href="/eleveurs" class="l-nav-link">Éleveurs</a>
+            <div class="l-nav-dropdown" id="blog-dropdown">
+                <button class="l-nav-dropdown-trigger" onclick="toggleBlogDropdown()">
+                    Blog <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div class="l-nav-dropdown-menu">
+                    <a href="/blog/ration-berger-allemand" class="l-nav-dropdown-item">
+                        <i class="fa-solid fa-bowl-food"></i> Ration Berger Allemand
+                    </a>
+                    <a href="/blog/calendrier-vaccins-chiot" class="l-nav-dropdown-item">
+                        <i class="fa-solid fa-syringe"></i> Calendrier vaccins chiot
+                    </a>
+                    <a href="/blog/suivi-poids-chiot" class="l-nav-dropdown-item">
+                        <i class="fa-solid fa-weight-scale"></i> Suivi poids chiot
+                    </a>
+                    <a href="/blog/alimentation-chiot-croissance" class="l-nav-dropdown-item">
+                        <i class="fa-solid fa-seedling"></i> Alimentation chiot croissance
+                    </a>
+                </div>
+            </div>
+            <a href="/mentions-legales" class="l-nav-link">Mentions légales</a>
+            <button class="l-nav-cta" onclick="enterApp()">
+                <i class="fa-solid fa-paw"></i> Ouvrir l'app
+            </button>
+        </div>
+    </nav>
+
     <div class="landing-inner">
 
         <div class="l-hero">
@@ -2525,6 +2657,18 @@
     document.addEventListener('DOMContentLoaded', () => {
         restoreValise();
         VALISE_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', saveValise); });
+    });
+
+
+    /* ---- Blog dropdown nav ---- */
+    window.toggleBlogDropdown = () => {
+        const dd = document.getElementById('blog-dropdown');
+        dd.classList.toggle('open');
+    };
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#blog-dropdown')) {
+            document.getElementById('blog-dropdown')?.classList.remove('open');
+        }
     });
 
     /* ---- FAQ accordion ---- */
