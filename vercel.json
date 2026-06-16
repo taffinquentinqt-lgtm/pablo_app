@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/mentions-legales", "destination": "/mentions-legales.html" }
+    { "source": "/mentions-legales", "destination": "/mentions-legales.html" },
+    { "source": "/eleveurs", "destination": "/eleveurs.html" }
   ]
 }
