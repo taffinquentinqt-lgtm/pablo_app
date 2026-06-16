@@ -449,6 +449,7 @@ function loadCurrentPetData() {
     initProHistory();
     initMemories();
     initGamification();
+    initRegistre();
 }
 
 window.deleteCurrentPet = function() {
@@ -2021,4 +2022,184 @@ window.updatePuppyStatus = function() {
     savePuppyData();
     renderLitters();
     showToast(`Statut : ${puppy.status}`, '✅');
+};
+
+// ==========================================
+// REGISTRE ENTRÉES / SORTIES
+// ==========================================
+let registreEntries = [];
+
+function initRegistre() {
+    registreEntries = getLocalData(currentPetId, 'registre', []);
+    renderRegistre();
+    // Pré-remplir la date du jour
+    const dateEl = document.getElementById('reg-date');
+    if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+}
+
+window.addRegistreEntry = function() {
+    const type   = document.getElementById('reg-type')?.value;
+    const date   = document.getElementById('reg-date')?.value;
+    const animal = document.getElementById('reg-animal')?.value.trim();
+    const chip   = document.getElementById('reg-chip')?.value.trim();
+    const person = document.getElementById('reg-person')?.value.trim();
+
+    if (!date)   { showToast('Sélectionnez une date.', '⚠️', 'error'); return; }
+    if (!animal) { showToast("Renseignez le nom de l'animal.", '⚠️', 'error'); return; }
+
+    registreEntries.push({
+        id: Date.now(),
+        type, date, animal,
+        chip: chip || '—',
+        person: person || '—',
+        createdAt: Date.now()
+    });
+
+    saveLocalData(currentPetId, 'registre', registreEntries);
+    renderRegistre();
+
+    // Reset formulaire
+    ['reg-animal', 'reg-chip', 'reg-person'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    document.getElementById('reg-date').value = new Date().toISOString().split('T')[0];
+
+    showToast('Entrée ajoutée au registre !', '📋');
+    trackEvent('registre_entry_added');
+};
+
+function renderRegistre() {
+    const list = document.getElementById('registre-list');
+    if (!list) return;
+
+    if (registreEntries.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:10px 0;">Aucune entrée dans le registre.</p>';
+        return;
+    }
+
+    const sorted = [...registreEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    list.innerHTML = `
+        <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                <thead>
+                    <tr style="background:var(--bg-elevated);">
+                        <th style="padding:8px 10px; text-align:left; border:1px solid var(--card-border); color:var(--text-muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Date</th>
+                        <th style="padding:8px 10px; text-align:left; border:1px solid var(--card-border); color:var(--text-muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Mouvement</th>
+                        <th style="padding:8px 10px; text-align:left; border:1px solid var(--card-border); color:var(--text-muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Animal</th>
+                        <th style="padding:8px 10px; text-align:left; border:1px solid var(--card-border); color:var(--text-muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Identification</th>
+                        <th style="padding:8px 10px; text-align:left; border:1px solid var(--card-border); color:var(--text-muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Personne</th>
+                        <th style="padding:8px 10px; text-align:center; border:1px solid var(--card-border); color:var(--text-muted); font-weight:600; font-size:11px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sorted.map((e, i) => {
+                        const isEntree = e.type.startsWith('Entrée');
+                        const badgeColor = isEntree ? 'var(--success)' : 'var(--danger)';
+                        const badgeBg   = isEntree ? 'var(--success-dim)' : 'var(--danger-dim)';
+                        return `<tr style="background:${i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}">
+                            <td style="padding:9px 10px; border:1px solid var(--card-border); color:var(--text-sub); white-space:nowrap;">${new Date(e.date).toLocaleDateString('fr-FR')}</td>
+                            <td style="padding:9px 10px; border:1px solid var(--card-border);">
+                                <span style="background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeColor}33; padding:2px 8px; border-radius:100px; font-size:11px; font-weight:700; white-space:nowrap;">${escHtml(e.type)}</span>
+                            </td>
+                            <td style="padding:9px 10px; border:1px solid var(--card-border); color:var(--text); font-weight:600;">${escHtml(e.animal)}</td>
+                            <td style="padding:9px 10px; border:1px solid var(--card-border); color:var(--text-muted); font-family:monospace; font-size:11.5px;">${escHtml(e.chip)}</td>
+                            <td style="padding:9px 10px; border:1px solid var(--card-border); color:var(--text-sub);">${escHtml(e.person)}</td>
+                            <td style="padding:9px 10px; border:1px solid var(--card-border); text-align:center;">
+                                <button onclick="deleteRegistreEntry(${e.id})" style="background:var(--danger-dim); border:1px solid rgba(224,82,82,0.2); color:var(--danger); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:11px;">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:right;">
+            ${registreEntries.length} entrée${registreEntries.length > 1 ? 's' : ''} au total
+        </p>`;
+}
+
+window.deleteRegistreEntry = function(id) {
+    showConfirm('Supprimer cette entrée du registre ?', () => {
+        registreEntries = registreEntries.filter(e => e.id !== id);
+        saveLocalData(currentPetId, 'registre', registreEntries);
+        renderRegistre();
+        showToast('Entrée supprimée.', '🗑️');
+    });
+};
+
+window.clearRegistre = function() {
+    showConfirm('Vider tout le registre ? Cette action est irréversible.', () => {
+        registreEntries = [];
+        saveLocalData(currentPetId, 'registre', registreEntries);
+        renderRegistre();
+        showToast('Registre vidé.', '🗑️');
+    });
+};
+
+window.exportRegistrePDF = function() {
+    const animal = petProfile.name || 'Animal';
+    const rows = [...registreEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <title>Registre Entrées/Sorties — ${animal}</title>
+            <style>
+                body { font-family: Arial, sans-serif; font-size: 12px; color: #1a1a1a; margin: 30px; }
+                h1 { font-size: 18px; margin-bottom: 4px; }
+                .meta { color: #888; font-size: 11px; margin-bottom: 20px; }
+                table { width: 100%; border-collapse: collapse; }
+                th { background: #2d2d2d; color: #fff; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+                td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+                tr:nth-child(even) td { background: #f8f8f8; }
+                .entree { color: #2d7a4f; font-weight: 700; }
+                .sortie { color: #c0392b; font-weight: 700; }
+                .footer { margin-top: 30px; font-size: 10px; color: #aaa; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
+            </style>
+        </head>
+        <body>
+            <h1>Registre Entrées / Sorties</h1>
+            <div class="meta">
+                Animal : <strong>${animal}</strong> &nbsp;|&nbsp;
+                Race : <strong>${petProfile.breed || 'Non renseignée'}</strong> &nbsp;|&nbsp;
+                Édité le : <strong>${new Date().toLocaleDateString('fr-FR')}</strong>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Mouvement</th>
+                        <th>Animal</th>
+                        <th>Identification</th>
+                        <th>Vendeur / Acheteur / Éleveur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.length === 0
+                        ? '<tr><td colspan="5" style="text-align:center; color:#aaa; padding:20px;">Aucune entrée.</td></tr>'
+                        : rows.map(e => {
+                            const isEntree = e.type.startsWith('Entrée');
+                            return `<tr>
+                                <td>${new Date(e.date).toLocaleDateString('fr-FR')}</td>
+                                <td class="${isEntree ? 'entree' : 'sortie'}">${e.type}</td>
+                                <td><strong>${e.animal}</strong></td>
+                                <td style="font-family:monospace;">${e.chip}</td>
+                                <td>${e.person}</td>
+                            </tr>`;
+                        }).join('')}
+                </tbody>
+            </table>
+            <div class="footer">Pablo — pablocanin.fr &nbsp;|&nbsp; Registre généré automatiquement &nbsp;|&nbsp; ${rows.length} mouvement(s)</div>
+        </body>
+        </html>
+    `);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); }, 400);
 };

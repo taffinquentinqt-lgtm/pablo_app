@@ -2381,6 +2381,64 @@
                         <div id="pro-events-list" style="margin-top:16px;"></div>
                     </div>
 
+
+                    <!-- REGISTRE ENTRÉES/SORTIES -->
+                    <div class="card mt-12">
+                        <div class="card-title"><i class="fa-solid fa-book-open"></i> Registre Entrées / Sorties</div>
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+                            Obligatoire pour les éleveurs — enregistrez chaque entrée et sortie d'animal conformément à la réglementation française.
+                        </p>
+                        <!-- Formulaire ajout -->
+                        <div class="g2" style="margin-bottom:10px;">
+                            <div>
+                                <label class="form-label">Type de mouvement</label>
+                                <select id="reg-type">
+                                    <option value="Entrée — Naissance">Entrée — Naissance</option>
+                                    <option value="Entrée — Achat">Entrée — Achat</option>
+                                    <option value="Entrée — Don">Entrée — Don</option>
+                                    <option value="Sortie — Vente">Sortie — Vente</option>
+                                    <option value="Sortie — Don">Sortie — Don</option>
+                                    <option value="Sortie — Décès">Sortie — Décès</option>
+                                    <option value="Sortie — Transfert">Sortie — Transfert</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Date</label>
+                                <input type="date" id="reg-date">
+                            </div>
+                        </div>
+                        <div class="g2" style="margin-bottom:10px;">
+                            <div>
+                                <label class="form-label">Nom de l'animal</label>
+                                <input type="text" id="reg-animal" placeholder="Ex: Luna, chiot F1">
+                            </div>
+                            <div>
+                                <label class="form-label">N° identification (puce/tatouage)</label>
+                                <input type="text" id="reg-chip" placeholder="Ex: 250268...">
+                            </div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <label class="form-label">Nom & coordonnées de la personne (vendeur / acheteur / éleveur)</label>
+                            <input type="text" id="reg-person" placeholder="Ex: Jean Dupont — 06 12 34 56 78 — Paris">
+                        </div>
+                        <button class="btn btn-gold btn-full" onclick="addRegistreEntry()">
+                            <i class="fa-solid fa-plus"></i> Ajouter au registre
+                        </button>
+
+                        <!-- Liste registre -->
+                        <div id="registre-list" style="margin-top:18px;"></div>
+
+                        <!-- Export -->
+                        <div style="display:flex; gap:10px; margin-top:14px;">
+                            <button class="btn btn-outline btn-full" onclick="exportRegistrePDF()">
+                                <i class="fa-solid fa-print"></i> Imprimer le registre
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="clearRegistre()" style="flex-shrink:0;">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+
                     <button class="btn btn-gold btn-full" onclick="saveProData()" style="margin-top:14px; margin-bottom:24px;">
                         <i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel
                     </button>
