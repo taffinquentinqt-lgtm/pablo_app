@@ -2,5 +2,15 @@
   "functions": {
     "source": "functions",
     "runtime": "nodejs20"
+  },
+  "hosting": {
+    "public": "dist",
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
   }
 }

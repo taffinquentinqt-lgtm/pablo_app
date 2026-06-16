@@ -420,6 +420,36 @@
             margin: 0 auto;
         }
 
+        .l-legal-footer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            padding-top: 24px;
+            animation: fadeUp 1s 0.7s var(--ease-out) both;
+        }
+
+        .l-legal-link {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .l-legal-link:hover { color: var(--gold); }
+
+        .l-legal-sep {
+            color: var(--text-muted);
+            font-size: 12px;
+            opacity: 0.4;
+        }
+
+        .l-legal-copy {
+            color: var(--text-muted);
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
         /* ============================================================
            AUTH PAGE
         ============================================================ */
@@ -1619,6 +1649,12 @@
                 "Fils d'éleveur de Bergers Allemands, j'ai codé Pablo pour chasser les carnets en papier perdus
                 et rendre hommage au premier chien qui a partagé ma vie d'adulte." ✨
             </blockquote>
+        </div>
+
+        <div class="l-legal-footer">
+            <a href="/mentions-legales" class="l-legal-link">Mentions légales</a>
+            <span class="l-legal-sep">·</span>
+            <span class="l-legal-copy">© 2026 Quentin Taffin — Pablo</span>
         </div>
 
     </div>
