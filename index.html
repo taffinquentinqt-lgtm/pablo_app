@@ -1639,6 +1639,39 @@
             .l-nav-links { display: none; }
             .l-nav-hamburger { display: flex; }
         }
+
+        /* ── Tooltips ── */
+        .tooltip-wrap { position: relative; display: inline-flex; align-items: center; }
+        .tooltip-icon { width: 18px; height: 18px; border-radius: 50%; background: var(--gold-dim); border: 1px solid var(--gold-border); color: var(--gold); font-size: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: help; margin-left: 6px; flex-shrink: 0; }
+        .tooltip-box { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1a1509; border: 1px solid var(--gold-border); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--text-sub); width: 220px; z-index: 9999; line-height: 1.55; box-shadow: 0 8px 24px rgba(0,0,0,.5); pointer-events: none; }
+        .tooltip-box::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--gold-border); }
+        .tooltip-wrap:hover .tooltip-box { display: block; }
+
+        /* ── Badge éleveurs ── */
+        .badge-eleveur { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(200,146,42,0.15), rgba(200,146,42,0.05)); border: 1px solid var(--gold-border); color: var(--gold); padding: 5px 14px; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+
+        /* ── Onboarding overlay ── */
+        #onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(10px); z-index: 10001; display: none; align-items: center; justify-content: center; padding: 24px; }
+        #onboarding-overlay.open { display: flex; }
+        .onboarding-card { width: 100%; max-width: 460px; background: #141009; border: 1px solid var(--gold-border); border-radius: var(--radius-xl); padding: 36px 32px; animation: bounceIn .4s var(--ease-spring) both; }
+        .onboarding-steps { display: flex; gap: 8px; margin-bottom: 28px; }
+        .ob-step { flex: 1; height: 3px; border-radius: 3px; background: var(--card-border); transition: background .3s; }
+        .ob-step.active { background: var(--gold); }
+        .ob-step.done   { background: var(--success); }
+        .ob-icon { width: 60px; height: 60px; border-radius: 50%; background: var(--gold-dim); border: 1px solid var(--gold-border); display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 24px; margin: 0 auto 18px; }
+        .ob-title { font-family: var(--font-display); font-size: 26px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 8px; }
+        .ob-sub { font-size: 13.5px; color: var(--text-muted); text-align: center; margin-bottom: 28px; line-height: 1.6; }
+        .ob-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+        .btn-ob-next { width: 100%; padding: 14px; background: var(--gold); color: #0a0806; font-family: var(--font-body); font-size: 14px; font-weight: 700; border: none; border-radius: var(--radius-sm); cursor: pointer; transition: background .2s; }
+        .btn-ob-next:hover { background: var(--gold-light); }
+        .btn-ob-skip { width: 100%; padding: 10px; background: transparent; color: var(--text-muted); font-family: var(--font-body); font-size: 12.5px; border: none; cursor: pointer; margin-top: 8px; transition: color .2s; }
+        .btn-ob-skip:hover { color: var(--text-sub); }
+
+        /* ── Share card ── */
+        #share-canvas-wrap { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); backdrop-filter: blur(10px); z-index: 10002; align-items: center; justify-content: center; padding: 24px; flex-direction: column; gap: 16px; }
+        #share-canvas-wrap.open { display: flex; }
+        #share-canvas { border-radius: 16px; max-width: 100%; max-height: 70vh; }
+        .share-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     </style>
 
     <!-- Microsoft Clarity -->
@@ -1724,14 +1757,17 @@
         </div>
 
         <div class="l-cta-wrap">
-            <button class="btn-cta-main" onclick="enterApp()">
-                Rejoindre la meute
+            <button class="btn-cta-main" onclick="startOnboarding()">
+                Votre 1er carnet en 1 min
                 <i class="fa-solid fa-arrow-right"></i>
             </button>
             <div class="l-trust-badges">
                 <span class="l-badge"><i class="fa-solid fa-check"></i> 100% Gratuit</span>
                 <span class="l-badge"><i class="fa-solid fa-ban"></i> Sans pub</span>
                 <span class="l-badge"><i class="fa-solid fa-shield-halved"></i> Données privées</span>
+            </div>
+            <div class="badge-eleveur" style="margin-top:12px;">
+                <i class="fa-solid fa-award"></i> Recommandé par les éleveurs canins
             </div>
         </div>
 
@@ -2020,7 +2056,7 @@
                     <div class="g2" style="margin-bottom:8px;">
                         <div class="stat-card">
                             <div>
-                                <div class="stat-label">Hydratation</div>
+                                <div class="stat-label">Hydratation <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Objectif : 50 à 70 ml par kg de poids corporel par jour. Augmentez par temps chaud ou après l'effort.</span></span></div>
                                 <div class="stat-value" id="water-current-text">0 ml</div>
                             </div>
                             <div style="display:flex; gap:6px;">
@@ -2034,7 +2070,7 @@
                         </div>
                         <div class="stat-card">
                             <div>
-                                <div class="stat-label">Promenade</div>
+                                <div class="stat-label">Promenade <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Un chien adulte a besoin d'au moins 30 à 60 min de marche par jour. Les grandes races actives nécessitent 90 min ou plus.</span></span></div>
                                 <div class="stat-value" id="walk-current-text">0 min</div>
                             </div>
                             <div style="display:flex; gap:6px;">
@@ -2104,7 +2140,7 @@
                         <div class="g2">
                             <div>
                                 <div class="stat-label" style="display:flex; justify-content:space-between; align-items:center;">
-                                    Ration journalière
+                                    Ration journalière <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Calculée selon le poids et l'activité. Divisez en 2 repas pour éviter la dilatation de l'estomac.</span></span>
                                     <select id="activity-level-selector" onchange="updateNutritionUI()"
                                         style="width:auto; padding:2px 7px; font-size:11px; background:transparent; color:var(--gold); font-weight:700; cursor:pointer; border:none;">
                                         <option value="normal">Normale</option>
@@ -2348,7 +2384,7 @@
 
                     <!-- Portées -->
                     <div class="card mt-12">
-                        <div class="card-title"><i class="fa-solid fa-baby-carriage"></i> Historique des Portées</div>
+                        <div class="card-title"><i class="fa-solid fa-baby-carriage"></i> Historique des Portées <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Enregistrez chaque portée, ajoutez les chiots et générez le passeport QR de cession pour le nouveau propriétaire.</span></span></div>
                         <div class="g3" style="margin-bottom:10px;">
                             <input type="date" id="litter-date">
                             <input type="text" id="litter-partner" placeholder="Avec qui ?">
@@ -2384,7 +2420,7 @@
 
                     <!-- REGISTRE ENTRÉES/SORTIES -->
                     <div class="card mt-12">
-                        <div class="card-title"><i class="fa-solid fa-book-open"></i> Registre Entrées / Sorties</div>
+                        <div class="card-title"><i class="fa-solid fa-book-open"></i> Registre Entrées / Sorties <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Obligatoire légalement pour tout éleveur. Enregistrez chaque entrée et sortie d'animal avec identification et coordonnées.</span></span></div>
                         <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
                             Obligatoire pour les éleveurs — enregistrez chaque entrée et sortie d'animal conformément à la réglementation française.
                         </p>
@@ -2505,6 +2541,28 @@
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Générer la magie
                         </button>
                         <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Ajoutez d'abord une photo dans le profil.</p>
+                    </div>
+
+                    <!-- Carte partageable -->
+                    <div class="card mt-12" style="background:linear-gradient(135deg, var(--card), var(--bg-elevated));">
+                        <div class="card-title"><i class="fa-solid fa-share-nodes"></i> Présenter mon animal</div>
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                            Générez une carte 1080×1080 à partager sur les réseaux — auto-remplie avec le nom, la race et la photo de votre compagnon.
+                        </p>
+                        <div style="margin-bottom:14px;">
+                            <label class="form-label">Photo de votre animal (optionnel)</label>
+                            <input type="file" id="share-photo-input" accept="image/*" style="font-size:12.5px;" onchange="previewSharePhoto(this)">
+                            <div id="share-photo-preview" style="display:none; margin-top:8px;">
+                                <img id="share-photo-img" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:2px solid var(--gold-border);">
+                            </div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <label class="form-label">Message personnalisé (optionnel)</label>
+                            <input type="text" id="share-message" placeholder="Ex: Disponible à l'adoption ! 🐾" maxlength="60">
+                        </div>
+                        <button class="btn btn-gold btn-full" onclick="generateShareCard()">
+                            <i class="fa-solid fa-image"></i> Générer la carte 1080×1080
+                        </button>
                     </div>
                 </div>
 
@@ -2776,6 +2834,66 @@
     </div>
 </div>
 
+
+
+<!-- ONBOARDING 3 ÉTAPES -->
+<div id="onboarding-overlay">
+    <div class="onboarding-card">
+        <div class="onboarding-steps">
+            <div class="ob-step active" id="ob-s1"></div>
+            <div class="ob-step" id="ob-s2"></div>
+            <div class="ob-step" id="ob-s3"></div>
+        </div>
+        <!-- Étape 1 -->
+        <div id="ob-step-1">
+            <div class="ob-icon"><i class="fa-solid fa-paw"></i></div>
+            <div class="ob-title">Bienvenue sur Pablo !</div>
+            <div class="ob-sub">Le carnet de santé intelligent pour votre compagnon. Prêt en moins d'une minute.</div>
+            <div class="ob-fields">
+                <div><label class="form-label">Nom de votre animal *</label><input type="text" id="ob-pet-name" placeholder="Ex: Luna, Rex, Bella…" autocomplete="off"></div>
+                <div><label class="form-label">Espèce</label>
+                    <select id="ob-pet-species">
+                        <option value="Chien">Chien 🐶</option>
+                        <option value="Chat">Chat 🐱</option>
+                        <option value="Autre">Autre 🐾</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-ob-next" onclick="obNext(1)">Continuer <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn-ob-skip" onclick="skipOnboarding()">Passer et accéder directement à l'app</button>
+        </div>
+        <!-- Étape 2 -->
+        <div id="ob-step-2" style="display:none;">
+            <div class="ob-icon"><i class="fa-solid fa-dog"></i></div>
+            <div class="ob-title">Un peu plus sur lui</div>
+            <div class="ob-sub">Ces infos permettent à Pablo de personnaliser les conseils nutrition et santé.</div>
+            <div class="ob-fields">
+                <div><label class="form-label">Race</label><input type="text" id="ob-pet-breed" placeholder="Ex: Berger Allemand, Labrador…" autocomplete="off"></div>
+                <div><label class="form-label">Poids actuel (kg)</label><input type="number" id="ob-pet-weight" placeholder="Ex: 28" step="0.1" min="0"></div>
+            </div>
+            <button class="btn-ob-next" onclick="obNext(2)">Continuer <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn-ob-skip" onclick="skipOnboarding()">Passer cette étape</button>
+        </div>
+        <!-- Étape 3 -->
+        <div id="ob-step-3" style="display:none;">
+            <div class="ob-icon" style="color:var(--success); background:var(--success-dim); border-color:rgba(82,201,122,0.2);"><i class="fa-solid fa-check"></i></div>
+            <div class="ob-title">Votre carnet est prêt !</div>
+            <div class="ob-sub">Pablo a créé le profil de <strong id="ob-pet-name-display"></strong>. Vous pouvez maintenant suivre sa santé, sa nutrition et son éducation.</div>
+            <button class="btn-ob-next" onclick="finishOnboarding()" style="background:var(--success);">
+                <i class="fa-solid fa-paw"></i> Accéder au carnet
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SHARE CANVAS -->
+<div id="share-canvas-wrap">
+    <canvas id="share-canvas" width="1080" height="1080"></canvas>
+    <div class="share-actions">
+        <button class="btn btn-gold" onclick="downloadShareCard()"><i class="fa-solid fa-download"></i> Télécharger</button>
+        <button class="btn btn-outline" onclick="closeShareCanvas()" style="color:var(--text-sub);">Fermer</button>
+    </div>
+</div>
 
 <!-- TOAST -->
 <div id="global-toast">
