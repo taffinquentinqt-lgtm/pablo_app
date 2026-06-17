@@ -1640,38 +1640,15 @@
             .l-nav-hamburger { display: flex; }
         }
 
-        /* ── Tooltips ── */
-        .tooltip-wrap { position: relative; display: inline-flex; align-items: center; }
-        .tooltip-icon { width: 18px; height: 18px; border-radius: 50%; background: var(--gold-dim); border: 1px solid var(--gold-border); color: var(--gold); font-size: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: help; margin-left: 6px; flex-shrink: 0; }
-        .tooltip-box { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1a1509; border: 1px solid var(--gold-border); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--text-sub); width: 220px; z-index: 9999; line-height: 1.55; box-shadow: 0 8px 24px rgba(0,0,0,.5); pointer-events: none; }
-        .tooltip-box::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--gold-border); }
-        .tooltip-wrap:hover .tooltip-box { display: block; }
-
-        /* ── Badge éleveurs ── */
-        .badge-eleveur { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(200,146,42,0.15), rgba(200,146,42,0.05)); border: 1px solid var(--gold-border); color: var(--gold); padding: 5px 14px; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
-
-        /* ── Onboarding overlay ── */
-        #onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(10px); z-index: 10001; display: none; align-items: center; justify-content: center; padding: 24px; }
-        #onboarding-overlay.open { display: flex; }
-        .onboarding-card { width: 100%; max-width: 460px; background: #141009; border: 1px solid var(--gold-border); border-radius: var(--radius-xl); padding: 36px 32px; animation: bounceIn .4s var(--ease-spring) both; }
-        .onboarding-steps { display: flex; gap: 8px; margin-bottom: 28px; }
-        .ob-step { flex: 1; height: 3px; border-radius: 3px; background: var(--card-border); transition: background .3s; }
-        .ob-step.active { background: var(--gold); }
-        .ob-step.done   { background: var(--success); }
-        .ob-icon { width: 60px; height: 60px; border-radius: 50%; background: var(--gold-dim); border: 1px solid var(--gold-border); display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 24px; margin: 0 auto 18px; }
-        .ob-title { font-family: var(--font-display); font-size: 26px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 8px; }
-        .ob-sub { font-size: 13.5px; color: var(--text-muted); text-align: center; margin-bottom: 28px; line-height: 1.6; }
-        .ob-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-        .btn-ob-next { width: 100%; padding: 14px; background: var(--gold); color: #0a0806; font-family: var(--font-body); font-size: 14px; font-weight: 700; border: none; border-radius: var(--radius-sm); cursor: pointer; transition: background .2s; }
-        .btn-ob-next:hover { background: var(--gold-light); }
-        .btn-ob-skip { width: 100%; padding: 10px; background: transparent; color: var(--text-muted); font-family: var(--font-body); font-size: 12.5px; border: none; cursor: pointer; margin-top: 8px; transition: color .2s; }
-        .btn-ob-skip:hover { color: var(--text-sub); }
-
-        /* ── Share card ── */
-        #share-canvas-wrap { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); backdrop-filter: blur(10px); z-index: 10002; align-items: center; justify-content: center; padding: 24px; flex-direction: column; gap: 16px; }
-        #share-canvas-wrap.open { display: flex; }
-        #share-canvas { border-radius: 16px; max-width: 100%; max-height: 70vh; }
-        .share-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        /* ── Onglets Pro ── */
+        .pro-tabs { display: flex; gap: 6px; margin-bottom: 20px; background: var(--bg-elevated); border-radius: var(--radius-md); padding: 5px; }
+        .pro-tab  { flex: 1; padding: 9px 12px; border-radius: var(--radius-sm); border: none; background: transparent; color: var(--text-muted); font-family: var(--font-body); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+        .pro-tab.active { background: var(--card); color: var(--gold); border: 1px solid var(--gold-border); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+        .pro-tab i { font-size: 13px; }
+        .pro-tab-content { display: none; }
+        .pro-tab-content.active { display: block; }
+        /* Badge MODE ÉLEVEUR */
+        .breeder-mode-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(200,146,42,0.2), rgba(200,146,42,0.08)); border: 1px solid var(--gold-border); color: var(--gold); padding: 6px 14px; border-radius: 100px; font-size: 11.5px; font-weight: 700; letter-spacing: .05em; margin-bottom: 16px; }
     </style>
 
     <!-- Microsoft Clarity -->
@@ -1757,17 +1734,14 @@
         </div>
 
         <div class="l-cta-wrap">
-            <button class="btn-cta-main" onclick="startOnboarding()">
-                Votre 1er carnet en 1 min
+            <button class="btn-cta-main" onclick="enterApp()">
+                Rejoindre la meute
                 <i class="fa-solid fa-arrow-right"></i>
             </button>
             <div class="l-trust-badges">
                 <span class="l-badge"><i class="fa-solid fa-check"></i> 100% Gratuit</span>
                 <span class="l-badge"><i class="fa-solid fa-ban"></i> Sans pub</span>
                 <span class="l-badge"><i class="fa-solid fa-shield-halved"></i> Données privées</span>
-            </div>
-            <div class="badge-eleveur" style="margin-top:12px;">
-                <i class="fa-solid fa-award"></i> Recommandé par les éleveurs canins
             </div>
         </div>
 
@@ -2056,7 +2030,7 @@
                     <div class="g2" style="margin-bottom:8px;">
                         <div class="stat-card">
                             <div>
-                                <div class="stat-label">Hydratation <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Objectif : 50 à 70 ml par kg de poids corporel par jour. Augmentez par temps chaud ou après l'effort.</span></span></div>
+                                <div class="stat-label">Hydratation</div>
                                 <div class="stat-value" id="water-current-text">0 ml</div>
                             </div>
                             <div style="display:flex; gap:6px;">
@@ -2070,7 +2044,7 @@
                         </div>
                         <div class="stat-card">
                             <div>
-                                <div class="stat-label">Promenade <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Un chien adulte a besoin d'au moins 30 à 60 min de marche par jour. Les grandes races actives nécessitent 90 min ou plus.</span></span></div>
+                                <div class="stat-label">Promenade</div>
                                 <div class="stat-value" id="walk-current-text">0 min</div>
                             </div>
                             <div style="display:flex; gap:6px;">
@@ -2140,7 +2114,7 @@
                         <div class="g2">
                             <div>
                                 <div class="stat-label" style="display:flex; justify-content:space-between; align-items:center;">
-                                    Ration journalière <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Calculée selon le poids et l'activité. Divisez en 2 repas pour éviter la dilatation de l'estomac.</span></span>
+                                    Ration journalière
                                     <select id="activity-level-selector" onchange="updateNutritionUI()"
                                         style="width:auto; padding:2px 7px; font-size:11px; background:transparent; color:var(--gold); font-weight:700; cursor:pointer; border:none;">
                                         <option value="normal">Normale</option>
@@ -2283,201 +2257,221 @@
                 =================================== -->
                 <div id="screen-pro" class="screen">
 
-                    <!-- Documents -->
-                    <div class="card">
-                        <div class="card-title"><i class="fa-solid fa-id-card"></i> Documents &amp; Profil</div>
-                        <div class="g2">
-                            <div>
-                                <label class="form-label">Sexe</label>
-                                <select id="pro-gender" onchange="toggleBreederFields()">
-                                    <option value="Non spécifié">Non spécifié</option>
-                                    <option value="Mâle">Mâle ♂️</option>
-                                    <option value="Femelle">Femelle ♀️</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="form-label">N° Identification (Puce)</label>
-                                <input type="text" id="pro-chip" placeholder="Ex: 250268…">
-                            </div>
-                            <div>
-                                <label class="form-label">N° LOF / Enregistrement</label>
-                                <input type="text" id="pro-lof">
-                            </div>
-                            <div>
-                                <label class="form-label">Pedigree</label>
-                                <input type="text" id="pro-pedigree" placeholder="Affixe ou Lien">
-                            </div>
-                            <div>
-                                <label class="form-label">Test ADN</label>
-                                <select id="pro-dna">
-                                    <option value="Non fait">Non fait</option>
-                                    <option value="En cours">En cours</option>
-                                    <option value="Identifié">Identifié ADN</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="form-label">Radio Hanches / Coudes</label>
-                                <input type="text" id="pro-xrays" placeholder="Ex: A/0">
-                            </div>
-                            <div>
-                                <label class="form-label">Club Canin (Nom)</label>
-                                <input type="text" id="pro-club-name">
-                            </div>
-                            <div>
-                                <label class="form-label">Date Entrée Club</label>
-                                <input type="date" id="pro-club-date">
-                            </div>
-                        </div>
+                    <!-- Badge MODE ÉLEVEUR -->
+                    <div class="breeder-mode-badge">
+                        <i class="fa-solid fa-award"></i> MODE ÉLEVEUR
                     </div>
 
-                    <!-- Reproduction -->
-                    <div class="card mt-12">
-                        <div class="card-title"><i class="fa-solid fa-mars-and-venus"></i> Suivi de Reproduction</div>
+                    <!-- Onglets -->
+                    <div class="pro-tabs">
+                        <button class="pro-tab active" id="tab-btn-animal" onclick="switchProTab('animal')">
+                            <i class="fa-solid fa-id-card"></i> Mon animal
+                        </button>
+                        <button class="pro-tab" id="tab-btn-elevage" onclick="switchProTab('elevage')">
+                            <i class="fa-solid fa-baby-carriage"></i> Élevage
+                        </button>
+                    </div>
 
-                        <div id="field-chaleurs-history" style="margin-bottom:20px;">
-                            <h4 style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">
-                                Historique des Chaleurs — Moyenne :
-                                <span id="heat-average" class="text-gold">-- mois</span>
-                            </h4>
+                    <!-- ═══ ONGLET MON ANIMAL ═══ -->
+                    <div id="pro-tab-animal" class="pro-tab-content active">
+
+                        <!-- Nom d'élevage -->
+                        <div class="card" style="border-left: 3px solid var(--gold); margin-bottom:12px;">
+                            <div class="card-title"><i class="fa-solid fa-house-chimney"></i> Mon Élevage</div>
+                            <div class="g2">
+                                <div>
+                                    <label class="form-label">Nom de l'élevage / Affixe</label>
+                                    <input type="text" id="pro-kennel-name" placeholder="Ex: Du Val des Loups, De la Plaine Dorée…">
+                                </div>
+                                <div>
+                                    <label class="form-label">N° SIREN / SIRET (optionnel)</label>
+                                    <input type="text" id="pro-siren" placeholder="Ex: 894 011 170">
+                                </div>
+                                <div>
+                                    <label class="form-label">Département d'activité</label>
+                                    <input type="text" id="pro-dept" placeholder="Ex: 59 — Nord">
+                                </div>
+                                <div>
+                                    <label class="form-label">Site / Réseaux sociaux</label>
+                                    <input type="text" id="pro-website" placeholder="Ex: facebook.com/monelevage">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Documents & Profil -->
+                        <div class="card">
+                            <div class="card-title"><i class="fa-solid fa-id-card"></i> Documents &amp; Profil</div>
+                            <div class="g2">
+                                <div>
+                                    <label class="form-label">Sexe</label>
+                                    <select id="pro-gender" onchange="toggleBreederFields()">
+                                        <option value="Non spécifié">Non spécifié</option>
+                                        <option value="Mâle">Mâle ♂️</option>
+                                        <option value="Femelle">Femelle ♀️</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label">N° Identification (Puce)</label>
+                                    <input type="text" id="pro-chip" placeholder="Ex: 250268…">
+                                </div>
+                                <div>
+                                    <label class="form-label">N° LOF / Enregistrement</label>
+                                    <input type="text" id="pro-lof">
+                                </div>
+                                <div>
+                                    <label class="form-label">Pedigree</label>
+                                    <input type="text" id="pro-pedigree" placeholder="Affixe ou Lien">
+                                </div>
+                                <div>
+                                    <label class="form-label">Test ADN</label>
+                                    <select id="pro-dna">
+                                        <option value="Non fait">Non fait</option>
+                                        <option value="En cours">En cours</option>
+                                        <option value="Identifié">Identifié ADN</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label">Radio Hanches / Coudes</label>
+                                    <input type="text" id="pro-xrays" placeholder="Ex: A/0">
+                                </div>
+                                <div>
+                                    <label class="form-label">Club Canin (Nom)</label>
+                                    <input type="text" id="pro-club-name">
+                                </div>
+                                <div>
+                                    <label class="form-label">Date Entrée Club</label>
+                                    <input type="date" id="pro-club-date">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reproduction -->
+                        <div class="card mt-12">
+                            <div class="card-title"><i class="fa-solid fa-mars-and-venus"></i> Suivi de Reproduction</div>
+                            <div id="field-chaleurs-history" style="margin-bottom:20px;">
+                                <h4 style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">
+                                    Historique des Chaleurs — Moyenne : <span id="heat-average" class="text-gold">-- mois</span>
+                                </h4>
+                                <div class="form-row">
+                                    <input type="date" id="new-heat-date">
+                                    <button class="btn btn-gold btn-round" onclick="addHeatRecord()"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                                <div id="heat-history-list" style="margin-top:10px; font-size:13px;"></div>
+                            </div>
+                            <div>
+                                <h4 style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Historique des Saillies</h4>
+                                <div class="g3" style="margin-bottom:8px;">
+                                    <input type="date" id="mating-date">
+                                    <input type="text" id="mating-partner" placeholder="Partenaire">
+                                    <input type="number" step="0.1" id="mating-coi" placeholder="COI (%)">
+                                </div>
+                                <button class="btn btn-gold btn-full" onclick="addMatingRecord()">Ajouter la saillie</button>
+                                <div id="mating-history-list" style="margin-top:10px; font-size:13px;"></div>
+                            </div>
+                            <hr class="dashed-sep">
+                            <div class="g2">
+                                <div id="field-fec-opti"><label class="form-label">Fécondation Optim. (+12j)</label><input type="date" id="pro-optimal-date"></div>
+                                <div id="field-naissance-prevue"><label class="form-label">Naissance Prévue (+63j)</label><input type="date" id="pro-expected-birth"></div>
+                                <div id="field-mise-a-bas"><label class="form-label">Date Mise à Bas (réelle)</label><input type="date" id="pro-actual-birth"></div>
+                            </div>
+                            <div id="field-rappel-chaleurs" style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+                                <input type="checkbox" id="pro-heat-reminder" style="width:auto; accent-color:var(--gold);">
+                                <label for="pro-heat-reminder" style="font-size:13px; color:var(--text-muted); cursor:pointer;">Activer le rappel des prochaines chaleurs dans 6 mois</label>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-gold btn-full" onclick="saveProData()" style="margin-top:14px; margin-bottom:8px;">
+                            <i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel
+                        </button>
+                    </div>
+
+                    <!-- ═══ ONGLET ÉLEVAGE ═══ -->
+                    <div id="pro-tab-elevage" class="pro-tab-content">
+
+                        <!-- Portées -->
+                        <div class="card">
+                            <div class="card-title"><i class="fa-solid fa-baby-carriage"></i> Historique des Portées</div>
+                            <div class="g3" style="margin-bottom:10px;">
+                                <input type="date" id="litter-date">
+                                <input type="text" id="litter-partner" placeholder="Avec qui ?">
+                                <input type="number" id="litter-count" placeholder="Nb chiots" min="0">
+                            </div>
+                            <button class="btn btn-gold btn-full" onclick="addLitter()">
+                                <i class="fa-solid fa-plus"></i> Ajouter la portée
+                            </button>
+                            <div id="litters-list" style="margin-top:14px;"></div>
+                        </div>
+
+                        <!-- Registre Entrées/Sorties -->
+                        <div class="card mt-12">
+                            <div class="card-title">
+                                <i class="fa-solid fa-book-open"></i> Registre Entrées / Sorties
+                                <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Obligatoire légalement pour tout éleveur. Enregistrez chaque entrée et sortie d'animal avec identification et coordonnées.</span></span>
+                            </div>
+                            <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Obligatoire pour les éleveurs — conformément à la réglementation française.</p>
+                            <div class="g2" style="margin-bottom:10px;">
+                                <div>
+                                    <label class="form-label">Type de mouvement</label>
+                                    <select id="reg-type">
+                                        <option value="Entrée — Naissance">Entrée — Naissance</option>
+                                        <option value="Entrée — Achat">Entrée — Achat</option>
+                                        <option value="Entrée — Don">Entrée — Don</option>
+                                        <option value="Sortie — Vente">Sortie — Vente</option>
+                                        <option value="Sortie — Don">Sortie — Don</option>
+                                        <option value="Sortie — Décès">Sortie — Décès</option>
+                                        <option value="Sortie — Transfert">Sortie — Transfert</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label">Date</label>
+                                    <input type="date" id="reg-date">
+                                </div>
+                            </div>
+                            <div class="g2" style="margin-bottom:10px;">
+                                <div>
+                                    <label class="form-label">Nom de l'animal</label>
+                                    <input type="text" id="reg-animal" placeholder="Ex: Luna, chiot F1">
+                                </div>
+                                <div>
+                                    <label class="form-label">N° identification</label>
+                                    <input type="text" id="reg-chip" placeholder="Ex: 250268...">
+                                </div>
+                            </div>
+                            <div style="margin-bottom:14px;">
+                                <label class="form-label">Nom &amp; coordonnées de la personne</label>
+                                <input type="text" id="reg-person" placeholder="Ex: Jean Dupont — 06 12 34 56 78 — Paris">
+                            </div>
+                            <button class="btn btn-gold btn-full" onclick="addRegistreEntry()">
+                                <i class="fa-solid fa-plus"></i> Ajouter au registre
+                            </button>
+                            <div id="registre-list" style="margin-top:18px;"></div>
+                            <div style="display:flex; gap:10px; margin-top:14px;">
+                                <button class="btn btn-outline btn-full" onclick="exportRegistrePDF()"><i class="fa-solid fa-print"></i> Imprimer le registre</button>
+                                <button class="btn btn-danger btn-sm" onclick="clearRegistre()" style="flex-shrink:0;"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Palmarès & Concours -->
+                        <div class="card mt-12">
+                            <div class="card-title"><i class="fa-solid fa-trophy"></i> Palmarès &amp; Concours</div>
+                            <div class="form-row" style="margin-bottom:10px;">
+                                <select id="pro-event-type">
+                                    <option value="Beauté">Beauté (CACS/CACIB…)</option>
+                                    <option value="Sport">Sport (Agility, Ring…)</option>
+                                    <option value="CSAU">Obtention CSAU</option>
+                                    <option value="Autre">Autre Concours</option>
+                                </select>
+                                <input type="date" id="pro-event-date">
+                            </div>
                             <div class="form-row">
-                                <input type="date" id="new-heat-date">
-                                <button class="btn btn-gold btn-round" onclick="addHeatRecord()">
-                                    <i class="fa-solid fa-plus"></i>
-                                </button>
+                                <input type="text" id="pro-event-details" placeholder="Lieu &amp; Résultat (ex: Paris — 1er Exc)" style="flex:2;">
+                                <button class="btn btn-gold btn-round" onclick="addProEvent()"><i class="fa-solid fa-plus"></i></button>
                             </div>
-                            <div id="heat-history-list" style="margin-top:10px; font-size:13px;"></div>
+                            <div id="pro-events-list" style="margin-top:16px;"></div>
                         </div>
 
-                        <div>
-                            <h4 style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Historique des Saillies</h4>
-                            <div class="g3" style="margin-bottom:8px;">
-                                <input type="date" id="mating-date">
-                                <input type="text" id="mating-partner" placeholder="Partenaire">
-                            </div>
-                            <button class="btn btn-gold btn-full" onclick="addMatingRecord()">Ajouter la saillie</button>
-                            <div id="mating-history-list" style="margin-top:10px; font-size:13px;"></div>
-                        </div>
+                    </div><!-- /pro-tab-elevage -->
 
-                        <hr class="dashed-sep">
-                        <div class="g2">
-                            <div id="field-fec-opti">
-                                <label class="form-label">Fécondation Optim. (+12j)</label>
-                                <input type="date" id="pro-optimal-date">
-                            </div>
-                            <div id="field-naissance-prevue">
-                                <label class="form-label">Naissance Prévue (+63j)</label>
-                                <input type="date" id="pro-expected-birth">
-                            </div>
-                            <div id="field-mise-a-bas">
-                                <label class="form-label">Date Mise à Bas (réelle)</label>
-                                <input type="date" id="pro-actual-birth">
-                            </div>
-                        </div>
-
-                        <div id="field-rappel-chaleurs" style="display:flex; align-items:center; gap:10px; margin-top:12px;">
-                            <input type="checkbox" id="pro-heat-reminder" style="width:auto; accent-color:var(--gold);">
-                            <label for="pro-heat-reminder" style="font-size:13px; color:var(--text-muted); cursor:pointer;">
-                                Activer le rappel des prochaines chaleurs dans 6 mois
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Portées -->
-                    <div class="card mt-12">
-                        <div class="card-title"><i class="fa-solid fa-baby-carriage"></i> Historique des Portées <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Enregistrez chaque portée, ajoutez les chiots et générez le passeport QR de cession pour le nouveau propriétaire.</span></span></div>
-                        <div class="g3" style="margin-bottom:10px;">
-                            <input type="date" id="litter-date">
-                            <input type="text" id="litter-partner" placeholder="Avec qui ?">
-                            <input type="number" id="litter-count" placeholder="Nb chiots" min="0">
-                        </div>
-                        <button class="btn btn-gold btn-full" onclick="addLitter()">
-                            <i class="fa-solid fa-plus"></i> Ajouter la portée
-                        </button>
-                        <div id="litters-list" style="margin-top:14px;"></div>
-                    </div>
-
-                    <!-- Palmarès -->
-                    <div class="card mt-12">
-                        <div class="card-title"><i class="fa-solid fa-trophy"></i> Palmarès &amp; Concours</div>
-                        <div class="form-row" style="margin-bottom:10px;">
-                            <select id="pro-event-type">
-                                <option value="Beauté">Beauté (CACS/CACIB…)</option>
-                                <option value="Sport">Sport (Agility, Ring…)</option>
-                                <option value="CSAU">Obtention CSAU</option>
-                                <option value="Autre">Autre Concours</option>
-                            </select>
-                            <input type="date" id="pro-event-date">
-                        </div>
-                        <div class="form-row">
-                            <input type="text" id="pro-event-details" placeholder="Lieu &amp; Résultat (ex: Paris — 1er Exc)" style="flex:2;">
-                            <button class="btn btn-gold btn-round" onclick="addProEvent()">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
-                        </div>
-                        <div id="pro-events-list" style="margin-top:16px;"></div>
-                    </div>
-
-
-                    <!-- REGISTRE ENTRÉES/SORTIES -->
-                    <div class="card mt-12">
-                        <div class="card-title"><i class="fa-solid fa-book-open"></i> Registre Entrées / Sorties <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Obligatoire légalement pour tout éleveur. Enregistrez chaque entrée et sortie d'animal avec identification et coordonnées.</span></span></div>
-                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
-                            Obligatoire pour les éleveurs — enregistrez chaque entrée et sortie d'animal conformément à la réglementation française.
-                        </p>
-                        <!-- Formulaire ajout -->
-                        <div class="g2" style="margin-bottom:10px;">
-                            <div>
-                                <label class="form-label">Type de mouvement</label>
-                                <select id="reg-type">
-                                    <option value="Entrée — Naissance">Entrée — Naissance</option>
-                                    <option value="Entrée — Achat">Entrée — Achat</option>
-                                    <option value="Entrée — Don">Entrée — Don</option>
-                                    <option value="Sortie — Vente">Sortie — Vente</option>
-                                    <option value="Sortie — Don">Sortie — Don</option>
-                                    <option value="Sortie — Décès">Sortie — Décès</option>
-                                    <option value="Sortie — Transfert">Sortie — Transfert</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="form-label">Date</label>
-                                <input type="date" id="reg-date">
-                            </div>
-                        </div>
-                        <div class="g2" style="margin-bottom:10px;">
-                            <div>
-                                <label class="form-label">Nom de l'animal</label>
-                                <input type="text" id="reg-animal" placeholder="Ex: Luna, chiot F1">
-                            </div>
-                            <div>
-                                <label class="form-label">N° identification (puce/tatouage)</label>
-                                <input type="text" id="reg-chip" placeholder="Ex: 250268...">
-                            </div>
-                        </div>
-                        <div style="margin-bottom:14px;">
-                            <label class="form-label">Nom & coordonnées de la personne (vendeur / acheteur / éleveur)</label>
-                            <input type="text" id="reg-person" placeholder="Ex: Jean Dupont — 06 12 34 56 78 — Paris">
-                        </div>
-                        <button class="btn btn-gold btn-full" onclick="addRegistreEntry()">
-                            <i class="fa-solid fa-plus"></i> Ajouter au registre
-                        </button>
-
-                        <!-- Liste registre -->
-                        <div id="registre-list" style="margin-top:18px;"></div>
-
-                        <!-- Export -->
-                        <div style="display:flex; gap:10px; margin-top:14px;">
-                            <button class="btn btn-outline btn-full" onclick="exportRegistrePDF()">
-                                <i class="fa-solid fa-print"></i> Imprimer le registre
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="clearRegistre()" style="flex-shrink:0;">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <button class="btn btn-gold btn-full" onclick="saveProData()" style="margin-top:14px; margin-bottom:24px;">
-                        <i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel
-                    </button>
                 </div>
 
                 <!-- ===================================
@@ -2541,28 +2535,6 @@
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Générer la magie
                         </button>
                         <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Ajoutez d'abord une photo dans le profil.</p>
-                    </div>
-
-                    <!-- Carte partageable -->
-                    <div class="card mt-12" style="background:linear-gradient(135deg, var(--card), var(--bg-elevated));">
-                        <div class="card-title"><i class="fa-solid fa-share-nodes"></i> Présenter mon animal</div>
-                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
-                            Générez une carte 1080×1080 à partager sur les réseaux — auto-remplie avec le nom, la race et la photo de votre compagnon.
-                        </p>
-                        <div style="margin-bottom:14px;">
-                            <label class="form-label">Photo de votre animal (optionnel)</label>
-                            <input type="file" id="share-photo-input" accept="image/*" style="font-size:12.5px;" onchange="previewSharePhoto(this)">
-                            <div id="share-photo-preview" style="display:none; margin-top:8px;">
-                                <img id="share-photo-img" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:2px solid var(--gold-border);">
-                            </div>
-                        </div>
-                        <div style="margin-bottom:14px;">
-                            <label class="form-label">Message personnalisé (optionnel)</label>
-                            <input type="text" id="share-message" placeholder="Ex: Disponible à l'adoption ! 🐾" maxlength="60">
-                        </div>
-                        <button class="btn btn-gold btn-full" onclick="generateShareCard()">
-                            <i class="fa-solid fa-image"></i> Générer la carte 1080×1080
-                        </button>
                     </div>
                 </div>
 
@@ -2834,66 +2806,6 @@
     </div>
 </div>
 
-
-
-<!-- ONBOARDING 3 ÉTAPES -->
-<div id="onboarding-overlay">
-    <div class="onboarding-card">
-        <div class="onboarding-steps">
-            <div class="ob-step active" id="ob-s1"></div>
-            <div class="ob-step" id="ob-s2"></div>
-            <div class="ob-step" id="ob-s3"></div>
-        </div>
-        <!-- Étape 1 -->
-        <div id="ob-step-1">
-            <div class="ob-icon"><i class="fa-solid fa-paw"></i></div>
-            <div class="ob-title">Bienvenue sur Pablo !</div>
-            <div class="ob-sub">Le carnet de santé intelligent pour votre compagnon. Prêt en moins d'une minute.</div>
-            <div class="ob-fields">
-                <div><label class="form-label">Nom de votre animal *</label><input type="text" id="ob-pet-name" placeholder="Ex: Luna, Rex, Bella…" autocomplete="off"></div>
-                <div><label class="form-label">Espèce</label>
-                    <select id="ob-pet-species">
-                        <option value="Chien">Chien 🐶</option>
-                        <option value="Chat">Chat 🐱</option>
-                        <option value="Autre">Autre 🐾</option>
-                    </select>
-                </div>
-            </div>
-            <button class="btn-ob-next" onclick="obNext(1)">Continuer <i class="fa-solid fa-arrow-right"></i></button>
-            <button class="btn-ob-skip" onclick="skipOnboarding()">Passer et accéder directement à l'app</button>
-        </div>
-        <!-- Étape 2 -->
-        <div id="ob-step-2" style="display:none;">
-            <div class="ob-icon"><i class="fa-solid fa-dog"></i></div>
-            <div class="ob-title">Un peu plus sur lui</div>
-            <div class="ob-sub">Ces infos permettent à Pablo de personnaliser les conseils nutrition et santé.</div>
-            <div class="ob-fields">
-                <div><label class="form-label">Race</label><input type="text" id="ob-pet-breed" placeholder="Ex: Berger Allemand, Labrador…" autocomplete="off"></div>
-                <div><label class="form-label">Poids actuel (kg)</label><input type="number" id="ob-pet-weight" placeholder="Ex: 28" step="0.1" min="0"></div>
-            </div>
-            <button class="btn-ob-next" onclick="obNext(2)">Continuer <i class="fa-solid fa-arrow-right"></i></button>
-            <button class="btn-ob-skip" onclick="skipOnboarding()">Passer cette étape</button>
-        </div>
-        <!-- Étape 3 -->
-        <div id="ob-step-3" style="display:none;">
-            <div class="ob-icon" style="color:var(--success); background:var(--success-dim); border-color:rgba(82,201,122,0.2);"><i class="fa-solid fa-check"></i></div>
-            <div class="ob-title">Votre carnet est prêt !</div>
-            <div class="ob-sub">Pablo a créé le profil de <strong id="ob-pet-name-display"></strong>. Vous pouvez maintenant suivre sa santé, sa nutrition et son éducation.</div>
-            <button class="btn-ob-next" onclick="finishOnboarding()" style="background:var(--success);">
-                <i class="fa-solid fa-paw"></i> Accéder au carnet
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- SHARE CANVAS -->
-<div id="share-canvas-wrap">
-    <canvas id="share-canvas" width="1080" height="1080"></canvas>
-    <div class="share-actions">
-        <button class="btn btn-gold" onclick="downloadShareCard()"><i class="fa-solid fa-download"></i> Télécharger</button>
-        <button class="btn btn-outline" onclick="closeShareCanvas()" style="color:var(--text-sub);">Fermer</button>
-    </div>
-</div>
 
 <!-- TOAST -->
 <div id="global-toast">
