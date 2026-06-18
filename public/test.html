@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pablo — Diagnostic</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0d0b07; color: #f0e8d8; font-family: 'Outfit', sans-serif; font-size: 14px; min-height: 100vh; padding: 24px; }
+        h1 { font-size: 24px; color: #c8922a; margin-bottom: 6px; }
+        .sub { color: #6b5f4a; font-size: 13px; margin-bottom: 24px; }
+        .section { background: #181309; border: 1px solid #2a2215; border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+        .section h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #c8922a; margin-bottom: 14px; }
+        .item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #1c1710; font-size: 13px; }
+        .item:last-child { border-bottom: none; }
+        .ok   { color: #52c97a; font-size: 15px; }
+        .fail { color: #e05252; font-size: 15px; }
+        .warn { color: #e8a83c; font-size: 15px; }
+        .label { flex: 1; color: #b8a88a; }
+        .status { font-weight: 700; font-size: 12px; }
+        .status.ok   { color: #52c97a; }
+        .status.fail { color: #e05252; }
+        .status.warn { color: #e8a83c; }
+        .summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .sum-box { flex: 1; min-width: 100px; background: #181309; border: 1px solid #2a2215; border-radius: 10px; padding: 14px; text-align: center; }
+        .sum-box .n { font-size: 32px; font-weight: 700; font-family: Georgia, serif; }
+        .sum-box .l { font-size: 11px; color: #6b5f4a; text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+        .n.ok   { color: #52c97a; }
+        .n.fail { color: #e05252; }
+        .n.warn { color: #e8a83c; }
+        .btn-run { width: 100%; padding: 14px; background: #c8922a; color: #0a0806; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; border: none; border-radius: 100px; cursor: pointer; margin-bottom: 20px; transition: background .2s; }
+        .btn-run:hover { background: #e8b84b; }
+        .btn-back { display: inline-flex; align-items: center; gap: 7px; color: #6b5f4a; text-decoration: none; font-size: 12px; margin-bottom: 20px; }
+        .btn-back:hover { color: #c8922a; }
+        #results { display: none; }
+    </style>
+</head>
+<body>
+
+<a href="/" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Retour à l'app</a>
+<h1>🐾 Pablo — Diagnostic</h1>
+<p class="sub">Vérification automatique de toutes les fonctions et éléments HTML.</p>
+
+<button class="btn-run" onclick="runDiag()">
+    <i class="fa-solid fa-play"></i> Lancer le diagnostic
+</button>
+
+<div id="results">
+    <div class="summary">
+        <div class="sum-box"><div class="n ok" id="count-ok">0</div><div class="l">✅ OK</div></div>
+        <div class="sum-box"><div class="n fail" id="count-fail">0</div><div class="l">❌ Manquantes</div></div>
+        <div class="sum-box"><div class="n warn" id="count-warn">0</div><div class="l">⚠️ Alertes</div></div>
+    </div>
+
+    <div class="section">
+        <h2><i class="fa-solid fa-code"></i> Fonctions JavaScript</h2>
+        <div id="fn-results"></div>
+    </div>
+
+    <div class="section">
+        <h2><i class="fa-solid fa-layer-group"></i> Éléments HTML</h2>
+        <div id="html-results"></div>
+    </div>
+
+    <div class="section">
+        <h2><i class="fa-solid fa-wifi"></i> Connectivité & PWA</h2>
+        <div id="pwa-results"></div>
+    </div>
+</div>
+
+<script>
+function makeItem(label, ok, detail = '') {
+    const icon   = ok === true ? '✅' : ok === 'warn' ? '⚠️' : '❌';
+    const cls    = ok === true ? 'ok' : ok === 'warn' ? 'warn' : 'fail';
+    const status = ok === true ? 'OK' : ok === 'warn' ? 'ATTENTION' : 'MANQUANT';
+    return `<div class="item">
+        <span class="${cls}">${icon}</span>
+        <span class="label">${label}${detail ? ' <span style="color:#6b5f4a;font-size:11px;">— ' + detail + '</span>' : ''}</span>
+        <span class="status ${cls}">${status}</span>
+    </div>`;
+}
+
+async function runDiag() {
+    document.getElementById('results').style.display = 'block';
+    document.querySelector('.btn-run').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse en cours…';
+
+    let ok = 0, fail = 0, warn = 0;
+    const addItem = (container, label, status, detail = '') => {
+        document.getElementById(container).innerHTML += makeItem(label, status, detail);
+        if (status === true) ok++;
+        else if (status === 'warn') warn++;
+        else fail++;
+    };
+
+    // ── Fonctions JS (chargées depuis l'iframe de l'app)
+    const FNS = [
+        ['calcReproDates',       'Calculateur dates reproduction'],
+        ['applyReproDates',      'Appliquer dates reproduction'],
+        ['updateElevageStats',   'Stats élevage temps réel'],
+        ['generateFichePublique','Fiche élevage publique'],
+        ['exportCarnetAdultePDF','Export PDF carnet adulte'],
+        ['updateKibbleDaysAlert','Alerte jours croquettes'],
+        ['schedulePushReminders','Planification push FCM'],
+        ['generateShareToken',   'Partage multi-utilisateurs'],
+        ['switchProTab',         'Onglets Mon animal / Élevage'],
+        ['startOnboarding',      'Onboarding 3 étapes'],
+        ['finishOnboarding',     'Fin onboarding création profil'],
+        ['skipOnboarding',       'Passer onboarding'],
+        ['obNext',               'Navigation étapes onboarding'],
+        ['generateShareCard',    'Carte partageable 1080×1080'],
+        ['downloadShareCard',    'Téléchargement share card'],
+        ['addRegistreEntry',     'Registre entrées/sorties'],
+        ['exportRegistrePDF',    'Export PDF registre'],
+        ['clearRegistre',        'Vider le registre'],
+        ['openWaitlistModal',    'Liste d\'attente adoptants'],
+        ['addWaitlistEntry',     'Ajouter adoptant'],
+        ['exportPuppyPDF',       'Export PDF carnet chiot'],
+        ['openPdfExportModal',   'Modal export PDF chiot'],
+        ['openPuppyTracking',    'Suivi individuel chiot'],
+        ['closePuppyModal',      'Fermer modal suivi chiot'],
+        ['addPuppyWeight',       'Ajouter pesée chiot'],
+        ['addPuppyAct',          'Ajouter soin chiot'],
+        ['updatePuppyStatus',    'Statut chiot'],
+        ['addLitter',            'Ajouter portée'],
+        ['addPuppy',             'Ajouter chiot'],
+        ['cederChiot',           'Passeport QR cession'],
+        ['saveProData',          'Sauvegarder profil officiel'],
+        ['addRegistreEntry',     'Registre entrées/sorties'],
+        ['navigateTo',           'Navigation entre écrans'],
+        ['showToast',            'Notifications toast'],
+        ['sendMessage',          'Chat Hey Pablo'],
+        ['requestNotificationPermission', 'Notifications push'],
+        ['logoutApp',            'Déconnexion'],
+        ['createNewPet',         'Créer un animal'],
+        ['switchPet',            'Changer d\'animal'],
+        ['savePetProfile',       'Sauvegarder profil animal'],
+        ['addNewWeight',         'Ajouter pesée adulte'],
+        ['addMedicalEvent',      'Ajouter acte médical'],
+        ['addMemory',            'Ajouter souvenir'],
+        ['addBudgetExpense',     'Ajouter dépense'],
+    ];
+
+    // Charger l'app dans un iframe caché pour tester les fonctions
+    const iframe = document.createElement('iframe');
+    iframe.src   = '/';
+    iframe.style.cssText = 'display:none;';
+    document.body.appendChild(iframe);
+
+    await new Promise(resolve => {
+        iframe.onload = () => setTimeout(resolve, 2000); // attendre init app
+    });
+
+    const iWin = iframe.contentWindow;
+
+    // Dédupliquer les fonctions
+    const uniqueFns = FNS.filter((fn, i, arr) => arr.findIndex(f => f[0] === fn[0]) === i);
+    uniqueFns.forEach(([fn, label]) => {
+        const exists = typeof iWin[fn] === 'function';
+        addItem('fn-results', label, exists, fn + '()');
+    });
+
+    // ── Éléments HTML
+    const IDS = [
+        ['offline-banner',         'Bannière hors-ligne'],
+        ['onboarding-overlay',     'Overlay onboarding'],
+        ['ob-step-1',              'Étape 1 onboarding'],
+        ['ob-step-2',              'Étape 2 onboarding'],
+        ['ob-step-3',              'Étape 3 onboarding'],
+        ['share-canvas-wrap',      'Canvas share card'],
+        ['share-canvas',           'Element canvas 1080'],
+        ['share-photo-input',      'Upload photo share card'],
+        ['waitlist-modal',         'Modal liste d\'attente'],
+        ['pdf-export-modal',       'Modal export PDF chiot'],
+        ['puppy-tracking-modal',   'Modal suivi chiot'],
+        ['calc-mating-date',       'Calculateur reproduction'],
+        ['repro-calc-result',      'Résultat calculateur'],
+        ['elevage-stats-grid',     'Grille stats élevage'],
+        ['stat-portees',           'Compteur portées'],
+        ['stat-chiots-total',      'Compteur chiots nés'],
+        ['stat-chiots-cedes',      'Compteur chiots cédés'],
+        ['stat-chiots-dispo',      'Compteur chiots dispo'],
+        ['stat-waitlist',          'Compteur liste attente'],
+        ['public-fiche-link-wrap', 'Lien fiche publique'],
+        ['kibble-days-alert',      'Alerte croquettes jours'],
+        ['pro-kennel-name',        'Nom de l\'élevage'],
+        ['pro-tab-animal',         'Onglet Mon animal'],
+        ['pro-tab-elevage',        'Onglet Élevage'],
+        ['tab-btn-animal',         'Bouton onglet Mon animal'],
+        ['tab-btn-elevage',        'Bouton onglet Élevage'],
+        ['litters-list',           'Liste portées'],
+        ['registre-list',          'Liste registre'],
+        ['pro-events-list',        'Liste palmarès'],
+        ['screen-home',            'Écran Accueil'],
+        ['screen-carnet',          'Écran Carnet'],
+        ['screen-chat',            'Écran Chat'],
+        ['screen-pro',             'Écran Élevage & Officiel'],
+        ['screen-tools',           'Écran Outils'],
+        ['screen-profile',         'Écran Profil'],
+        ['global-toast',           'Système toast'],
+        ['dynamic-reminders-list', 'Liste rappels'],
+        ['weightChart',            'Graphique poids adulte'],
+        ['chat-messages-container','Container messages chat'],
+    ];
+
+    const iDoc = iframe.contentDocument;
+    IDS.forEach(([id, label]) => {
+        const el = iDoc.getElementById(id);
+        addItem('html-results', label, el !== null, '#' + id);
+    });
+
+    iframe.remove();
+
+    // ── PWA & Connectivité
+    addItem('pwa-results', 'Connexion internet', navigator.onLine, navigator.onLine ? 'En ligne' : 'Hors ligne');
+    addItem('pwa-results', 'Service Worker supporté', 'serviceWorker' in navigator);
+
+    const swReg = await navigator.serviceWorker.getRegistration('/').catch(() => null);
+    addItem('pwa-results', 'Service Worker actif', swReg ? swReg.active !== null : false, swReg?.active?.scriptURL || 'Non enregistré');
+
+    const cacheKeys = await caches.keys().catch(() => []);
+    addItem('pwa-results', 'Cache PWA présent', cacheKeys.length > 0, cacheKeys.join(', ') || 'Aucun');
+
+    const notifStatus = 'Notification' in window
+        ? (Notification.permission === 'granted' ? true : Notification.permission === 'denied' ? false : 'warn')
+        : false;
+    addItem('pwa-results', 'Notifications push', notifStatus,
+        Notification.permission === 'granted' ? 'Accordées' : Notification.permission === 'denied' ? 'Refusées' : 'Non demandées');
+
+    // Résumé
+    document.getElementById('count-ok').textContent   = ok;
+    document.getElementById('count-fail').textContent = fail;
+    document.getElementById('count-warn').textContent = warn;
+
+    document.querySelector('.btn-run').innerHTML = fail === 0
+        ? '<i class="fa-solid fa-check"></i> Tout est OK — Relancer'
+        : `<i class="fa-solid fa-rotate"></i> ${fail} problème(s) — Relancer`;
+    document.querySelector('.btn-run').onclick = () => { document.getElementById('results').style.display='none'; document.getElementById('fn-results').innerHTML=''; document.getElementById('html-results').innerHTML=''; document.getElementById('pwa-results').innerHTML=''; ok=0;fail=0;warn=0; runDiag(); };
+}
+</script>
+</body>
+</html>
