@@ -3257,4 +3257,5 @@ document.addEventListener('DOMContentLoaded', () => {
         shareBtn.style.borderColor = 'var(--gold-border)';
         optionsBtns.insertBefore(shareBtn, optionsBtns.lastElementChild);
     }
+    import { Analytics } from "@vercel/analytics/next"
 });
