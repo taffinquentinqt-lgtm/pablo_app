@@ -2863,3 +2863,408 @@ window.closeShareCanvas = function() {
     const preview = document.getElementById('share-photo-preview');
     if (preview) preview.style.display = 'none';
 };
+// ==========================================
+// MODE HORS-LIGNE
+// ==========================================
+window.addEventListener('online',  () => document.getElementById('offline-banner')?.classList.remove('show'));
+window.addEventListener('offline', () => document.getElementById('offline-banner')?.classList.add('show'));
+if (!navigator.onLine) document.getElementById('offline-banner')?.classList.add('show');
+
+// Wrapper groqChat offline-safe
+const _groqChatOriginal = groqChat;
+window._groqChatSafe = async function(messages) {
+    if (!navigator.onLine) {
+        showToast("Pas de connexion — l'IA est indisponible.", '📵', 'error');
+        throw new Error('offline');
+    }
+    return _groqChatOriginal(messages);
+};
+
+// ==========================================
+// NOTIFICATIONS FCM — FINALISÉ
+// ==========================================
+async function schedulePushReminders() {
+    if (!auth.currentUser) return;
+    const reminders = [];
+    const today     = new Date();
+
+    const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30 };
+    Object.keys(rules).forEach(type => {
+        const events = medicalEvents.filter(e => e.type === type);
+        const sorted = events.sort((a,b) => new Date(b.date)-new Date(a.date));
+        const last   = sorted.length > 0 ? new Date(sorted[0].date) : null;
+        const days   = last ? Math.ceil(Math.abs(today-last)/86400000) : 999;
+        if (!last || days > rules[type] - 7) {
+            reminders.push({ type, overdue: !last || days > rules[type], daysLeft: last ? rules[type]-days : 0 });
+        }
+    });
+
+    // Sauvegarder les rappels dans Firestore pour la Cloud Function
+    if (reminders.length > 0) {
+        try {
+            const { doc, setDoc } = await import('firebase/firestore');
+            await setDoc(
+                doc(db, 'users', auth.currentUser.uid),
+                { pendingReminders: reminders, petName: petProfile.name || 'votre animal', updatedAt: Date.now() },
+                { merge: true }
+            );
+        } catch (e) { console.warn('Erreur sauvegarde reminders:', e); }
+    }
+}
+
+// Amélioration de requestNotificationPermission — appel schedulePushReminders après activation
+const _originalRequestNotif = window.requestNotificationPermission;
+window.requestNotificationPermission = async function() {
+    await _originalRequestNotif();
+    await schedulePushReminders();
+};
+
+// ==========================================
+// CALCULATEUR DATES REPRODUCTION
+// ==========================================
+window.calcReproDates = function() {
+    const dateInput = document.getElementById('calc-mating-date');
+    if (!dateInput?.value) return;
+
+    const saillie   = new Date(dateInput.value);
+    const addDays   = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+    const fmt       = d => d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+    const fec     = addDays(saillie, 12);
+    const birth   = addDays(saillie, 63);
+    const sevrage = addDays(birth,   56);
+    const depart  = addDays(birth,   63);
+
+    document.getElementById('calc-fec').textContent     = fmt(fec);
+    document.getElementById('calc-birth').textContent   = fmt(birth);
+    document.getElementById('calc-sevrage').textContent = fmt(sevrage);
+    document.getElementById('calc-depart').textContent  = fmt(depart);
+
+    document.getElementById('repro-calc-result').classList.add('show');
+    document.getElementById('btn-apply-repro').style.display = 'block';
+
+    // Stocker pour applyReproDates
+    window._reproCalcData = {
+        optimalDate:   fec.toISOString().split('T')[0],
+        expectedBirth: birth.toISOString().split('T')[0]
+    };
+};
+
+window.applyReproDates = function() {
+    if (!window._reproCalcData) return;
+    const opEl = document.getElementById('pro-optimal-date');
+    const nbEl = document.getElementById('pro-expected-birth');
+    if (opEl) opEl.value = window._reproCalcData.optimalDate;
+    if (nbEl) nbEl.value = window._reproCalcData.expectedBirth;
+    showToast('Dates appliquées au profil !', '✅');
+};
+
+// ==========================================
+// RAPPEL SAC DE CROQUETTES — AMÉLIORÉ
+// ==========================================
+const _originalRefillKibble = window.refillKibbleBag;
+window.refillKibbleBag = function() {
+    _originalRefillKibble();
+    updateKibbleDaysAlert();
+};
+
+function updateKibbleDaysAlert() {
+    const alertEl = document.getElementById('kibble-days-alert');
+    if (!alertEl) return;
+
+    const remaining = healthExtras.kibbleRemaining || 0;
+    const weight    = petProfile.weight || 0;
+    if (remaining <= 0 || weight <= 0) { alertEl.style.display = 'none'; return; }
+
+    const dailyRation = (weight * 13.5) / 1000; // en kg
+    const daysLeft    = Math.floor(remaining / dailyRation);
+
+    if (daysLeft <= 3) {
+        alertEl.style.display = 'block';
+        alertEl.innerHTML = `⚠️ Seulement <strong>${daysLeft} jour${daysLeft > 1 ? 's' : ''}</strong> de croquettes restant${daysLeft > 1 ? 's' : ''} — Pensez à en racheter !`;
+    } else if (daysLeft <= 7) {
+        alertEl.style.display = 'block';
+        alertEl.style.background = 'rgba(232,168,60,0.1)';
+        alertEl.style.borderColor = 'rgba(232,168,60,0.3)';
+        alertEl.style.color = '#e8a83c';
+        alertEl.innerHTML = `🛒 Il reste environ <strong>${daysLeft} jours</strong> de croquettes.`;
+    } else {
+        alertEl.style.display = 'none';
+    }
+}
+
+// Patcher initHealthExtras pour afficher l'alerte au chargement
+const _originalInitHealthExtras = initHealthExtras;
+function initHealthExtras() {
+    _originalInitHealthExtras();
+    updateKibbleDaysAlert();
+}
+
+// ==========================================
+// STATS ÉLEVAGE
+// ==========================================
+function updateElevageStats() {
+    const totalPortees = proLitters.length;
+    let totalChiots = 0, chiotsCedes = 0, chiotsDispo = 0, totalWaitlist = 0;
+
+    proLitters.forEach(l => {
+        const puppies = Array.isArray(l.puppies) ? l.puppies : [];
+        totalChiots  += puppies.length;
+        chiotsCedes  += puppies.filter(p => p.status === 'Cédé').length;
+        chiotsDispo  += puppies.filter(p => p.status === 'En élevage').length;
+        totalWaitlist += Array.isArray(l.waitlist) ? l.waitlist.filter(w => w.status !== 'Annulé').length : 0;
+    });
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('stat-portees',       totalPortees);
+    set('stat-chiots-total',  totalChiots);
+    set('stat-chiots-cedes',  chiotsCedes);
+    set('stat-chiots-dispo',  chiotsDispo);
+    set('stat-waitlist',      totalWaitlist);
+}
+
+// Patcher renderLitters pour mettre à jour les stats à chaque fois
+const _originalRenderLitters = window.renderLitters;
+window.renderLitters = function() {
+    _originalRenderLitters();
+    updateElevageStats();
+};
+
+// Patcher initProData pour charger les stats
+const _originalInitProData = initProData;
+function initProData() {
+    _originalInitProData();
+    updateElevageStats();
+}
+
+// ==========================================
+// FICHE PUBLIQUE ÉLEVAGE
+// ==========================================
+window.generateFichePublique = async function() {
+    if (!auth.currentUser) { showToast('Connectez-vous pour générer votre fiche.', '⚠️', 'error'); return; }
+
+    const btn = document.getElementById('btn-generate-fiche');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Génération…'; }
+
+    try {
+        const ficheId  = auth.currentUser.uid;
+        const profile  = getLocalData(currentPetId, 'profile', {});
+        const animaux  = [];
+
+        petsList.forEach(pet => {
+            const p = getLocalData(pet.id, 'profile', {});
+            const proD = getLocalData(pet.id, 'proData', {});
+            const litters = getLocalData(pet.id, 'proLitters', []);
+            const availablePuppies = [];
+            litters.forEach(l => {
+                (l.puppies || []).filter(pup => pup.status === 'En élevage').forEach(pup => {
+                    availablePuppies.push({ name: pup.name, sex: pup.sex, color: pup.color, chip: pup.chip, birthDate: pup.birthDate });
+                });
+            });
+            animaux.push({
+                name: pet.name, breed: p.breed || '', gender: proD.gender || '',
+                lof: proD.lof || '', chip: proD.chip || '',
+                availablePuppies
+            });
+        });
+
+        const ficheData = {
+            uid:         ficheId,
+            kennelName:  proData.kennelName || petProfile.name || 'Élevage Pablo',
+            dept:        proData.dept  || '',
+            website:     proData.website || '',
+            animaux,
+            updatedAt:   Date.now()
+        };
+
+        await setDoc(doc(db, 'fiches_publiques', ficheId), ficheData);
+
+        const url = `${window.location.origin}/fiche/${ficheId}`;
+        const urlInput = document.getElementById('public-fiche-url');
+        const wrap     = document.getElementById('public-fiche-link-wrap');
+        if (urlInput) urlInput.value = url;
+        if (wrap)     wrap.style.display = 'block';
+        if (btn)      btn.style.display  = 'none';
+
+        showToast('Fiche publique générée ! 🌐', '✅');
+        trackEvent('fiche_publique_generated');
+    } catch (e) {
+        console.error('Erreur fiche publique:', e);
+        showToast('Erreur lors de la génération.', '⚠️', 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Générer ma fiche publique'; }
+    }
+};
+
+window.copyFichePublique = function() {
+    const url = document.getElementById('public-fiche-url')?.value;
+    if (!url) return;
+    navigator.clipboard?.writeText(url).then(() => showToast('Lien copié !', '📋')).catch(() => showToast('Copiez le lien manuellement.', '⚠️'));
+};
+
+window.openFichePublique = function() {
+    const url = document.getElementById('public-fiche-url')?.value;
+    if (url) window.open(url, '_blank');
+};
+
+// ==========================================
+// EXPORT PDF CARNET ADULTE COMPLET
+// ==========================================
+window.exportCarnetAdultePDF = function() {
+    const name    = petProfile.name   || 'Animal';
+    const breed   = petProfile.breed  || 'Non renseignée';
+    const species = petProfile.species || 'Chien';
+    const today   = new Date().toLocaleDateString('fr-FR');
+    const vet     = healthExtras.vetName  || '—';
+    const vetTel  = healthExtras.vetPhone || '—';
+
+    const medSorted = [...medicalEvents].sort((a,b) => new Date(b.date)-new Date(a.date));
+    const wSorted   = [...weightHistory].sort((a,b) => new Date(a.date)-new Date(b.date));
+    const budgetMonth = budgetExpenses.reduce((s,e) => s + e.amount, 0);
+
+    const medRows = medSorted.length === 0
+        ? '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:10px;">Aucun acte.</td></tr>'
+        : medSorted.map(e => `<tr><td>${new Date(e.date).toLocaleDateString('fr-FR')}</td><td>${e.type}</td></tr>`).join('');
+
+    const weightRows = wSorted.length === 0
+        ? '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:10px;">Aucune pesée.</td></tr>'
+        : wSorted.map(w => `<tr><td>${new Date(w.date).toLocaleDateString('fr-FR')}</td><td><strong>${w.weight} kg</strong></td></tr>`).join('');
+
+    const budgetRows = budgetExpenses.length === 0
+        ? '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:10px;">Aucune dépense.</td></tr>'
+        : [...budgetExpenses].sort((a,b) => new Date(b.date)-new Date(a.date)).map(e => `<tr><td>${new Date(e.date).toLocaleDateString('fr-FR')}</td><td>${e.title}</td><td><strong>${e.amount.toFixed(2)} €</strong></td></tr>`).join('');
+
+    const eduItems = Object.entries(educationData).map(([id,level]) => {
+        const labels = ['À commencer','En cours','Acquis','Maîtrisé'];
+        const ex = [...(window.DEFAULT_EDU_EXERCISES || [])].find(e => e.id === id);
+        return ex ? `<tr><td>${ex.name}</td><td>${labels[level] || '—'}</td></tr>` : '';
+    }).join('');
+
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><title>Carnet Santé — ${name}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;padding:30px}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #c8922a}
+.logo{font-family:Georgia,serif;font-size:28px;font-weight:700;color:#c8922a;font-style:italic}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.info-card{background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:12px}
+.info-card h3{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#c8922a;font-weight:700;margin-bottom:8px}
+.info-row{display:flex;justify-content:space-between;margin-bottom:4px;font-size:11.5px}
+.info-row .l{color:#888}.info-row .v{font-weight:600}
+h2{font-size:12px;font-weight:700;color:#1a1a1a;margin:18px 0 7px;text-transform:uppercase;letter-spacing:.05em;border-left:3px solid #c8922a;padding-left:8px}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{background:#2d2d2d;color:#fff;padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase}
+td{padding:7px 10px;border-bottom:1px solid #eee}
+tr:nth-child(even) td{background:#fafafa}
+.footer{margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:10px}
+.total-row td{font-weight:700;background:#f0f0f0}
+</style></head><body>
+<div class="header">
+    <div><div class="logo">Pablo.</div><div style="font-size:11px;color:#888;margin-top:4px;">Carnet de santé complet</div></div>
+    <div style="text-align:right;font-size:11px;color:#888;">Édité le ${today}<br><strong style="color:#1a1a1a;">${name}</strong></div>
+</div>
+<div class="info-grid">
+    <div class="info-card">
+        <h3>Identité</h3>
+        <div class="info-row"><span class="l">Nom</span><span class="v">${name}</span></div>
+        <div class="info-row"><span class="l">Espèce</span><span class="v">${species}</span></div>
+        <div class="info-row"><span class="l">Race</span><span class="v">${breed}</span></div>
+        <div class="info-row"><span class="l">Poids actuel</span><span class="v">${petProfile.weight ? petProfile.weight + ' kg' : '—'}</span></div>
+        <div class="info-row"><span class="l">Allergies</span><span class="v">${healthExtras.allergies || 'Aucune'}</span></div>
+    </div>
+    <div class="info-card">
+        <h3>Vétérinaire</h3>
+        <div class="info-row"><span class="l">Nom</span><span class="v">${vet}</span></div>
+        <div class="info-row"><span class="l">Téléphone</span><span class="v">${vetTel}</span></div>
+        <div class="info-row"><span class="l">Total dépenses</span><span class="v">${budgetMonth.toFixed(2)} €</span></div>
+    </div>
+</div>
+<h2>Actes & Soins — ${medSorted.length} acte(s)</h2>
+<table><thead><tr><th>Date</th><th>Acte</th></tr></thead><tbody>${medRows}</tbody></table>
+<h2>Courbe de croissance — ${wSorted.length} pesée(s)</h2>
+<table><thead><tr><th>Date</th><th>Poids</th></tr></thead><tbody>${weightRows}</tbody></table>
+<h2>Éducation</h2>
+<table><thead><tr><th>Exercice</th><th>Niveau</th></tr></thead><tbody>${eduItems || '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:10px;">Aucun exercice.</td></tr>'}</tbody></table>
+<h2>Dépenses</h2>
+<table><thead><tr><th>Date</th><th>Description</th><th>Montant</th></tr></thead><tbody>${budgetRows}
+<tr class="total-row"><td colspan="2">Total</td><td>${budgetMonth.toFixed(2)} €</td></tr>
+</tbody></table>
+<div class="footer">Pablo — pablocanin.fr &nbsp;|&nbsp; Carnet généré automatiquement &nbsp;|&nbsp; ${today}</div>
+</body></html>`);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); }, 400);
+    trackEvent('carnet_adulte_exported');
+};
+
+// ==========================================
+// WIDGET iOS/ANDROID — PWA Shortcuts
+// ==========================================
+// Ajout dans le manifest dynamiquement si pas déjà fait
+(async function injectPWAShortcuts() {
+    try {
+        const link = document.querySelector('link[rel="manifest"]');
+        if (!link) return;
+        const resp = await fetch(link.href);
+        const manifest = await resp.json();
+        if (manifest.shortcuts) return; // déjà présent
+        manifest.shortcuts = [
+            { name: "Accueil Pablo", short_name: "Accueil", url: "/?screen=home", icons: [{ src: "/pablo.jpg", sizes: "192x192" }] },
+            { name: "Mes rappels", short_name: "Rappels", url: "/?screen=carnet", icons: [{ src: "/pablo.jpg", sizes: "192x192" }] },
+            { name: "Hey Pablo", short_name: "IA", url: "/?screen=chat", icons: [{ src: "/pablo.jpg", sizes: "192x192" }] }
+        ];
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        const newUrl = URL.createObjectURL(blob);
+        link.href = newUrl;
+    } catch(e) { /* non bloquant */ }
+})();
+
+// Deep link depuis shortcuts PWA
+(function handleDeepLink() {
+    const params = new URLSearchParams(window.location.search);
+    const screen = params.get('screen');
+    if (screen && auth.currentUser) {
+        setTimeout(() => navigateTo('screen-' + screen), 800);
+    }
+})();
+
+// ==========================================
+// MODE MULTI-UTILISATEURS — Partage de profil
+// ==========================================
+window.generateShareToken = async function() {
+    if (!auth.currentUser || !currentPetId) return;
+    const token    = Math.random().toString(36).slice(2,10).toUpperCase();
+    const shareUrl = `${window.location.origin}/?share=${token}`;
+
+    try {
+        await setDoc(doc(db, 'shared_profiles', token), {
+            ownerUid:  auth.currentUser.uid,
+            petId:     currentPetId,
+            petName:   petProfile.name || 'Animal',
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 7 * 86400000 // 7 jours
+        });
+        if (navigator.clipboard) {
+            await navigator.clipboard.writeText(shareUrl);
+            showToast(`Lien de partage copié ! Valable 7 jours.`, '🔗');
+        }
+    } catch(e) {
+        console.error('Erreur partage:', e);
+        showToast('Erreur lors du partage.', '⚠️', 'error');
+    }
+};
+
+// Bouton partage dans les options système — injecté dynamiquement
+document.addEventListener('DOMContentLoaded', () => {
+    const optionsBtns = document.querySelector('.card.mt-12 .btn-danger')?.parentElement;
+    if (optionsBtns) {
+        const shareBtn = document.createElement('button');
+        shareBtn.className   = 'btn btn-outline btn-full';
+        shareBtn.innerHTML   = '<i class="fa-solid fa-user-plus"></i> Partager ce profil (co-maître)';
+        shareBtn.onclick     = window.generateShareToken;
+        shareBtn.style.color = 'var(--gold)';
+        shareBtn.style.borderColor = 'var(--gold-border)';
+        optionsBtns.insertBefore(shareBtn, optionsBtns.lastElementChild);
+    }
+});

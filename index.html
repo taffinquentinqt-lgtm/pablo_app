@@ -1679,6 +1679,22 @@
         #share-canvas-wrap.open { display: flex; }
         #share-canvas { border-radius: 16px; max-width: 100%; max-height: 70vh; }
         .share-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+        /* ── Offline banner ── */
+        #offline-banner { display:none; position:fixed; top:0; left:0; right:0; z-index:99999; background:#e05252; color:#fff; text-align:center; padding:10px 16px; font-size:13px; font-weight:600; }
+        #offline-banner.show { display:block; }
+        /* ── Stats élevage ── */
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:16px; }
+        .stat-box { background:var(--bg-elevated); border:1px solid var(--card-border); border-radius:var(--radius-md); padding:14px; text-align:center; }
+        .stat-box .s-value { font-family:var(--font-display); font-size:32px; font-weight:700; color:var(--gold); line-height:1; }
+        .stat-box .s-label { font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-top:4px; }
+        /* ── Calculateur reproduction ── */
+        .repro-result { background:var(--gold-dim); border:1px solid var(--gold-border); border-radius:var(--radius-sm); padding:14px 18px; margin-top:14px; display:none; }
+        .repro-result.show { display:block; }
+        .repro-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dashed var(--card-border); font-size:13.5px; }
+        .repro-row:last-child { border-bottom:none; }
+        .repro-row .r-label { color:var(--text-muted); }
+        .repro-row .r-value { font-weight:700; color:var(--gold); }
     </style>
 
     <!-- Microsoft Clarity -->
@@ -1691,6 +1707,9 @@
     </script>
 </head>
 <body>
+
+<!-- OFFLINE BANNER -->
+<div id="offline-banner"><i class="fa-solid fa-wifi-slash"></i> Pas de connexion — Certaines fonctionnalités sont indisponibles.</div>
 
 <!-- ============================================================
      LANDING PAGE
@@ -2162,6 +2181,7 @@
                                 <div class="stat-value mt-8" id="kibble-remaining-text" style="font-size:28px; color:var(--success);">-- kg</div>
                             </div>
                         </div>
+                        <div id="kibble-days-alert" style="display:none; margin-bottom:10px; padding:10px 14px; background:var(--danger-dim); border:1px solid rgba(224,82,82,0.25); border-radius:var(--radius-sm); font-size:13px; color:var(--danger); font-weight:600;"></div>
                         <div class="form-row mt-12">
                             <input type="number" id="kibble-bag-size" placeholder="Nouveau sac (ex: 12 kg)" min="0" step="0.5">
                             <button class="btn btn-gold" onclick="refillKibbleBag()">Ouvrir un sac</button>
@@ -2260,6 +2280,9 @@
                         <div id="budget-history-list" style="margin-top:16px;"></div>
                         <button class="btn btn-outline btn-full" onclick="exportToPDF()" style="margin-top:14px;">
                             <i class="fa-solid fa-print"></i> Exporter la fiche de frais
+                        </button>
+                        <button class="btn btn-gold btn-full" onclick="exportCarnetAdultePDF()" style="margin-top:8px;">
+                            <i class="fa-solid fa-file-medical"></i> Exporter le carnet de santé complet
                         </button>
                     </div>
                 </div>
@@ -2413,6 +2436,27 @@
                             </div>
                         </div>
 
+                        <!-- Calculateur dates reproduction -->
+                        <div class="card mt-12" style="border-left:3px solid var(--gold);">
+                            <div class="card-title"><i class="fa-solid fa-calculator"></i> Calculateur de reproduction</div>
+                            <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Entrez la date de saillie → Pablo calcule tout automatiquement.</p>
+                            <div class="form-row">
+                                <div style="flex:1;">
+                                    <label class="form-label">Date de saillie</label>
+                                    <input type="date" id="calc-mating-date" onchange="calcReproDates()">
+                                </div>
+                            </div>
+                            <div id="repro-calc-result" class="repro-result">
+                                <div class="repro-row"><span class="r-label">📅 Fécondation optimale (+12j)</span><span class="r-value" id="calc-fec"></span></div>
+                                <div class="repro-row"><span class="r-label">🐣 Naissance prévue (+63j)</span><span class="r-value" id="calc-birth"></span></div>
+                                <div class="repro-row"><span class="r-label">🍼 Sevrage (+56j après naissance)</span><span class="r-value" id="calc-sevrage"></span></div>
+                                <div class="repro-row"><span class="r-label">🏠 Départ chiots (+63j après naissance)</span><span class="r-value" id="calc-depart"></span></div>
+                            </div>
+                            <button class="btn btn-outline btn-sm btn-full" onclick="applyReproDates()" style="margin-top:10px; display:none;" id="btn-apply-repro">
+                                <i class="fa-solid fa-check"></i> Appliquer ces dates au profil
+                            </button>
+                        </div>
+
                         <button class="btn btn-gold btn-full" onclick="saveProData()" style="margin-top:14px; margin-bottom:8px;">
                             <i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil Officiel
                         </button>
@@ -2420,6 +2464,31 @@
 
                     <!-- ═══ ONGLET ÉLEVAGE ═══ -->
                     <div id="pro-tab-elevage" class="pro-tab-content">
+
+                        <!-- Stats élevage -->
+                        <div class="stats-grid" id="elevage-stats-grid">
+                            <div class="stat-box"><div class="s-value" id="stat-portees">0</div><div class="s-label">Portées</div></div>
+                            <div class="stat-box"><div class="s-value" id="stat-chiots-total">0</div><div class="s-label">Chiots nés</div></div>
+                            <div class="stat-box"><div class="s-value" id="stat-chiots-cedes">0</div><div class="s-label">Cédés</div></div>
+                            <div class="stat-box"><div class="s-value" id="stat-chiots-dispo">0</div><div class="s-label">Disponibles</div></div>
+                            <div class="stat-box"><div class="s-value" id="stat-waitlist">0</div><div class="s-label">En attente</div></div>
+                        </div>
+
+                        <!-- Fiche publique élevage -->
+                        <div class="card" style="margin-bottom:12px; border-left:3px solid var(--gold);">
+                            <div class="card-title"><i class="fa-solid fa-globe"></i> Fiche publique de l'élevage</div>
+                            <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Partagez votre fiche élevage publique avec vos réseaux — vos animaux disponibles sont visibles sans connexion.</p>
+                            <div id="public-fiche-link-wrap" style="display:none;">
+                                <input type="text" id="public-fiche-url" readonly onclick="this.select()" style="margin-bottom:8px; font-size:12px;">
+                                <div style="display:flex; gap:8px;">
+                                    <button class="btn btn-gold btn-full" onclick="copyFichePublique()"><i class="fa-solid fa-copy"></i> Copier le lien</button>
+                                    <button class="btn btn-outline btn-sm" onclick="openFichePublique()"><i class="fa-solid fa-arrow-up-right-from-square"></i> Voir</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline btn-full" id="btn-generate-fiche" onclick="generateFichePublique()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Générer ma fiche publique
+                            </button>
+                        </div>
 
                         <!-- Portées -->
                         <div class="card">
