@@ -2636,3 +2636,230 @@ window.switchProTab = function(tab) {
 // ==========================================
 // NOM D'ÉLEVAGE — intégré dans saveProData / initProData
 // ==========================================
+
+// ==========================================
+// ONBOARDING 3 ÉTAPES
+// ==========================================
+window.startOnboarding = function() {
+    if (!window._fbAuth?.currentUser) {
+        document.getElementById('landing-page').style.display = 'none';
+        document.getElementById('auth-page').style.display    = 'flex';
+        return;
+    }
+    if (localStorage.getItem('pablo_onboarded')) {
+        enterApp();
+        return;
+    }
+    document.getElementById('onboarding-overlay')?.classList.add('open');
+    document.getElementById('landing-page').style.display = 'none';
+};
+
+function obSetStep(n) {
+    [1,2,3].forEach(i => {
+        const el = document.getElementById('ob-step-' + i);
+        const s  = document.getElementById('ob-s' + i);
+        if (el) el.style.display = i === n ? 'block' : 'none';
+        if (s)  { s.classList.toggle('active', i === n); s.classList.toggle('done', i < n); }
+    });
+}
+
+window.obNext = function(step) {
+    if (step === 1) {
+        const name = document.getElementById('ob-pet-name')?.value.trim();
+        if (!name) { showToast('Donnez un nom à votre animal 🐾', '⚠️', 'error'); return; }
+        obSetStep(2);
+    } else if (step === 2) {
+        obSetStep(3);
+        const name = document.getElementById('ob-pet-name')?.value.trim() || 'votre compagnon';
+        const nameEl = document.getElementById('ob-pet-name-display');
+        if (nameEl) nameEl.textContent = name;
+    }
+};
+
+window.finishOnboarding = function() {
+    const name    = document.getElementById('ob-pet-name')?.value.trim()    || 'Mon animal';
+    const species = document.getElementById('ob-pet-species')?.value         || 'Chien';
+    const breed   = document.getElementById('ob-pet-breed')?.value.trim()   || '';
+    const weight  = parseFloat(document.getElementById('ob-pet-weight')?.value) || 0;
+
+    const newId = 'pet_' + Date.now();
+    petsList = JSON.parse(localStorage.getItem('app_pets_list') || '[]');
+    petsList.push({ id: newId, name });
+    localStorage.setItem('app_pets_list', JSON.stringify(petsList));
+
+    saveLocalData(newId, 'profile',      { name, species, breed, age: 0, size: 0, weight, avatar: '', breedAdvice: '' });
+    saveLocalData(newId, 'weight',       weight > 0 ? [{ date: new Date().toISOString().split('T')[0], weight }] : []);
+    saveLocalData(newId, 'medical',      []);
+    saveLocalData(newId, 'education',    {});
+    saveLocalData(newId, 'daily',        { water: 0, walk: 0, date: new Date().toISOString().split('T')[0] });
+    saveLocalData(newId, 'chat',         [{ sender: 'bot', text: `Wouf ! Je suis l'assistant de ${name}. Comment puis-je aider ?` }]);
+    saveLocalData(newId, 'budget',       []);
+    saveLocalData(newId, 'proData',      { gender: 'Non spécifié' });
+    saveLocalData(newId, 'proEvents',    []);
+    saveLocalData(newId, 'proLitters',   []);
+    saveLocalData(newId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
+    saveLocalData(newId, 'proHistory',   { heats: [], matings: [] });
+    saveLocalData(newId, 'memories',     []);
+    saveLocalData(newId, 'gamification', { streak: 0, lastLogin: null, badges: [] });
+    saveLocalData(newId, 'registre',     []);
+
+    localStorage.setItem('current_pet_id',   newId);
+    localStorage.setItem('pablo_onboarded',  '1');
+
+    document.getElementById('onboarding-overlay')?.classList.remove('open');
+    document.getElementById('main-app-layout').style.display = 'flex';
+    document.getElementById('auth-page').style.display       = 'none';
+    document.getElementById('landing-page').style.display    = 'none';
+
+    initApp();
+    showToast(`Carnet de ${name} créé ! 🐾`, '✅');
+    trackEvent('onboarding_completed');
+};
+
+window.skipOnboarding = function() {
+    document.getElementById('onboarding-overlay')?.classList.remove('open');
+    enterApp();
+};
+
+// ==========================================
+// SHARE CARD 1080×1080
+// ==========================================
+let _sharePhotoDataUrl = null;
+
+window.previewSharePhoto = function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        _sharePhotoDataUrl = reader.result;
+        const img     = document.getElementById('share-photo-img');
+        const preview = document.getElementById('share-photo-preview');
+        if (img)     img.src             = reader.result;
+        if (preview) preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+};
+
+window.generateShareCard = function() {
+    const canvas  = document.getElementById('share-canvas');
+    if (!canvas) return;
+    const ctx     = canvas.getContext('2d');
+    const W = 1080, H = 1080;
+    canvas.width  = W;
+    canvas.height = H;
+
+    const name    = petProfile.name   || 'Mon compagnon';
+    const breed   = petProfile.breed  || '';
+    const weight  = petProfile.weight ? petProfile.weight + ' kg' : '';
+    const message = document.getElementById('share-message')?.value.trim() || '';
+    const photoSrc = _sharePhotoDataUrl || petProfile.avatar || null;
+
+    ctx.fillStyle = '#0d0b07';
+    ctx.fillRect(0, 0, W, H);
+
+    const grad = ctx.createRadialGradient(W*0.2, H*0.1, 0, W*0.2, H*0.1, W*0.7);
+    grad.addColorStop(0, 'rgba(200,146,42,0.12)');
+    grad.addColorStop(1, 'rgba(200,146,42,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.015)';
+    for (let i = 0; i < 3000; i++) {
+        ctx.fillRect(Math.random()*W, Math.random()*H, 1, 1);
+    }
+
+    ctx.strokeStyle = 'rgba(200,146,42,0.3)';
+    ctx.lineWidth   = 3;
+    ctx.beginPath();
+    ctx.roundRect(16, 16, W-32, H-32, 40);
+    ctx.stroke();
+
+    ctx.font      = 'italic 600 72px Georgia, serif';
+    ctx.fillStyle = '#c8922a';
+    ctx.textAlign = 'center';
+    ctx.fillText('Pablo.', W/2, 110);
+
+    ctx.font      = '400 28px Outfit, Arial, sans-serif';
+    ctx.fillStyle = 'rgba(240,232,216,0.35)';
+    ctx.fillText('pablocanin.fr', W/2, 155);
+
+    ctx.strokeStyle = 'rgba(200,146,42,0.4)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(160, 180); ctx.lineTo(W-160, 180);
+    ctx.stroke();
+
+    const drawPlaceholder = (cx, cy, r) => {
+        const g2 = ctx.createLinearGradient(cx-r, cy-r, cx+r, cy+r);
+        g2.addColorStop(0, '#1c1710'); g2.addColorStop(1, '#2a2215');
+        ctx.fillStyle = g2; ctx.fill();
+        ctx.font = `700 ${r}px Georgia, serif`;
+        ctx.fillStyle = '#c8922a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText((name || 'P').charAt(0).toUpperCase(), cx, cy);
+        ctx.textBaseline = 'alphabetic';
+    };
+
+    const drawText = () => {
+        ctx.textAlign = 'center';
+        ctx.font      = 'italic 700 88px Georgia, serif';
+        ctx.fillStyle = '#f0e8d8';
+        ctx.fillText(name, W/2, 680);
+        if (breed) { ctx.font = '400 38px Outfit, Arial, sans-serif'; ctx.fillStyle = '#c8922a'; ctx.fillText(breed, W/2, 740); }
+        if (weight) { ctx.font = '300 30px Outfit, Arial, sans-serif'; ctx.fillStyle = 'rgba(240,232,216,0.4)'; ctx.fillText(weight, W/2, 790); }
+        if (message) { ctx.font = '600 36px Outfit, Arial, sans-serif'; ctx.fillStyle = '#e8b84b'; ctx.fillText(message, W/2, 870); }
+        ctx.strokeStyle = 'rgba(200,146,42,0.25)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(160, 920); ctx.lineTo(W-160, 920); ctx.stroke();
+        ctx.font = '400 26px Outfit, Arial, sans-serif'; ctx.fillStyle = 'rgba(240,232,216,0.25)';
+        ctx.fillText('Suivi de santé généré avec Pablo • pablocanin.fr', W/2, 980);
+        ctx.font = '60px serif'; ctx.fillStyle = 'rgba(200,146,42,0.15)';
+        ctx.fillText('🐾', W - 90, H - 50);
+    };
+
+    const photoSize = 360, photoX = (W-photoSize)/2, photoY = 210, photoR = photoSize/2;
+    const cx = photoX + photoR, cy = photoY + photoR;
+
+    ctx.beginPath(); ctx.arc(cx, cy, photoR + 10, 0, Math.PI*2);
+    ctx.strokeStyle = '#c8922a'; ctx.lineWidth = 4; ctx.stroke();
+
+    if (photoSrc) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, photoR, 0, Math.PI*2); ctx.clip();
+            ctx.drawImage(img, photoX, photoY, photoSize, photoSize); ctx.restore();
+            drawText();
+            document.getElementById('share-canvas-wrap').classList.add('open');
+        };
+        img.onerror = () => {
+            ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, photoR, 0, Math.PI*2); ctx.clip();
+            drawPlaceholder(cx, cy, photoR); ctx.restore();
+            drawText();
+            document.getElementById('share-canvas-wrap').classList.add('open');
+        };
+        img.src = photoSrc;
+    } else {
+        ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, photoR, 0, Math.PI*2); ctx.clip();
+        drawPlaceholder(cx, cy, photoR); ctx.restore();
+        drawText();
+        document.getElementById('share-canvas-wrap').classList.add('open');
+    }
+    trackEvent('share_card_generated');
+};
+
+window.downloadShareCard = function() {
+    const canvas = document.getElementById('share-canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `pablo-${(petProfile.name || 'animal').toLowerCase().replace(/\s+/g,'-')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('Image téléchargée ! 📸', '✅');
+};
+
+window.closeShareCanvas = function() {
+    document.getElementById('share-canvas-wrap')?.classList.remove('open');
+    _sharePhotoDataUrl = null;
+    const input = document.getElementById('share-photo-input');
+    if (input) input.value = '';
+    const preview = document.getElementById('share-photo-preview');
+    if (preview) preview.style.display = 'none';
+};
