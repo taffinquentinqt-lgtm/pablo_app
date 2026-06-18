@@ -1122,7 +1122,7 @@ window.navigateTo = function(screenId) {
 // ==========================================
 // SANTÉ, URGENCES & CROQUETTES
 // ==========================================
-function updateKibbleDaysAlert() {
+window.updateKibbleDaysAlert = function updateKibbleDaysAlert() {
     const alertEl = document.getElementById('kibble-days-alert');
     if (!alertEl) return;
 
@@ -3003,7 +3003,7 @@ window.refillKibbleBag = function() {
 // ==========================================
 // STATS ÉLEVAGE
 // ==========================================
-function updateElevageStats() {
+window.updateElevageStats = function updateElevageStats() {
     const totalPortees = proLitters.length;
     let totalChiots = 0, chiotsCedes = 0, chiotsDispo = 0, totalWaitlist = 0;
 
