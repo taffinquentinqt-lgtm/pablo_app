@@ -13,6 +13,10 @@
       "destination": "/test.html"
     },
     {
+      "source": "/fiche/:id",
+      "destination": "/fiche.html"
+    },
+    {
       "source": "/blog/ration-berger-allemand",
       "destination": "/blog/ration-berger-allemand.html"
     },
