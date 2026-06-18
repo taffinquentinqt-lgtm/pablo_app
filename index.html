@@ -2477,17 +2477,77 @@
                         <!-- Fiche publique élevage -->
                         <div class="card" style="margin-bottom:12px; border-left:3px solid var(--gold);">
                             <div class="card-title"><i class="fa-solid fa-globe"></i> Fiche publique de l'élevage</div>
-                            <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Partagez votre fiche élevage publique avec vos réseaux — vos animaux disponibles sont visibles sans connexion.</p>
-                            <div id="public-fiche-link-wrap" style="display:none;">
+                            <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Personnalisez votre fiche publique — visible par tous sans connexion.</p>
+
+                            <!-- Photo de l'élevage -->
+                            <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
+                                <div id="fiche-photo-preview" onclick="document.getElementById('fiche-photo-input').click()"
+                                    style="width:72px; height:72px; border-radius:50%; background:var(--gold-dim); border:2px dashed var(--gold-border); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; flex-shrink:0; position:relative; transition:border-color .2s;">
+                                    <i class="fa-solid fa-camera" style="color:var(--gold); font-size:18px;" id="fiche-photo-icon"></i>
+                                    <img id="fiche-photo-img" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" src="" alt="Photo élevage">
+                                </div>
+                                <div style="flex:1;">
+                                    <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px;">PHOTO DE L'ÉLEVAGE</div>
+                                    <button class="btn btn-outline btn-sm" onclick="document.getElementById('fiche-photo-input').click()">
+                                        <i class="fa-solid fa-upload"></i> Choisir une photo
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="file" id="fiche-photo-input" accept="image/*" style="display:none;" onchange="previewFichePhoto(this)">
+
+                            <!-- Nom élevage -->
+                            <div style="margin-bottom:10px;">
+                                <label class="form-label">Nom de l'élevage / Affixe *</label>
+                                <input type="text" id="fiche-kennel-name" placeholder="Ex: Du Val des Loups…">
+                            </div>
+
+                            <!-- Description -->
+                            <div style="margin-bottom:10px;">
+                                <label class="form-label">Description de l'élevage</label>
+                                <textarea id="fiche-description" placeholder="Présentez votre élevage en quelques mots…" style="resize:vertical; min-height:80px; font-family:var(--font-body); font-size:13.5px;"></textarea>
+                            </div>
+
+                            <!-- Contact éleveur -->
+                            <div class="g2" style="margin-bottom:10px;">
+                                <div>
+                                    <label class="form-label">Téléphone / WhatsApp</label>
+                                    <input type="tel" id="fiche-phone" placeholder="06 XX XX XX XX">
+                                </div>
+                                <div>
+                                    <label class="form-label">Email de contact</label>
+                                    <input type="email" id="fiche-email" placeholder="contact@monelevage.fr">
+                                </div>
+                            </div>
+
+                            <!-- Localisation + site -->
+                            <div class="g2" style="margin-bottom:16px;">
+                                <div>
+                                    <label class="form-label">Département</label>
+                                    <input type="text" id="fiche-dept" placeholder="Ex: 59 — Nord">
+                                </div>
+                                <div>
+                                    <label class="form-label">Site / Facebook</label>
+                                    <input type="text" id="fiche-website" placeholder="Ex: facebook.com/monelevage">
+                                </div>
+                            </div>
+
+                            <!-- Bouton générer -->
+                            <button class="btn btn-gold btn-full" id="btn-generate-fiche" onclick="generateFichePublique()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Générer ma fiche publique
+                            </button>
+
+                            <!-- Lien généré -->
+                            <div id="public-fiche-link-wrap" style="display:none; margin-top:14px;">
+                                <div style="font-size:11px; color:var(--success); font-weight:600; margin-bottom:8px;">
+                                    <i class="fa-solid fa-check-circle"></i> Fiche publiée avec succès !
+                                </div>
                                 <input type="text" id="public-fiche-url" readonly onclick="this.select()" style="margin-bottom:8px; font-size:12px;">
                                 <div style="display:flex; gap:8px;">
                                     <button class="btn btn-gold btn-full" onclick="copyFichePublique()"><i class="fa-solid fa-copy"></i> Copier le lien</button>
                                     <button class="btn btn-outline btn-sm" onclick="openFichePublique()"><i class="fa-solid fa-arrow-up-right-from-square"></i> Voir</button>
+                                    <button class="btn btn-outline btn-sm" onclick="generateFichePublique()" title="Mettre à jour"><i class="fa-solid fa-rotate"></i></button>
                                 </div>
                             </div>
-                            <button class="btn btn-outline btn-full" id="btn-generate-fiche" onclick="generateFichePublique()">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Générer ma fiche publique
-                            </button>
                         </div>
 
                         <!-- Portées -->

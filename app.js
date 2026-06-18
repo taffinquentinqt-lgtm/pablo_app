@@ -1298,6 +1298,7 @@ function initProData() {
     renderProEvents();
     renderLitters();
     updateElevageStats();
+    initFicheFields();
 }
 
 window.toggleBreederFields = function() {
@@ -3030,19 +3031,38 @@ window.updateElevageStats = function updateElevageStats() {
 // ==========================================
 // FICHE PUBLIQUE ÉLEVAGE
 // ==========================================
+// Photo fiche publique (base64)
+let _fichePhotoDataUrl = null;
+
+window.previewFichePhoto = function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        _fichePhotoDataUrl = reader.result;
+        const img  = document.getElementById('fiche-photo-img');
+        const icon = document.getElementById('fiche-photo-icon');
+        if (img)  { img.src = reader.result; img.style.display = 'block'; }
+        if (icon) icon.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+};
+
 window.generateFichePublique = async function() {
     if (!auth.currentUser) { showToast('Connectez-vous pour générer votre fiche.', '⚠️', 'error'); return; }
 
+    const kennelNameInput = document.getElementById('fiche-kennel-name')?.value.trim();
+    if (!kennelNameInput) { showToast("Renseignez le nom de l'élevage.", '⚠️', 'error'); return; }
+
     const btn = document.getElementById('btn-generate-fiche');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Génération…'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publication…'; }
 
     try {
-        const ficheId  = auth.currentUser.uid;
-        const profile  = getLocalData(currentPetId, 'profile', {});
-        const animaux  = [];
+        const ficheId   = auth.currentUser.uid;
+        const animaux   = [];
 
         petsList.forEach(pet => {
-            const p = getLocalData(pet.id, 'profile', {});
+            const p    = getLocalData(pet.id, 'profile', {});
             const proD = getLocalData(pet.id, 'proData', {});
             const litters = getLocalData(pet.id, 'proLitters', []);
             const availablePuppies = [];
@@ -3060,27 +3080,40 @@ window.generateFichePublique = async function() {
 
         const ficheData = {
             uid:         ficheId,
-            kennelName:  proData.kennelName || petProfile.name || 'Élevage Pablo',
-            dept:        proData.dept  || '',
-            website:     proData.website || '',
+            kennelName:  kennelNameInput,
+            description: document.getElementById('fiche-description')?.value.trim() || '',
+            phone:       document.getElementById('fiche-phone')?.value.trim()       || '',
+            email:       document.getElementById('fiche-email')?.value.trim()       || '',
+            dept:        document.getElementById('fiche-dept')?.value.trim()        || proData.dept || '',
+            website:     document.getElementById('fiche-website')?.value.trim()     || proData.website || '',
+            photo:       _fichePhotoDataUrl || '',
             animaux,
             updatedAt:   Date.now()
         };
 
         await setDoc(doc(db, 'fiches_publiques', ficheId), ficheData);
 
+        // Sauvegarder aussi dans proData
+        proData.kennelName = kennelNameInput;
+        proData.dept       = ficheData.dept;
+        proData.website    = ficheData.website;
+        saveLocalData(currentPetId, 'proData', proData);
+
         const url = `${window.location.origin}/fiche/${ficheId}`;
         const urlInput = document.getElementById('public-fiche-url');
         const wrap     = document.getElementById('public-fiche-link-wrap');
         if (urlInput) urlInput.value = url;
         if (wrap)     wrap.style.display = 'block';
-        if (btn)      btn.style.display  = 'none';
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Mettre à jour la fiche';
+        }
 
-        showToast('Fiche publique générée ! 🌐', '✅');
+        showToast('Fiche publiée ! 🌐', '✅');
         trackEvent('fiche_publique_generated');
     } catch (e) {
         console.error('Erreur fiche publique:', e);
-        showToast('Erreur lors de la génération.', '⚠️', 'error');
+        showToast('Erreur lors de la publication.', '⚠️', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Générer ma fiche publique'; }
     }
 };
@@ -3258,3 +3291,58 @@ document.addEventListener('DOMContentLoaded', () => {
         optionsBtns.insertBefore(shareBtn, optionsBtns.lastElementChild);
     }
 });
+// ==========================================
+// INIT CHAMPS FICHE PUBLIQUE
+// ==========================================
+function initFicheFields() {
+    // Pré-remplir depuis proData
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    setVal('fiche-kennel-name', proData.kennelName || '');
+    setVal('fiche-dept',        proData.dept        || '');
+    setVal('fiche-website',     proData.website     || '');
+    setVal('fiche-phone',       proData.phone       || healthExtras?.vetPhone || '');
+    setVal('fiche-description', proData.ficheDescription || '');
+
+    // Restaurer la photo si elle existe
+    if (proData.fichePhoto) {
+        _fichePhotoDataUrl = proData.fichePhoto;
+        const img  = document.getElementById('fiche-photo-img');
+        const icon = document.getElementById('fiche-photo-icon');
+        if (img)  { img.src = proData.fichePhoto; img.style.display = 'block'; }
+        if (icon) icon.style.display = 'none';
+    }
+
+    // Afficher le lien si fiche déjà publiée
+    if (auth.currentUser) {
+        const ficheUrl = `${window.location.origin}/fiche/${auth.currentUser.uid}`;
+        const wrap = document.getElementById('public-fiche-link-wrap');
+        const urlInput = document.getElementById('public-fiche-url');
+        // Vérifier en Firestore si la fiche existe
+        import('firebase/firestore').then(({ doc, getDoc }) => {
+            getDoc(doc(db, 'fiches_publiques', auth.currentUser.uid)).then(snap => {
+                if (snap.exists()) {
+                    if (urlInput) urlInput.value = ficheUrl;
+                    if (wrap) wrap.style.display = 'block';
+                    const btn = document.getElementById('btn-generate-fiche');
+                    if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Mettre à jour la fiche';
+                    // Pré-remplir les champs depuis Firestore
+                    const d = snap.data();
+                    const setFV = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+                    setFV('fiche-kennel-name', d.kennelName);
+                    setFV('fiche-description', d.description);
+                    setFV('fiche-phone',       d.phone);
+                    setFV('fiche-email',       d.email);
+                    setFV('fiche-dept',        d.dept);
+                    setFV('fiche-website',     d.website);
+                    if (d.photo) {
+                        _fichePhotoDataUrl = d.photo;
+                        const img  = document.getElementById('fiche-photo-img');
+                        const icon = document.getElementById('fiche-photo-icon');
+                        if (img)  { img.src = d.photo; img.style.display = 'block'; }
+                        if (icon) icon.style.display = 'none';
+                    }
+                }
+            }).catch(() => {});
+        }).catch(() => {});
+    }
+}
