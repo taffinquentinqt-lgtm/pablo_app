@@ -1122,6 +1122,31 @@ window.navigateTo = function(screenId) {
 // ==========================================
 // SANTÉ, URGENCES & CROQUETTES
 // ==========================================
+function updateKibbleDaysAlert() {
+    const alertEl = document.getElementById('kibble-days-alert');
+    if (!alertEl) return;
+
+    const remaining = healthExtras.kibbleRemaining || 0;
+    const weight    = petProfile.weight || 0;
+    if (remaining <= 0 || weight <= 0) { alertEl.style.display = 'none'; return; }
+
+    const dailyRation = (weight * 13.5) / 1000; // en kg
+    const daysLeft    = Math.floor(remaining / dailyRation);
+
+    if (daysLeft <= 3) {
+        alertEl.style.display = 'block';
+        alertEl.innerHTML = `⚠️ Seulement <strong>${daysLeft} jour${daysLeft > 1 ? 's' : ''}</strong> de croquettes restant${daysLeft > 1 ? 's' : ''} — Pensez à en racheter !`;
+    } else if (daysLeft <= 7) {
+        alertEl.style.display = 'block';
+        alertEl.style.background = 'rgba(232,168,60,0.1)';
+        alertEl.style.borderColor = 'rgba(232,168,60,0.3)';
+        alertEl.style.color = '#e8a83c';
+        alertEl.innerHTML = `🛒 Il reste environ <strong>${daysLeft} jours</strong> de croquettes.`;
+    } else {
+        alertEl.style.display = 'none';
+    }
+}
+
 function initHealthExtras() {
     healthExtras = getLocalData(currentPetId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
 
@@ -1143,6 +1168,7 @@ function initHealthExtras() {
 
     updateKibbleUI();
     generateTransitionPlan();
+    updateKibbleDaysAlert();
 }
 
 window.callVet = function() {
@@ -1271,6 +1297,7 @@ function initProData() {
     toggleBreederFields();
     renderProEvents();
     renderLitters();
+    updateElevageStats();
 }
 
 window.toggleBreederFields = function() {
@@ -2883,7 +2910,7 @@ window._groqChatSafe = async function(messages) {
 // ==========================================
 // NOTIFICATIONS FCM — FINALISÉ
 // ==========================================
-async function schedulePushReminders() {
+window.schedulePushReminders = async function() {
     if (!auth.currentUser) return;
     const reminders = [];
     const today     = new Date();
@@ -2968,37 +2995,10 @@ window.refillKibbleBag = function() {
     updateKibbleDaysAlert();
 };
 
-function updateKibbleDaysAlert() {
-    const alertEl = document.getElementById('kibble-days-alert');
-    if (!alertEl) return;
+// updateKibbleDaysAlert déplacée avant initHealthExtras
 
-    const remaining = healthExtras.kibbleRemaining || 0;
-    const weight    = petProfile.weight || 0;
-    if (remaining <= 0 || weight <= 0) { alertEl.style.display = 'none'; return; }
-
-    const dailyRation = (weight * 13.5) / 1000; // en kg
-    const daysLeft    = Math.floor(remaining / dailyRation);
-
-    if (daysLeft <= 3) {
-        alertEl.style.display = 'block';
-        alertEl.innerHTML = `⚠️ Seulement <strong>${daysLeft} jour${daysLeft > 1 ? 's' : ''}</strong> de croquettes restant${daysLeft > 1 ? 's' : ''} — Pensez à en racheter !`;
-    } else if (daysLeft <= 7) {
-        alertEl.style.display = 'block';
-        alertEl.style.background = 'rgba(232,168,60,0.1)';
-        alertEl.style.borderColor = 'rgba(232,168,60,0.3)';
-        alertEl.style.color = '#e8a83c';
-        alertEl.innerHTML = `🛒 Il reste environ <strong>${daysLeft} jours</strong> de croquettes.`;
-    } else {
-        alertEl.style.display = 'none';
-    }
-}
-
-// Patcher initHealthExtras pour afficher l'alerte au chargement
-const _originalInitHealthExtras = initHealthExtras;
-function initHealthExtras() {
-    _originalInitHealthExtras();
-    updateKibbleDaysAlert();
-}
+// updateKibbleDaysAlert est appelé directement dans initHealthExtras ci-dessous
+// (patch inline pour éviter la redéclaration)
 
 // ==========================================
 // STATS ÉLEVAGE
@@ -3023,19 +3023,9 @@ function updateElevageStats() {
     set('stat-waitlist',      totalWaitlist);
 }
 
-// Patcher renderLitters pour mettre à jour les stats à chaque fois
-const _originalRenderLitters = window.renderLitters;
-window.renderLitters = function() {
-    _originalRenderLitters();
-    updateElevageStats();
-};
+// updateElevageStats() est appelé directement dans initProData (voir ci-dessus)
 
-// Patcher initProData pour charger les stats
-const _originalInitProData = initProData;
-function initProData() {
-    _originalInitProData();
-    updateElevageStats();
-}
+// updateElevageStats() est appelé directement dans la vraie initProData (patch inline)
 
 // ==========================================
 // FICHE PUBLIQUE ÉLEVAGE
