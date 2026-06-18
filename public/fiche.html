@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Fiche Élevage — Pablo</title>
+    <meta name="description" content="Découvrez les animaux disponibles de cet élevage sur Pablo.">
+    <meta name="robots" content="index, follow">
+
+    <!-- OG dynamique (mis à jour par JS) -->
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://www.pablocanin.fr/pablo.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a0806">
+    <link rel="apple-touch-icon" href="/pablo.jpg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg:#0d0b07; --bg-elevated:#1c1710; --card:#181309; --card-border:#2a2215;
+            --text:#f0e8d8; --text-sub:#b8a88a; --text-muted:#6b5f4a;
+            --gold:#c8922a; --gold-light:#e8b84b; --gold-dim:rgba(200,146,42,0.12);
+            --gold-border:rgba(200,146,42,0.22); --success:#52c97a; --success-dim:rgba(82,201,122,0.1);
+            --radius-sm:10px; --radius-md:16px; --radius-lg:22px; --radius-xl:32px;
+            --font-display:'Cormorant Garamond',Georgia,serif;
+            --font-body:'Outfit',system-ui,sans-serif;
+            --ease-out:cubic-bezier(0.16,1,0.3,1);
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        html{scroll-behavior:smooth;}
+        body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(200,146,42,0.08) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(200,146,42,0.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
+        ::selection{background:rgba(200,146,42,0.3);color:var(--text);}
+
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+        @keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+        @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+
+        /* ── Header ── */
+        .page-header{position:sticky;top:0;z-index:100;background:rgba(13,11,7,0.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--card-border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+        .header-brand{display:flex;align-items:center;gap:9px;text-decoration:none;}
+        .header-brand-icon{width:32px;height:32px;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:14px;}
+        .header-brand-name{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--gold-light);font-style:italic;}
+        .btn-app{display:inline-flex;align-items:center;gap:7px;background:var(--gold);color:#0a0806;font-family:var(--font-body);font-size:12.5px;font-weight:700;padding:7px 16px;border:none;border-radius:100px;cursor:pointer;text-decoration:none;transition:background .2s;}
+        .btn-app:hover{background:var(--gold-light);}
+
+        /* ── Layout ── */
+        .page-wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:48px 24px 80px;}
+
+        /* ── Loading ── */
+        #loading-state{text-align:center;padding:80px 24px;}
+        .loading-icon{width:64px;height:64px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:24px;margin:0 auto 20px;animation:pulse 1.5s infinite;}
+        .loading-text{font-family:var(--font-display);font-size:22px;font-weight:600;color:var(--text);margin-bottom:8px;}
+        .loading-sub{font-size:13.5px;color:var(--text-muted);}
+
+        /* ── Error ── */
+        #error-state{display:none;text-align:center;padding:80px 24px;}
+
+        /* ── Fiche content ── */
+        #fiche-content{display:none;}
+
+        /* Hero élevage */
+        .kennel-hero{text-align:center;padding:40px 0 32px;animation:fadeUp .8s var(--ease-out) both;}
+        .kennel-avatar{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-light));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:36px;font-weight:700;color:#0a0806;margin:0 auto 20px;box-shadow:0 0 0 4px var(--bg), 0 0 0 6px var(--gold-border);}
+        .kennel-name{font-family:var(--font-display);font-size:clamp(32px,6vw,52px);font-weight:600;color:var(--text);margin-bottom:8px;line-height:1.1;}
+        .kennel-meta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;}
+        .kennel-badge{display:inline-flex;align-items:center;gap:5px;background:var(--gold-dim);border:1px solid var(--gold-border);color:var(--gold);padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;}
+        .kennel-verified{display:inline-flex;align-items:center;gap:5px;background:var(--success-dim);border:1px solid rgba(82,201,122,0.2);color:var(--success);padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;}
+        .kennel-updated{font-size:12px;color:var(--text-muted);}
+
+        /* Stats rapides */
+        .quick-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:36px;}
+        .qs-box{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:16px;text-align:center;transition:border-color .2s;}
+        .qs-box:hover{border-color:var(--gold-border);}
+        .qs-val{font-family:var(--font-display);font-size:30px;font-weight:700;color:var(--gold);line-height:1;}
+        .qs-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;}
+
+        /* Section title */
+        .section-sep{display:flex;align-items:center;gap:12px;margin:32px 0 18px;}
+        .section-sep-text{font-family:var(--font-display);font-size:22px;font-weight:600;color:var(--text);white-space:nowrap;font-style:italic;}
+        .section-sep-text i{color:var(--gold);font-size:15px;margin-right:4px;}
+        .section-sep-line{flex:1;height:1px;background:var(--card-border);}
+
+        /* Animaux disponibles */
+        .puppies-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:12px;}
+        .puppy-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:22px;transition:border-color .2s,transform .2s;animation:fadeUp .5s var(--ease-out) both;}
+        .puppy-card:hover{border-color:var(--gold-border);transform:translateY(-2px);}
+        .puppy-sex{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;margin-bottom:12px;}
+        .puppy-sex.male{background:rgba(82,130,255,0.1);color:#7ea8ff;border:1px solid rgba(82,130,255,0.2);}
+        .puppy-sex.female{background:rgba(255,130,180,0.1);color:#ffafd0;border:1px solid rgba(255,130,180,0.2);}
+        .puppy-name{font-family:var(--font-display);font-size:22px;font-weight:600;color:var(--text);margin-bottom:8px;}
+        .puppy-detail{font-size:12.5px;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+        .puppy-detail i{color:var(--gold);width:14px;text-align:center;font-size:11px;}
+        .puppy-status{display:inline-flex;align-items:center;gap:5px;margin-top:12px;padding:4px 11px;border-radius:100px;font-size:11.5px;font-weight:700;background:var(--success-dim);color:var(--success);border:1px solid rgba(82,201,122,0.2);}
+
+        /* Reproducteurs */
+        .animals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+        .animal-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:22px;transition:border-color .2s;animation:fadeUp .5s var(--ease-out) both;}
+        .animal-card:hover{border-color:var(--gold-border);}
+        .animal-avatar{width:48px;height:48px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--gold);margin-bottom:14px;}
+        .animal-name{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--text);margin-bottom:6px;}
+        .animal-detail{font-size:12.5px;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+        .animal-detail i{color:var(--gold);width:14px;text-align:center;font-size:11px;}
+        .tag{display:inline-flex;align-items:center;gap:4px;background:var(--gold-dim);border:1px solid var(--gold-border);color:var(--gold);padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;margin-top:8px;margin-right:4px;}
+
+        /* CTA contact */
+        .contact-cta{background:linear-gradient(135deg,var(--card),var(--bg-elevated));border:1px solid var(--card-border);border-radius:var(--radius-xl);padding:40px 32px;text-align:center;margin-top:40px;}
+        .contact-cta h2{font-family:var(--font-display);font-size:32px;font-weight:600;color:var(--text);margin-bottom:10px;}
+        .contact-cta p{font-size:14px;color:var(--text-muted);margin-bottom:24px;max-width:440px;margin-left:auto;margin-right:auto;}
+        .btn-contact{display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:#0a0806;font-family:var(--font-body);font-size:14px;font-weight:700;padding:14px 32px;border:none;border-radius:100px;cursor:pointer;text-decoration:none;transition:background .2s,transform .2s;}
+        .btn-contact:hover{background:var(--gold-light);transform:translateY(-1px);}
+        .btn-pablo{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text-sub);font-family:var(--font-body);font-size:13.5px;font-weight:500;padding:12px 24px;border:1px solid var(--card-border);border-radius:100px;cursor:pointer;text-decoration:none;transition:border-color .2s,color .2s;margin-left:10px;}
+        .btn-pablo:hover{border-color:var(--gold);color:var(--gold);}
+
+        /* Empty state */
+        .empty-state{text-align:center;padding:32px;color:var(--text-muted);font-size:13.5px;}
+        .empty-state i{font-size:28px;color:var(--gold-border);display:block;margin-bottom:10px;}
+
+        /* Footer */
+        .page-footer{margin-top:56px;padding-top:24px;border-top:1px solid var(--card-border);text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;}
+        .footer-logo{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--gold-light);font-style:italic;}
+        .footer-text{font-size:12px;color:var(--text-muted);}
+        .footer-links{display:flex;gap:16px;}
+        .footer-links a{color:var(--text-muted);text-decoration:none;font-size:12px;transition:color .2s;}
+        .footer-links a:hover{color:var(--gold);}
+
+        @media(max-width:600px){
+            .page-wrap{padding:32px 16px 60px;}
+            .page-header{padding:0 16px;}
+            .contact-cta{padding:28px 20px;}
+            .btn-pablo{display:block;margin:10px auto 0;text-align:center;}
+        }
+    </style>
+</head>
+<body>
+
+<header class="page-header">
+    <a href="/" class="header-brand">
+        <div class="header-brand-icon"><i class="fa-solid fa-shield-dog"></i></div>
+        <span class="header-brand-name">Pablo</span>
+    </a>
+    <a href="/" class="btn-app"><i class="fa-solid fa-paw"></i> Ouvrir l'app</a>
+</header>
+
+<main class="page-wrap">
+
+    <!-- LOADING -->
+    <div id="loading-state">
+        <div class="loading-icon"><i class="fa-solid fa-shield-dog"></i></div>
+        <div class="loading-text">Chargement de la fiche…</div>
+        <div class="loading-sub">Connexion à la base de données Pablo</div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="error-state">
+        <div style="font-size:48px; margin-bottom:16px;">🐾</div>
+        <div style="font-family:var(--font-display); font-size:28px; font-weight:600; margin-bottom:10px;">Fiche introuvable</div>
+        <p style="color:var(--text-muted); font-size:14px; margin-bottom:24px;">Cette fiche d'élevage n'existe pas ou a été supprimée.</p>
+        <a href="/" class="btn-app" style="display:inline-flex;"><i class="fa-solid fa-house"></i> Retour à Pablo</a>
+    </div>
+
+    <!-- FICHE -->
+    <div id="fiche-content">
+
+        <!-- Hero -->
+        <div class="kennel-hero">
+            <div class="kennel-avatar" id="kennel-avatar">É</div>
+            <h1 class="kennel-name" id="kennel-name">Élevage</h1>
+            <div class="kennel-meta">
+                <span class="kennel-verified"><i class="fa-solid fa-check-circle"></i> Éleveur Pablo vérifié</span>
+                <span class="kennel-badge" id="kennel-dept" style="display:none;"><i class="fa-solid fa-location-dot"></i> <span id="kennel-dept-text"></span></span>
+                <span class="kennel-badge" id="kennel-website-badge" style="display:none;"><i class="fa-solid fa-globe"></i> <a id="kennel-website-link" href="#" target="_blank" rel="noopener" style="color:var(--gold); text-decoration:none;">Site web</a></span>
+            </div>
+            <div class="kennel-updated" id="kennel-updated"></div>
+        </div>
+
+        <!-- Stats rapides -->
+        <div class="quick-stats" id="quick-stats"></div>
+
+        <!-- Chiots disponibles -->
+        <div id="section-disponibles" style="display:none;">
+            <div class="section-sep">
+                <span class="section-sep-text"><i class="fa-solid fa-baby-carriage"></i> Chiots disponibles</span>
+                <div class="section-sep-line"></div>
+            </div>
+            <div class="puppies-grid" id="puppies-grid"></div>
+        </div>
+
+        <!-- Reproducteurs -->
+        <div id="section-animaux">
+            <div class="section-sep">
+                <span class="section-sep-text"><i class="fa-solid fa-award"></i> Nos reproducteurs</span>
+                <div class="section-sep-line"></div>
+            </div>
+            <div class="animals-grid" id="animals-grid"></div>
+        </div>
+
+        <!-- CTA Contact -->
+        <div class="contact-cta">
+            <h2>Intéressé par un chiot ?</h2>
+            <p>Contactez l'éleveur directement via l'application Pablo pour en savoir plus sur les disponibilités et rejoindre la liste d'attente.</p>
+            <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px;">
+                <a href="/" class="btn-contact">
+                    <i class="fa-solid fa-paw"></i> Contacter l'éleveur
+                </a>
+                <a href="/" class="btn-pablo">
+                    <i class="fa-solid fa-shield-dog"></i> Créer mon compte Pablo
+                </a>
+            </div>
+        </div>
+
+        <footer class="page-footer">
+            <div class="footer-logo">Pablo.</div>
+            <div class="footer-links">
+                <a href="/">Accueil</a>
+                <a href="/eleveurs">Pour les éleveurs</a>
+                <a href="/mentions-legales">Mentions légales</a>
+            </div>
+            <p class="footer-text">© 2026 Pablo — Le tableau de bord santé pour maîtres et éleveurs.</p>
+        </footer>
+
+    </div><!-- /fiche-content -->
+
+</main>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBuz7iwOzeEFsFDU1G5aAe69JCczaduI44",
+    authDomain: "pablo-app-f6057.firebaseapp.com",
+    projectId: "pablo-app-f6057",
+    storageBucket: "pablo-app-f6057.firebasestorage.app",
+    messagingSenderId: "764832752787",
+    appId: "1:764832752787:web:21948ed789665c531b9966"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+function escHtml(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function loadFiche() {
+    // Extraire l'ID depuis l'URL : /fiche/[id]
+    const pathParts = window.location.pathname.split('/');
+    const ficheId   = pathParts[pathParts.length - 1];
+
+    if (!ficheId || ficheId === 'fiche') {
+        showError();
+        return;
+    }
+
+    try {
+        const snap = await getDoc(doc(db, 'fiches_publiques', ficheId));
+        if (!snap.exists()) { showError(); return; }
+
+        const d = snap.data();
+        renderFiche(d);
+    } catch(e) {
+        console.error('Erreur chargement fiche:', e);
+        showError();
+    }
+}
+
+function showError() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('error-state').style.display   = 'block';
+}
+
+function renderFiche(d) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('fiche-content').style.display = 'block';
+
+    const kennelName = d.kennelName || 'Élevage Pablo';
+
+    // Mettre à jour le titre de la page
+    document.title = `${kennelName} — Fiche Élevage Pablo`;
+
+    // Avatar initiale
+    document.getElementById('kennel-avatar').textContent = kennelName.charAt(0).toUpperCase();
+
+    // Nom élevage
+    document.getElementById('kennel-name').textContent = kennelName;
+
+    // Département
+    if (d.dept) {
+        document.getElementById('kennel-dept').style.display = 'inline-flex';
+        document.getElementById('kennel-dept-text').textContent = d.dept;
+    }
+
+    // Site web
+    if (d.website) {
+        document.getElementById('kennel-website-badge').style.display = 'inline-flex';
+        const link = document.getElementById('kennel-website-link');
+        link.href = d.website.startsWith('http') ? d.website : 'https://' + d.website;
+        link.textContent = d.website.replace(/^https?:\/\//, '');
+    }
+
+    // Date mise à jour
+    if (d.updatedAt) {
+        document.getElementById('kennel-updated').textContent =
+            'Mis à jour le ' + new Date(d.updatedAt).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+    }
+
+    // ── Stats rapides
+    const animaux = Array.isArray(d.animaux) ? d.animaux : [];
+    let totalPuppies = 0, totalDispo = 0;
+    animaux.forEach(a => {
+        totalPuppies += (a.availablePuppies || []).length;
+        totalDispo   += (a.availablePuppies || []).length;
+    });
+
+    const stats = [
+        { val: animaux.length,  label: 'Reproducteur' + (animaux.length > 1 ? 's' : '') },
+        { val: totalPuppies,    label: 'Chiot' + (totalPuppies > 1 ? 's' : '') + ' dispo' },
+    ];
+
+    const qsGrid = document.getElementById('quick-stats');
+    stats.forEach(s => {
+        qsGrid.innerHTML += `<div class="qs-box"><div class="qs-val">${s.val}</div><div class="qs-label">${s.label}</div></div>`;
+    });
+
+    // ── Chiots disponibles (agrégés de tous les animaux)
+    const allPuppies = [];
+    animaux.forEach(a => {
+        (a.availablePuppies || []).forEach(p => {
+            allPuppies.push({ ...p, parentBreed: a.breed, parentName: a.name });
+        });
+    });
+
+    if (allPuppies.length > 0) {
+        document.getElementById('section-disponibles').style.display = 'block';
+        const grid = document.getElementById('puppies-grid');
+
+        allPuppies.forEach((p, i) => {
+            const isMale  = p.sex === 'Mâle';
+            const sexCls  = isMale ? 'male' : 'female';
+            const sexIcon = isMale ? '♂' : '♀';
+            const age     = p.birthDate ? calcAge(p.birthDate) : '';
+
+            grid.innerHTML += `
+                <div class="puppy-card" style="animation-delay:${i * 0.08}s;">
+                    <div class="puppy-sex ${sexCls}">${sexIcon} ${escHtml(p.sex || '')}</div>
+                    <div class="puppy-name">${escHtml(p.name)}</div>
+                    ${p.color    ? `<div class="puppy-detail"><i class="fa-solid fa-palette"></i> ${escHtml(p.color)}</div>` : ''}
+                    ${age        ? `<div class="puppy-detail"><i class="fa-solid fa-calendar"></i> ${age}</div>` : ''}
+                    ${p.chip     ? `<div class="puppy-detail"><i class="fa-solid fa-microchip"></i> Pucé</div>` : ''}
+                    ${p.parentBreed ? `<div class="puppy-detail"><i class="fa-solid fa-dog"></i> ${escHtml(p.parentBreed)}</div>` : ''}
+                    <div class="puppy-status"><i class="fa-solid fa-check-circle"></i> Disponible</div>
+                </div>`;
+        });
+    }
+
+    // ── Reproducteurs
+    const animGrid = document.getElementById('animals-grid');
+    if (animaux.length === 0) {
+        animGrid.innerHTML = '<div class="empty-state"><i class="fa-solid fa-paw"></i>Aucun reproducteur renseigné.</div>';
+    } else {
+        animaux.forEach((a, i) => {
+            const genderIcon = a.gender === 'Mâle' ? '♂' : a.gender === 'Femelle' ? '♀' : '';
+            const tags = [];
+            if (a.lof) tags.push({ icon: 'fa-solid fa-certificate', text: 'LOF' });
+            if (a.chip) tags.push({ icon: 'fa-solid fa-microchip', text: 'Pucé' });
+
+            animGrid.innerHTML += `
+                <div class="animal-card" style="animation-delay:${i * 0.08}s;">
+                    <div class="animal-avatar">${escHtml(a.name || 'A').charAt(0).toUpperCase()}</div>
+                    <div class="animal-name">${genderIcon} ${escHtml(a.name)}</div>
+                    ${a.breed  ? `<div class="animal-detail"><i class="fa-solid fa-dog"></i> ${escHtml(a.breed)}</div>` : ''}
+                    ${a.gender ? `<div class="animal-detail"><i class="fa-solid fa-venus-mars"></i> ${escHtml(a.gender)}</div>` : ''}
+                    <div style="margin-top:8px;">
+                        ${tags.map(t => `<span class="tag"><i class="${t.icon}"></i> ${t.text}</span>`).join('')}
+                        ${(a.availablePuppies || []).length > 0
+                            ? `<span class="tag" style="background:var(--success-dim);border-color:rgba(82,201,122,0.2);color:var(--success);">
+                                <i class="fa-solid fa-baby-carriage"></i> ${a.availablePuppies.length} chiot(s) dispo
+                               </span>`
+                            : ''}
+                    </div>
+                </div>`;
+        });
+    }
+}
+
+function calcAge(birthDateStr) {
+    if (!birthDateStr) return '';
+    const birth = new Date(birthDateStr);
+    const now   = new Date();
+    const weeks = Math.floor((now - birth) / (7 * 86400000));
+    if (weeks < 0) return '';
+    if (weeks < 8)  return `${weeks} semaine${weeks > 1 ? 's' : ''}`;
+    const months = Math.floor(weeks / 4.33);
+    if (months < 24) return `${months} mois`;
+    const years = Math.floor(months / 12);
+    return `${years} an${years > 1 ? 's' : ''}`;
+}
+
+loadFiche();
+</script>
+
+</body>
+</html>
