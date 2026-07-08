@@ -2,14 +2,24 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 import { getMessaging, getToken } from "firebase/messaging";
 
 // CONFIGURATION GLOBALE
 // ==========================================
 const GLOBAL_CONFIG_ID = "pablo_global_config";
 const DEMO_MODE_KEY = "pablo_demo_mode";
+const CLOUD_PENDING_KEY = "pablo_pending_cloud_writes";
+const CLOUD_SYNC_META_KEY = "pablo_cloud_sync_meta";
+const CLOUD_SYNC_DEBOUNCE_MS = 650;
 const OPENAI_MODEL = "gpt-5.4-mini";
+const IS_LOCAL_PREVIEW = window.location.protocol === 'file:'
+    || ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
+    || /^517\d$/.test(window.location.port);
+const PABLO_CHAT_API_URL = IS_LOCAL_PREVIEW
+    ? "https://www.pablocanin.fr/api/pablo-chat"
+    : "/api/pablo-chat";
+let deferredPwaInstallPrompt = null;
 
 function trackEvent(name) {
     if (typeof window.clarity === 'function') window.clarity('event', name);
@@ -24,7 +34,7 @@ async function pabloChat(messages) {
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
         const idToken = await auth.currentUser.getIdToken();
-        const res = await fetch("/api/pablo-chat", {
+        const res = await fetch(PABLO_CHAT_API_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -127,6 +137,119 @@ async function migrateLocalToCloud(uid) {
     catch (e) { console.error("Migration cloud échouée :", e); }
 }
 
+function setCloudStatus(state = 'idle', label = '') {
+    const pill = document.getElementById('cloud-sync-pill');
+    const text = document.getElementById('cloud-sync-text');
+    if (!pill || !text) return;
+
+    pill.dataset.state = state;
+    text.textContent = label || {
+        idle: 'Local',
+        saving: 'Sync...',
+        saved: 'Cloud OK',
+        offline: 'Hors ligne',
+        error: 'Sync attente'
+    }[state] || 'Cloud';
+}
+
+function writeCloudValueToLocal(key, value) {
+    if (key === CLOUD_PENDING_KEY || key === CLOUD_SYNC_META_KEY) return;
+    if (key.startsWith('firebase') || key.startsWith('clarity') || key.startsWith('_clarity')) return;
+    if (value === undefined || value === null) return;
+    if (typeof value === 'string') localStorage.setItem(key, value);
+    else localStorage.setItem(key, JSON.stringify(value));
+}
+
+function loadCloudDataIntoLocalStorage(cloudData) {
+    if (!cloudData) return;
+    Object.keys(cloudData).forEach(key => writeCloudValueToLocal(key, cloudData[key]));
+}
+
+function readPendingCloudWrites() {
+    try { return JSON.parse(localStorage.getItem(CLOUD_PENDING_KEY) || '{}'); }
+    catch { return {}; }
+}
+
+function queueCloudWrite(fields) {
+    const pending = readPendingCloudWrites();
+    Object.assign(pending, fields);
+    localStorage.setItem(CLOUD_PENDING_KEY, JSON.stringify(pending));
+    localStorage.setItem(CLOUD_SYNC_META_KEY, JSON.stringify({ state: 'pending', updatedAt: Date.now() }));
+}
+
+function getSafeCloudFields(fields) {
+    const safe = {};
+    Object.entries(fields || {}).forEach(([key, value]) => {
+        if (!key || value === undefined) return;
+        if (key === CLOUD_PENDING_KEY || key === CLOUD_SYNC_META_KEY) return;
+        if (key.startsWith('firebase') || key.startsWith('clarity') || key.startsWith('_clarity')) return;
+        if (key === '_pablo_owner_uid' || key === '_pendingCession') return;
+        safe[key] = value;
+    });
+    return safe;
+}
+
+async function saveCloudFields(fields, { queueOnFail = true } = {}) {
+    if (!auth.currentUser || hasDemoAccess()) return false;
+
+    const safeFields = getSafeCloudFields(fields);
+    if (Object.keys(safeFields).length === 0) return true;
+
+    if (!navigator.onLine) {
+        if (queueOnFail) queueCloudWrite(safeFields);
+        setCloudStatus('offline', 'Hors ligne');
+        return false;
+    }
+
+    try {
+        setCloudStatus('saving', 'Sync...');
+        await setDoc(doc(db, "users", auth.currentUser.uid), {
+            ...safeFields,
+            updatedAt: Date.now()
+        }, { merge: true });
+        localStorage.setItem(CLOUD_SYNC_META_KEY, JSON.stringify({ state: 'saved', updatedAt: Date.now() }));
+        setCloudStatus('saved', 'Cloud OK');
+        return true;
+    } catch (e) {
+        if (queueOnFail) queueCloudWrite(safeFields);
+        setCloudStatus('error', 'Sync attente');
+        console.error("Erreur sync Cloud :", e);
+        return false;
+    }
+}
+
+async function flushPendingCloudWrites() {
+    if (!auth.currentUser || hasDemoAccess()) return;
+    const pending = getSafeCloudFields(readPendingCloudWrites());
+    if (Object.keys(pending).length === 0) {
+        setCloudStatus(navigator.onLine ? 'saved' : 'offline', navigator.onLine ? 'Cloud OK' : 'Hors ligne');
+        return;
+    }
+
+    const ok = await saveCloudFields(pending, { queueOnFail: false });
+    if (ok) {
+        localStorage.removeItem(CLOUD_PENDING_KEY);
+        localStorage.setItem(CLOUD_SYNC_META_KEY, JSON.stringify({ state: 'saved', updatedAt: Date.now() }));
+        setCloudStatus('saved', 'Cloud OK');
+    } else {
+        queueCloudWrite(pending);
+    }
+}
+
+async function deleteCloudFields(keys) {
+    if (!auth.currentUser || hasDemoAccess() || !navigator.onLine) return;
+    const payload = {};
+    keys.forEach(key => { payload[key] = deleteField(); });
+    try {
+        setCloudStatus('saving', 'Sync...');
+        await setDoc(doc(db, "users", auth.currentUser.uid), payload, { merge: true });
+        setCloudStatus('saved', 'Cloud OK');
+    } catch (e) {
+        setCloudStatus('error', 'Sync attente');
+        console.error("Erreur suppression Cloud :", e);
+    }
+}
+
 onAuthStateChanged(auth, async (user) => {
     const authPage = document.getElementById('auth-page');
     const mainApp  = document.getElementById('main-app-layout');
@@ -139,7 +262,7 @@ onAuthStateChanged(auth, async (user) => {
             const userDocRef = doc(db, "users", user.uid);
             const userDoc    = await getDoc(userDocRef);
             const cloudData  = userDoc.exists() ? userDoc.data() : null;
-            const loadCloud  = () => { if (cloudData) Object.keys(cloudData).forEach(key => localStorage.setItem(key, JSON.stringify(cloudData[key]))); };
+            const loadCloud  = () => loadCloudDataIntoLocalStorage(cloudData);
 
             if (prevUid === user.uid) {
                 loadCloud();
@@ -150,6 +273,7 @@ onAuthStateChanged(auth, async (user) => {
                 loadCloud();
             }
             localStorage.setItem('_pablo_owner_uid', user.uid);
+            await flushPendingCloudWrites();
         } catch (e) { console.error("Erreur de restauration Cloud :", e); }
 
         if (landing)  landing.style.display  = 'none';
@@ -291,7 +415,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const mobileSelector = document.getElementById('mobile-pet-selector');
     if (mobileSelector) mobileSelector.addEventListener('change', (e) => switchPet(e.target.value));
+
+    initPwaInstallButton();
+    setCloudStatus(navigator.onLine ? 'idle' : 'offline', navigator.onLine ? 'Local' : 'Hors ligne');
 });
+
+function initPwaInstallButton() {
+    const btn = document.getElementById('pwa-install-btn');
+    if (!btn) return;
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    btn.hidden = isStandalone || !deferredPwaInstallPrompt;
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPwaInstallPrompt = event;
+    initPwaInstallButton();
+});
+
+window.addEventListener('appinstalled', () => {
+    deferredPwaInstallPrompt = null;
+    initPwaInstallButton();
+    showToast('Pablo est installe sur cet appareil.', '✅');
+});
+
+window.installPabloApp = async function() {
+    if (!deferredPwaInstallPrompt) {
+        showToast("Installation non disponible sur ce navigateur.", 'ℹ️');
+        return;
+    }
+
+    deferredPwaInstallPrompt.prompt();
+    await deferredPwaInstallPrompt.userChoice.catch(() => null);
+    deferredPwaInstallPrompt = null;
+    initPwaInstallButton();
+};
 
 function initGlobalConfig() {
     const saved = localStorage.getItem(GLOBAL_CONFIG_ID);
@@ -312,14 +471,11 @@ const _cloudSaveTimers = {};
 async function saveLocalData(petId, key, data) {
     const storageKey = `${key}_${petId}`;
     localStorage.setItem(storageKey, JSON.stringify(data));
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || hasDemoAccess()) return;
     clearTimeout(_cloudSaveTimers[storageKey]);
-    _cloudSaveTimers[storageKey] = setTimeout(async () => {
-        try {
-            const userDocRef = doc(db, "users", auth.currentUser.uid);
-            await setDoc(userDocRef, { [storageKey]: data }, { merge: true });
-        } catch (e) { console.error("Erreur sync Cloud :", e); }
-    }, 500);
+    _cloudSaveTimers[storageKey] = setTimeout(() => {
+        saveCloudFields({ [storageKey]: data });
+    }, CLOUD_SYNC_DEBOUNCE_MS);
 }
 
 function getLocalData(petId, key, defaultValue) {
@@ -458,6 +614,7 @@ document.addEventListener('click', (e) => {
 window.switchPet = function(petId) {
     currentPetId = petId;
     localStorage.setItem('current_pet_id', currentPetId);
+    saveCloudFields({ current_pet_id: currentPetId });
     loadCurrentPetData();
     navigateTo('screen-home');
 };
@@ -487,7 +644,7 @@ window.confirmCreateNewPet = function() {
     const newId = 'pet_' + Date.now();
     petsList.push({ id: newId, name });
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
-    if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+    saveCloudFields({ app_pets_list: petsList, current_pet_id: newId });
 
     saveLocalData(newId, 'profile',      { name, species, breed, age: 0, size: 0, weight: 0, avatar: "", breedAdvice: "" });
     saveLocalData(newId, 'weight',      []);
@@ -532,10 +689,12 @@ window.deleteCurrentPet = function() {
 
 function _doDeleteCurrentPet() {
     const keys = ['profile','weight','medical','education','daily','chat','budget','proData','proEvents','proLitters','healthExtras','proHistory','memories','gamification','custom_exercises'];
+    const removedPetId = currentPetId;
     keys.forEach(key => localStorage.removeItem(`${key}_${currentPetId}`));
     petsList = petsList.filter(p => p.id !== currentPetId);
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
-    if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+    deleteCloudFields(keys.map(key => `${key}_${removedPetId}`));
+    saveCloudFields({ app_pets_list: petsList });
 
     if (petsList.length === 0) {
         currentPetId = null;
@@ -651,6 +810,81 @@ window.updateNutritionUI = async function() {
 
 // ==========================================
 // CHAT ASSISTANT
+function formatDateFr(value) {
+    if (!value) return 'date inconnue';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function summarizeWeightForAI() {
+    const sorted = [...(weightHistory || [])]
+        .filter(w => w?.date && Number(w.weight) > 0)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (sorted.length === 0) return 'Aucune pesee renseignee.';
+
+    const latest = sorted[sorted.length - 1];
+    const previous = sorted.length > 1 ? sorted[sorted.length - 2] : null;
+    const trend = previous ? `, evolution recente: ${(Number(latest.weight) - Number(previous.weight)).toFixed(1)} kg` : '';
+    return `${latest.weight} kg le ${formatDateFr(latest.date)}${trend}.`;
+}
+
+function summarizeMedicalForAI() {
+    const sorted = [...(medicalEvents || [])]
+        .filter(e => e?.date || e?.type || e?.name)
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+        .slice(0, 5);
+    if (sorted.length === 0) return 'Aucun acte medical renseigne.';
+    return sorted.map(e => `${e.type || e.name || 'Acte'} (${formatDateFr(e.date)}${e.notes ? `, ${e.notes}` : ''})`).join(' ; ');
+}
+
+function summarizeBudgetForAI() {
+    const month = new Date().toISOString().slice(0, 7);
+    const total = (budgetExpenses || [])
+        .filter(e => String(e.date || '').startsWith(month))
+        .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    return total > 0 ? `${total.toFixed(2)} EUR ce mois-ci.` : 'Aucune depense ce mois-ci.';
+}
+
+function summarizeReproForAI() {
+    const litters = Array.isArray(proLitters) ? proLitters : [];
+    const lastLitter = litters.length ? litters[litters.length - 1] : null;
+    if (!lastLitter) return 'Aucune portee renseignee.';
+    const puppies = Array.isArray(lastLitter.puppies) ? lastLitter.puppies.length : (lastLitter.count || 0);
+    return `Derniere portee: ${lastLitter.id || lastLitter.name || 'portee'} (${puppies} chiot(s), naissance ${formatDateFr(lastLitter.birthDate || lastLitter.date)}).`;
+}
+
+function buildPabloSystemPrompt() {
+    const allergies = healthExtras?.allergies?.trim() || 'aucune allergie renseignee';
+    const daily = dailyTrackers || {};
+    const memories = (memoriesList || []).slice(-3).map(m => m.text || m.title || m).filter(Boolean).join(' ; ') || 'aucun souvenir recent';
+
+    return [
+        "Tu es Hey Pablo, assistant specialise en bien-etre animal pour l'application Pablo.",
+        "Tu reponds uniquement aux sujets lies aux animaux: sante preventive, alimentation, education, comportement, elevage, organisation du carnet.",
+        "Tu ne poses jamais de diagnostic medical ferme, tu ne prescris pas de medicament, et tu recommandes un veterinaire en cas de symptome grave, douleur, urgence, doute important ou aggravation.",
+        "Tu es clair, concis, chaleureux, avec des etapes actionnables. Tu finis par un wouf ou un miaou quand c'est naturel.",
+        `Profil: ${petProfile.name || "l'animal"} | espece: ${petProfile.species || 'Chien'} | race: ${petProfile.breed || 'inconnue'} | age: ${petProfile.age || '?'} mois | poids profil: ${petProfile.weight || '?'} kg | taille: ${petProfile.size || '?'} cm.`,
+        `Sante: allergies/alertes: ${allergies}. Derniers actes: ${summarizeMedicalForAI()}`,
+        `Poids: ${summarizeWeightForAI()}`,
+        `Aujourd'hui: eau ${daily.water || 0} ml, promenade ${daily.walk || 0} min.`,
+        `Budget: ${summarizeBudgetForAI()}`,
+        `Elevage/officiel: sexe ${proData?.gender || 'non renseigne'}, puce ${proData?.chip || 'non renseignee'}, LOF ${proData?.lof || 'non renseigne'}. ${summarizeReproForAI()}`,
+        `Notes memoire: ${memories}.`
+    ].join("\n");
+}
+
+function getDemoAssistantReply(userText) {
+    const normalized = String(userText || '').toLowerCase();
+    if (normalized.includes('poids') || normalized.includes('croissance')) {
+        return "Dans la demo, Naya a deja une courbe de poids remplie. Sur un vrai compte, Hey Pablo analysera les pesees avec le reste du carnet. Pour l'instant, l'IA live est reservee aux utilisateurs connectes. Wouf !";
+    }
+    if (normalized.includes('vaccin') || normalized.includes('vermifuge') || normalized.includes('malade')) {
+        return "La demo montre les rappels et le carnet medical, mais n'appelle pas l'IA live sans connexion. Pour un vrai conseil personnalise et securise, connectez-vous puis ouvrez votre carnet. En cas de symptome inquietant, veterinaire. Wouf !";
+    }
+    return "Mode demo : je peux te montrer le fonctionnement, mais l'IA live est volontairement bloquee sans compte. Connecte-toi pour que Hey Pablo utilise le vrai profil de ton animal. Wouf !";
+}
+
 window.sendMessage = async function() {
     const input = document.getElementById('chat-input-field');
     const text  = input?.value.trim();
@@ -665,12 +899,20 @@ window.sendMessage = async function() {
     chatHistory.push({ sender: 'bot', text: loadingTxt, _id: loadingId });
     renderChat();
 
-    const systemPrompt = `Tu es l'assistant Pablo, spécialisé en bien-être animal. Tu aides le maître de : ${petProfile.name || 'l\'animal'}, Espèce: ${petProfile.species || 'Chien'}, Race: ${petProfile.breed || 'Inconnue'}, Âge: ${petProfile.age || '?'} mois, Poids: ${petProfile.weight || '?'} kg. Sois concis, bienveillant, ne réponds qu'à des sujets en rapport avec les animaux et finis toujours par un wouf ou un miaou !`;
+    const systemPrompt = buildPabloSystemPrompt();
 
     const apiMessages = chatHistory
         .filter(m => !m._id)
         .slice(-10)
         .map(m => ({ role: m.sender === 'bot' ? 'assistant' : 'user', content: m.text }));
+
+    if (!auth.currentUser && hasDemoAccess()) {
+        chatHistory = chatHistory.filter(m => m._id !== loadingId);
+        chatHistory.push({ sender: 'bot', text: getDemoAssistantReply(text) });
+        renderChat();
+        await saveLocalData(currentPetId, 'chat', chatHistory);
+        return;
+    }
 
     try {
         const replyTx = await groqChat([
@@ -761,7 +1003,7 @@ window.savePetProfile = function() {
     if (petObj) {
         petObj.name = name;
         localStorage.setItem('app_pets_list', JSON.stringify(petsList));
-        if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+        saveCloudFields({ app_pets_list: petsList });
         renderPetSelector();
     }
 
@@ -1611,7 +1853,7 @@ async function claimCession(cessionId) {
         const newId = 'pet_' + Date.now();
         petsList.push({ id: newId, name: petName });
         localStorage.setItem('app_pets_list', JSON.stringify(petsList));
-        if (auth.currentUser) setDoc(doc(db, "users", auth.currentUser.uid), { app_pets_list: petsList }, { merge: true });
+        saveCloudFields({ app_pets_list: petsList, current_pet_id: newId });
 
         let age = 0;
         if (p.birthDate) {
@@ -2972,6 +3214,7 @@ window.finishOnboarding = function() {
 
     localStorage.setItem('current_pet_id',   newId);
     localStorage.setItem('pablo_onboarded',  '1');
+    saveCloudFields({ app_pets_list: petsList, current_pet_id: newId, pablo_onboarded: '1' });
 
     localStorage.removeItem(DEMO_MODE_KEY);
     showMainApp();
@@ -3130,9 +3373,18 @@ window.closeShareCanvas = function() {
 // ==========================================
 // MODE HORS-LIGNE
 // ==========================================
-window.addEventListener('online',  () => document.getElementById('offline-banner')?.classList.remove('show'));
-window.addEventListener('offline', () => document.getElementById('offline-banner')?.classList.add('show'));
-if (!navigator.onLine) document.getElementById('offline-banner')?.classList.add('show');
+window.addEventListener('online',  () => {
+    document.getElementById('offline-banner')?.classList.remove('show');
+    flushPendingCloudWrites();
+});
+window.addEventListener('offline', () => {
+    document.getElementById('offline-banner')?.classList.add('show');
+    setCloudStatus('offline', 'Hors ligne');
+});
+if (!navigator.onLine) {
+    document.getElementById('offline-banner')?.classList.add('show');
+    setCloudStatus('offline', 'Hors ligne');
+}
 
 // Wrapper IA offline-safe
 const _groqChatOriginal = groqChat;

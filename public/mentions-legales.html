@@ -486,6 +486,7 @@
             <ul>
                 <li>Adresse e-mail (création et authentification du compte via Firebase Authentication)</li>
                 <li>Informations sur vos animaux (nom, race, date de naissance, poids, données de santé, notes) saisies volontairement</li>
+                <li>Messages envoyés à l'assistant Hey Pablo et contexte strictement utile du carnet animal pour personnaliser la réponse</li>
                 <li>Données d'usage anonymisées (comportement de navigation via Microsoft Clarity)</li>
             </ul>
 
@@ -494,8 +495,12 @@
                 <li>Authentification et accès à votre espace personnel</li>
                 <li>Stockage et affichage de vos données animales (suivi santé, nutrition, éducation, budget)</li>
                 <li>Amélioration de l'application (analyse d'usage anonyme)</li>
-                <li>Assistance via l'assistant IA Hey Pablo (les messages ne sont pas conservés côté serveur)</li>
+                <li>Assistance via l'assistant IA Hey Pablo : les requêtes passent par une API serveur sécurisée, réservée aux utilisateurs connectés, puis sont transmises au fournisseur d'IA uniquement pour générer la réponse</li>
             </ul>
+
+            <div class="highlight-box">
+                <p><strong>Assistant IA :</strong> Hey Pablo est un outil d'aide et d'organisation. Il ne remplace pas un vétérinaire, ne pose pas de diagnostic médical et ne doit pas être utilisé pour une urgence. Les données envoyées à l'IA doivent rester nécessaires à la question posée.</p>
+            </div>
 
             <p><strong>Base légale :</strong> exécution du contrat (utilisation de l'application) et intérêt légitime (amélioration du service).</p>
 
@@ -546,6 +551,7 @@
                 <h2 class="section-title">Limitation de responsabilité</h2>
             </div>
             <p>Les informations fournies par Pablo (suivi de santé, conseils de l'assistant IA, encyclopédie des races) ont une valeur indicative et ne remplacent en aucun cas l'avis d'un vétérinaire.</p>
+            <p>En cas de douleur, blessure, symptôme grave, intoxication suspectée, changement brutal de comportement ou doute médical important, l'utilisateur doit contacter sans délai un vétérinaire ou un service d'urgence vétérinaire.</p>
             <p>L'éditeur ne saurait être tenu responsable des dommages directs ou indirects liés à l'utilisation du site ou de ses informations, à une interruption de service, ou à des données inexactes saisies par l'utilisateur.</p>
             <p>L'éditeur s'engage à mettre en œuvre tous les moyens nécessaires pour assurer la disponibilité et la sécurité du service, sans pouvoir en garantir un accès continu et ininterrompu.</p>
         </section>

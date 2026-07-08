@@ -7,6 +7,39 @@ const GOOGLE_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/secu
 
 let cachedCerts = null;
 let certsExpiresAt = 0;
+const rateLimitBuckets = new Map();
+
+const SERVER_SYSTEM_PROMPT = [
+    "Tu es Hey Pablo, assistant specialise en bien-etre animal.",
+    "Tu refuses les demandes hors domaine animal.",
+    "Tu ne poses pas de diagnostic veterinaire ferme, tu ne prescris pas de medicament et tu recommandes un veterinaire en cas d'urgence, douleur, symptome grave ou doute important.",
+    "Tu reponds en francais par defaut, de facon concise, claire et bienveillante."
+].join("\n");
+
+function enforceRateLimit(uid) {
+    const now = Date.now();
+    const windowMs = 10 * 60 * 1000;
+    const maxCalls = 40;
+    const bucket = (rateLimitBuckets.get(uid) || []).filter(ts => now - ts < windowMs);
+    if (bucket.length >= maxCalls) {
+        const error = new Error("Trop de requetes. Reessayez dans quelques minutes.");
+        error.statusCode = 429;
+        throw error;
+    }
+    bucket.push(now);
+    rateLimitBuckets.set(uid, bucket);
+}
+
+function sanitizeMessages(messages) {
+    const allowedRoles = new Set(["system", "user", "assistant"]);
+    return messages
+        .filter(message => message && allowedRoles.has(message.role) && typeof message.content === "string")
+        .slice(-18)
+        .map(message => ({
+            role: message.role,
+            content: message.content.slice(0, 4000)
+        }));
+}
 
 function jsonFromBase64Url(value) {
     return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
@@ -121,14 +154,16 @@ export default async function handler(req, res) {
     }
 
     try {
-        await verifyFirebaseUser(req);
+        const firebaseUser = await verifyFirebaseUser(req);
+        enforceRateLimit(firebaseUser.sub);
 
         if (!process.env.OPENAI_API_KEY) {
             return res.status(500).json({ error: "La variable OPENAI_API_KEY n'est pas configuree cote serveur." });
         }
 
         const body = normalizeBody(req);
-        if (!Array.isArray(body.messages) || body.messages.length === 0) {
+        const safeMessages = Array.isArray(body.messages) ? sanitizeMessages(body.messages) : [];
+        if (safeMessages.length === 0) {
             return res.status(400).json({ error: "Messages manquants." });
         }
 
@@ -140,7 +175,10 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
                 model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
-                messages: body.messages
+                messages: [
+                    { role: "system", content: SERVER_SYSTEM_PROMPT },
+                    ...safeMessages
+                ]
             })
         });
 

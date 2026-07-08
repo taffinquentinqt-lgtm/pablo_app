@@ -919,6 +919,37 @@
             border-color: var(--gold-border);
         }
 
+        .cloud-sync-pill,
+        .pwa-install-btn {
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 12px;
+            border-radius: var(--radius-xs);
+            border: 1px solid var(--card-border);
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            font-family: var(--font-body);
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .cloud-sync-pill i { font-size: 12px; }
+        .cloud-sync-pill[data-state="saving"] { color: var(--warning); border-color: rgba(232,168,60,0.32); }
+        .cloud-sync-pill[data-state="saved"] { color: var(--success); border-color: rgba(82,201,122,0.32); }
+        .cloud-sync-pill[data-state="offline"],
+        .cloud-sync-pill[data-state="error"] { color: var(--danger); border-color: rgba(224,82,82,0.32); }
+        .pwa-install-btn {
+            color: #0a0806;
+            background: var(--gold);
+            border-color: transparent;
+            cursor: pointer;
+        }
+        .pwa-install-btn[hidden] { display: none; }
+        .pwa-install-btn:hover { background: var(--gold-light); }
+
         .screens-wrap {
             flex: 1;
             overflow-y: auto;
@@ -1212,6 +1243,17 @@
             display: flex;
             gap: 8px;
             background: var(--card);
+        }
+
+        .chat-safety-note {
+            margin: 10px 0 0;
+            padding: 10px 12px;
+            border: 1px solid var(--gold-border);
+            border-radius: var(--radius-sm);
+            background: var(--gold-dim);
+            color: var(--text-sub);
+            font-size: 12px;
+            line-height: 1.45;
         }
 
         .chat-presets {
@@ -1725,6 +1767,12 @@
         /* ── Offline banner ── */
         #offline-banner { display:none; position:fixed; top:0; left:0; right:0; z-index:99999; background:#e05252; color:#fff; text-align:center; padding:10px 16px; font-size:13px; font-weight:600; }
         #offline-banner.show { display:block; }
+        @media (max-width: 640px) {
+            .cloud-sync-pill span,
+            .pwa-install-btn span { display: none; }
+            .cloud-sync-pill,
+            .pwa-install-btn { width: 36px; padding: 0; }
+        }
         /* ── Stats élevage ── */
         .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:16px; }
         .stat-box { background:var(--bg-elevated); border:1px solid var(--card-border); border-radius:var(--radius-md); padding:14px; text-align:center; }
@@ -2095,6 +2143,14 @@
                         </div>
                         <div class="custom-pet-select__list" id="mobile-pet-selector-list"></div>
                     </div>
+                    <div class="cloud-sync-pill" id="cloud-sync-pill" data-state="idle" title="Etat de synchronisation">
+                        <i class="fa-solid fa-cloud"></i>
+                        <span id="cloud-sync-text">Local</span>
+                    </div>
+                    <button class="pwa-install-btn" id="pwa-install-btn" onclick="installPabloApp()" hidden title="Installer Pablo">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Installer</span>
+                    </button>
                     <div class="btn-icon-header" onclick="toggleTheme()" title="Thème" role="button" tabindex="0" aria-label="Basculer le thème">
                         <i class="fa-solid fa-circle-half-stroke"></i>
                     </div>
@@ -2362,6 +2418,9 @@
                                 <i class="fa-solid fa-paper-plane"></i>
                             </button>
                         </div>
+                    </div>
+                    <div class="chat-safety-note">
+                        Hey Pablo aide à organiser et comprendre le carnet. En cas de douleur, symptôme grave, traitement ou doute médical, contactez un vétérinaire.
                     </div>
                     <div class="chat-presets">
                         <button class="preset-btn" onclick="askPreset('Quels fruits sont toxiques pour les chiens ?')">Fruits toxiques 🍇</button>
