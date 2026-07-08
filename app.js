@@ -8,30 +8,33 @@ import { getMessaging, getToken } from "firebase/messaging";
 // CONFIGURATION GLOBALE
 // ==========================================
 const GLOBAL_CONFIG_ID = "pablo_global_config";
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+const DEMO_MODE_KEY = "pablo_demo_mode";
+const OPENAI_MODEL = "gpt-5.4-mini";
 
 function trackEvent(name) {
     if (typeof window.clarity === 'function') window.clarity('event', name);
 }
 
-async function groqChat(messages) {
+async function pabloChat(messages) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
         const res = await fetch("/api/pablo-chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model: GROQ_MODEL, messages }),
+            body: JSON.stringify({ model: OPENAI_MODEL, messages }),
             signal: controller.signal
         });
-        if (!res.ok) throw new Error(`Groq ${res.status}`);
+        if (!res.ok) throw new Error(`OpenAI ${res.status}`);
         const data = await res.json();
-        if (data.error) throw new Error(data.error.message || 'Erreur Groq');
+        if (data.error) throw new Error(data.error.message || data.error || 'Erreur OpenAI');
         return data.choices?.[0]?.message?.content?.trim() || '';
     } finally {
         clearTimeout(timeout);
     }
 }
+
+const groqChat = pabloChat;
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuz7iwOzeEFsFDU1G5aAe69JCczaduI44",
@@ -157,17 +160,28 @@ onAuthStateChanged(auth, async (user) => {
         const _pending = localStorage.getItem('_pendingCession');
         if (_pending) claimCession(_pending);
     } else {
-        if (mainApp) mainApp.style.display = 'none';
-        if (landing) landing.style.display = 'block';
+        if (hasLocalAppData()) {
+            showMainApp();
+        } else {
+            if (mainApp) mainApp.style.display = 'none';
+            if (landing) landing.style.display = 'block';
+            updateDemoModeUI();
+        }
     }
 });
 
-window.enterApp = () => {
-    const landing  = document.getElementById('landing-page');
+window.openLocalApp = function() {
     const authPage = document.getElementById('auth-page');
-    if (landing)  landing.style.display = 'none';
-    if (!auth.currentUser && authPage) authPage.style.display = 'flex';
+    const landing = document.getElementById('landing-page');
+    if (auth.currentUser || hasLocalAppData()) {
+        showMainApp();
+        return;
+    }
+    if (landing) landing.style.display = 'none';
+    if (authPage) authPage.style.display = 'flex';
 };
+
+window.enterApp = window.openLocalApp;
 
 window.toggleAuthMode = () => {
     const btn        = document.getElementById('auth-action-btn');
@@ -309,12 +323,49 @@ function escHtml(str) {
     return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function getPetsListFromStorage() {
+    try {
+        return JSON.parse(localStorage.getItem('app_pets_list') || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+function hasLocalAppData() {
+    return getPetsListFromStorage().length > 0 && localStorage.getItem('pablo_onboarded') === '1';
+}
+
+function setLocalDataOnly(petId, key, data) {
+    localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
+}
+
+function updateDemoModeUI() {
+    const isDemo = localStorage.getItem(DEMO_MODE_KEY) === '1';
+    document.body.classList.toggle('demo-mode', isDemo);
+    const banner = document.getElementById('demo-mode-banner');
+    if (banner) banner.style.display = isDemo ? 'flex' : 'none';
+}
+
+function showMainApp() {
+    const landing = document.getElementById('landing-page');
+    const authPage = document.getElementById('auth-page');
+    const mainApp = document.getElementById('main-app-layout');
+    document.getElementById('onboarding-overlay')?.classList.remove('open');
+    if (landing) landing.style.display = 'none';
+    if (authPage) authPage.style.display = 'none';
+    initApp();
+    if (mainApp) {
+        mainApp.style.display = 'flex';
+        setTimeout(() => renderWeightChart(), 150);
+    }
+    updateDemoModeUI();
+}
+
 // ==========================================
 // GESTION MULTI-ANIMAUX
 // ==========================================
 function initApp() {
-    const savedPets = localStorage.getItem('app_pets_list');
-    petsList = savedPets ? JSON.parse(savedPets) : [];
+    petsList = getPetsListFromStorage();
 
     if (petsList.length === 0) {
         currentPetId = null;
@@ -323,12 +374,14 @@ function initApp() {
         if (!localStorage.getItem('_pendingCession') && typeof window.createNewPet === 'function') {
             setTimeout(() => window.createNewPet(), 350);
         }
+        updateDemoModeUI();
         return;
     }
 
     currentPetId = localStorage.getItem('current_pet_id') || petsList[0].id;
     renderPetSelector();
     loadCurrentPetData();
+    updateDemoModeUI();
 }
 
 function renderPetSelector() {
@@ -472,7 +525,7 @@ function _doDeleteCurrentPet() {
 }
 
 // ==========================================
-// PROFIL & ENCYCLOPÉDIE (GROQ SECURE ROUTER)
+// PROFIL & ENCYCLOPEDIE (OPENAI SECURE ROUTER)
 // ==========================================
 async function updateBreedAdviceUI() {
     const adviceCard      = document.getElementById('breed-advice-card');
@@ -485,7 +538,7 @@ async function updateBreedAdviceUI() {
     if (adviceBreedName) adviceBreedName.innerText = petProfile.breed;
 
     if (petProfile.breedAdvice) { if (adviceContent) adviceContent.innerHTML = petProfile.breedAdvice; return; }
-    if (adviceContent) adviceContent.innerHTML = "<div style='text-align:center; padding:20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size:24px; color:var(--gold);'></i><br><br><span style='color:var(--text-muted); font-size:13px;'>Génération de l'encyclopédie via Groq…</span></div>";
+    if (adviceContent) adviceContent.innerHTML = "<div style='text-align:center; padding:20px;'><i class='fa-solid fa-spinner fa-spin' style='font-size:24px; color:var(--gold);'></i><br><br><span style='color:var(--text-muted); font-size:13px;'>Génération de l'encyclopédie via OpenAI…</span></div>";
 
     try {
         const prompt = `Tu es un expert canin. Rédige une documentation complète pour un ${petProfile.species || 'animal'} de race ${petProfile.breed}.
@@ -503,7 +556,7 @@ Utilise des paragraphes <p> et des listes <ul><li>. Pas d'introduction ni de con
         saveLocalData(currentPetId, 'profile', petProfile);
         if (adviceContent) adviceContent.innerHTML = clean;
     } catch (error) {
-        console.error("Erreur encyclopédie Groq:", error);
+        console.error("Erreur encyclopédie OpenAI:", error);
         if (adviceContent) adviceContent.innerText = `Documentation indisponible (${error.message}).`;
     }
 }
@@ -2666,20 +2719,160 @@ window.switchProTab = function(tab) {
 // ==========================================
 
 // ==========================================
-// ONBOARDING 3 ÉTAPES
+// DEMO + ONBOARDING
 // ==========================================
-window.startOnboarding = function() {
-    if (!window._fbAuth?.currentUser) {
-        document.getElementById('landing-page').style.display = 'none';
-        document.getElementById('auth-page').style.display    = 'flex';
+function dateOffset(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+}
+
+function clearPabloLocalDataset() {
+    Object.keys(localStorage).forEach(k => {
+        if (k.startsWith('firebase') || k.startsWith('clarity') || k.startsWith('_clarity')) return;
+        localStorage.removeItem(k);
+    });
+}
+
+function seedDemoDataset() {
+    clearPabloLocalDataset();
+    const nayaId = 'demo_naya';
+    const pabloId = 'demo_pablo';
+    petsList = [
+        { id: nayaId, name: 'Naya' },
+        { id: pabloId, name: 'Pablo' }
+    ];
+    localStorage.setItem('app_pets_list', JSON.stringify(petsList));
+    localStorage.setItem('current_pet_id', nayaId);
+    localStorage.setItem('pablo_onboarded', '1');
+    localStorage.setItem(DEMO_MODE_KEY, '1');
+
+    setLocalDataOnly(nayaId, 'profile', {
+        name: 'Naya', species: 'Chien', breed: 'Berger Allemand', age: 32, size: 61, weight: 31.4, avatar: '',
+        breedAdvice: '<p><strong>Berger Allemand :</strong> chien sportif, proche de son humain, qui a besoin de régularité. Surveillez surtout la croissance, les articulations, le poids et la récupération après l\'effort.</p>'
+    });
+    setLocalDataOnly(nayaId, 'weight', [
+        { date: dateOffset(-150), weight: 27.8 },
+        { date: dateOffset(-120), weight: 28.9 },
+        { date: dateOffset(-90), weight: 30.1 },
+        { date: dateOffset(-60), weight: 30.8 },
+        { date: dateOffset(-30), weight: 31.2 },
+        { date: dateOffset(-4), weight: 31.4 }
+    ]);
+    setLocalDataOnly(nayaId, 'medical', [
+        { type: 'Vaccin', date: dateOffset(-335) },
+        { type: 'Vermifuge', date: dateOffset(-82) },
+        { type: 'Anti-puces', date: dateOffset(-26) },
+        { type: 'Dents', date: dateOffset(-10) }
+    ]);
+    setLocalDataOnly(nayaId, 'education', { assis: 3, rappel: 2, 'marche-laisse': 2, solitude: 1 });
+    setLocalDataOnly(nayaId, 'daily', { water: 950, walk: 70, date: new Date().toISOString().split('T')[0] });
+    setLocalDataOnly(nayaId, 'chat', [
+        { sender: 'bot', text: 'Bienvenue dans la démo Pablo. Ici, Naya a déjà un carnet santé, un suivi de poids et un module élevage rempli.' },
+        { sender: 'user', text: 'Que dois-je surveiller cette semaine ?' },
+        { sender: 'bot', text: 'Priorité : vermifuge bientôt à renouveler, stock de croquettes à vérifier et suivi des chiots de la portée A. Wouf !' }
+    ]);
+    setLocalDataOnly(nayaId, 'budget', [
+        { id: 1, title: 'Croquettes performance 12 kg', amount: 68.9, date: dateOffset(-12) },
+        { id: 2, title: 'Vermifuge', amount: 18.5, date: dateOffset(-7) },
+        { id: 3, title: 'Jouet enrichissement', amount: 14.9, date: dateOffset(-2) }
+    ]);
+    setLocalDataOnly(nayaId, 'proData', {
+        gender: 'Femelle', chip: '250268712345678', lof: 'LOF 1 B.AL. 998877', pedigree: 'Lignée travail', dna: 'ADN validé', xrays: 'Hanches A/A - Coudes 0/0',
+        clubName: 'Club du Berger Allemand', clubDate: dateOffset(-420), optimalDate: dateOffset(-48), expectedBirth: dateOffset(18), actualBirth: '', heatReminder: true,
+        kennelName: 'Élevage du Val Pablo', siren: '894 011 170', dept: '59 - Nord', website: 'facebook.com/elevage-val-pablo',
+        ficheDescription: 'Petit élevage familial de Bergers Allemands, axé tempérament stable, suivi santé et accompagnement des familles.'
+    });
+    setLocalDataOnly(nayaId, 'proEvents', [
+        { id: 1, type: 'Confirmation', date: dateOffset(24), note: 'Préparer carnet, LOF et certificat vétérinaire.' },
+        { id: 2, type: 'Rendez-vous vétérinaire', date: dateOffset(7), note: 'Échographie de contrôle.' }
+    ]);
+    setLocalDataOnly(nayaId, 'proHistory', {
+        heats: [{ id: 1, date: dateOffset(-68), note: 'Chaleurs régulières' }],
+        matings: [{ id: 2, date: dateOffset(-45), partner: 'Oslo du Domaine Nord', note: 'Saillie confirmée' }]
+    });
+    setLocalDataOnly(nayaId, 'proLitters', [{
+        id: 'demo_litter_a', date: dateOffset(-65), partner: 'Oslo du Domaine Nord', count: 4, dam: 'Naya', sire: 'Oslo du Domaine Nord',
+        puppies: [
+            { id: 'pup_a1', name: 'Athos', sex: 'Mâle', color: 'Noir et feu', chip: '250269100000001', birthDate: dateOffset(-65), dam: 'Naya', sire: 'Oslo', status: 'Disponible', weights: [{ date: dateOffset(-50), weight: 1.4 }, { date: dateOffset(-20), weight: 4.2 }], acts: [{ type: 'Vaccin', date: dateOffset(-8) }] },
+            { id: 'pup_a2', name: 'Alma', sex: 'Femelle', color: 'Fauve charbonné', chip: '250269100000002', birthDate: dateOffset(-65), dam: 'Naya', sire: 'Oslo', status: 'Réservé', weights: [{ date: dateOffset(-50), weight: 1.3 }, { date: dateOffset(-20), weight: 3.9 }], acts: [{ type: 'Vermifuge', date: dateOffset(-12) }] }
+        ],
+        waitlist: [
+            { id: 'wl_1', name: 'Famille Martin', phone: '06 12 34 56 78', email: 'martin@example.fr', status: 'À rappeler', deposit: 'Oui', note: 'Cherche femelle calme.' },
+            { id: 'wl_2', name: 'Mme Leroy', phone: '06 98 76 54 32', email: 'leroy@example.fr', status: 'En attente', deposit: 'Non', note: 'Disponible fin août.' }
+        ]
+    }]);
+    setLocalDataOnly(nayaId, 'healthExtras', { allergies: 'Aucune connue', vetName: 'Clinique VetNord', vetPhone: '03 20 00 00 00', kibbleBag: 12, kibbleRemaining: 3.4 });
+    setLocalDataOnly(nayaId, 'memories', [
+        { id: 1, date: dateOffset(-40), title: 'Première balade avec les chiots', text: 'Tout le monde a suivi Naya dans le jardin.' }
+    ]);
+    setLocalDataOnly(nayaId, 'gamification', { streak: 6, lastLogin: new Date().toISOString().split('T')[0], badges: ['first_weight', 'health_ready', 'breeder_mode'] });
+    setLocalDataOnly(nayaId, 'registre', [
+        { id: 1, type: 'Entrée — Naissance', date: dateOffset(-65), animal: 'Portée A - 4 chiots', chip: 'À identifier', person: 'Élevage du Val Pablo', createdAt: Date.now() - 1000 },
+        { id: 2, type: 'Sortie — Réservation', date: dateOffset(-5), animal: 'Alma', chip: '250269100000002', person: 'Famille Martin', createdAt: Date.now() }
+    ]);
+
+    setLocalDataOnly(pabloId, 'profile', { name: 'Pablo', species: 'Chien', breed: 'Berger Allemand', age: 54, size: 64, weight: 36.8, avatar: '', breedAdvice: '' });
+    setLocalDataOnly(pabloId, 'weight', [{ date: dateOffset(-40), weight: 36.2 }, { date: dateOffset(-8), weight: 36.8 }]);
+    setLocalDataOnly(pabloId, 'medical', [{ type: 'Vaccin', date: dateOffset(-210) }, { type: 'Anti-puces', date: dateOffset(-12) }]);
+    setLocalDataOnly(pabloId, 'education', { assis: 3, rappel: 3, 'pas-bouger': 2 });
+    setLocalDataOnly(pabloId, 'daily', { water: 700, walk: 45, date: new Date().toISOString().split('T')[0] });
+    setLocalDataOnly(pabloId, 'chat', [{ sender: 'bot', text: 'Je suis le second profil de démo. Utilisez le sélecteur pour voir le multi-animal.' }]);
+    setLocalDataOnly(pabloId, 'budget', []);
+    setLocalDataOnly(pabloId, 'proData', { gender: 'Mâle' });
+    setLocalDataOnly(pabloId, 'proEvents', []);
+    setLocalDataOnly(pabloId, 'proLitters', []);
+    setLocalDataOnly(pabloId, 'healthExtras', { allergies: '', vetName: 'Clinique VetNord', vetPhone: '03 20 00 00 00', kibbleBag: 12, kibbleRemaining: 7.1 });
+    setLocalDataOnly(pabloId, 'proHistory', { heats: [], matings: [] });
+    setLocalDataOnly(pabloId, 'memories', []);
+    setLocalDataOnly(pabloId, 'gamification', { streak: 2, lastLogin: new Date().toISOString().split('T')[0], badges: [] });
+    setLocalDataOnly(pabloId, 'registre', []);
+}
+
+window.startDemoMode = function() {
+    const existingPets = getPetsListFromStorage();
+    const launch = () => {
+        seedDemoDataset();
+        showMainApp();
+        navigateTo('screen-home');
+        showToast('Démo chargée : explorez Pablo sans compte.', '✨');
+        trackEvent('demo_started');
+    };
+
+    if (existingPets.length > 0 && localStorage.getItem(DEMO_MODE_KEY) !== '1' && !auth.currentUser && typeof showConfirm === 'function') {
+        showConfirm('La démo va remplacer les données locales de test sur cet appareil. Continuer ?', launch);
         return;
     }
-    if (localStorage.getItem('pablo_onboarded')) {
+    launch();
+};
+
+window.resetDemoMode = function() {
+    clearPabloLocalDataset();
+    document.getElementById('main-app-layout').style.display = 'none';
+    document.getElementById('auth-page').style.display = 'none';
+    document.getElementById('landing-page').style.display = 'block';
+    updateDemoModeUI();
+    showToast('Démo quittée. Vous pouvez créer votre vrai carnet.', '✅');
+};
+
+window.startOnboarding = function(forceFresh = false) {
+    if (forceFresh || localStorage.getItem(DEMO_MODE_KEY) === '1') {
+        clearPabloLocalDataset();
+        updateDemoModeUI();
+    } else if (localStorage.getItem('pablo_onboarded') && hasLocalAppData()) {
         enterApp();
         return;
     }
+    obSetStep(1);
+    ['ob-pet-name', 'ob-pet-breed', 'ob-pet-weight'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const species = document.getElementById('ob-pet-species');
+    if (species) species.value = 'Chien';
     document.getElementById('onboarding-overlay')?.classList.add('open');
     document.getElementById('landing-page').style.display = 'none';
+    document.getElementById('auth-page').style.display = 'none';
 };
 
 function obSetStep(n) {
@@ -2711,7 +2904,7 @@ window.finishOnboarding = function() {
     const weight  = parseFloat(document.getElementById('ob-pet-weight')?.value) || 0;
 
     const newId = 'pet_' + Date.now();
-    petsList = JSON.parse(localStorage.getItem('app_pets_list') || '[]');
+    petsList = getPetsListFromStorage();
     petsList.push({ id: newId, name });
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
 
@@ -2734,19 +2927,15 @@ window.finishOnboarding = function() {
     localStorage.setItem('current_pet_id',   newId);
     localStorage.setItem('pablo_onboarded',  '1');
 
-    document.getElementById('onboarding-overlay')?.classList.remove('open');
-    document.getElementById('main-app-layout').style.display = 'flex';
-    document.getElementById('auth-page').style.display       = 'none';
-    document.getElementById('landing-page').style.display    = 'none';
-
-    initApp();
+    localStorage.removeItem(DEMO_MODE_KEY);
+    showMainApp();
     showToast(`Carnet de ${name} créé ! 🐾`, '✅');
     trackEvent('onboarding_completed');
 };
 
 window.skipOnboarding = function() {
     document.getElementById('onboarding-overlay')?.classList.remove('open');
-    enterApp();
+    showMainApp();
 };
 
 // ==========================================
@@ -2898,7 +3087,7 @@ window.addEventListener('online',  () => document.getElementById('offline-banner
 window.addEventListener('offline', () => document.getElementById('offline-banner')?.classList.add('show'));
 if (!navigator.onLine) document.getElementById('offline-banner')?.classList.add('show');
 
-// Wrapper groqChat offline-safe
+// Wrapper IA offline-safe
 const _groqChatOriginal = groqChat;
 window._groqChatSafe = async function(messages) {
     if (!navigator.onLine) {

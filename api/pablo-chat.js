@@ -1,6 +1,6 @@
 // api/pablo-chat.js
 export default async function handler(req, res) {
-    // Évite les blocages CORS locaux
+    // Evite les blocages CORS locaux.
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -9,18 +9,30 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: "Methode non autorisee." });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ error: "La variable OPENAI_API_KEY n'est pas configuree cote serveur." });
+    }
+
     try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const body = req.body || {};
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.GROQ_API_KEY}` // Vercel va aller chercher la clé ici de manière cachée
+                "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
             },
-            body: JSON.stringify(req.body)
+            body: JSON.stringify({
+                model: process.env.OPENAI_MODEL || body.model || "gpt-5.4-mini",
+                messages: Array.isArray(body.messages) ? body.messages : []
+            })
         });
-        
+
         const data = await response.json();
-        return res.status(200).json(data);
+        return res.status(response.status).json(data);
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }

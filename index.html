@@ -1634,6 +1634,48 @@
             border: none; border-radius: 100px; cursor: pointer; width: 100%;
         }
         .l-nav-mobile-cta:hover { background: var(--gold-light); }
+        .l-nav-mobile-demo {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 13px 14px;
+            background: rgba(200,146,42,0.08);
+            color: var(--gold-light);
+            font-family: var(--font-body); font-size: 13px; font-weight: 700;
+            border: 1px solid var(--gold-border); border-radius: 100px; cursor: pointer; width: 100%;
+        }
+        .btn-demo-main {
+            display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+            margin-top: 12px; padding: 13px 22px;
+            background: rgba(200,146,42,0.08); color: var(--gold-light);
+            border: 1px solid var(--gold-border); border-radius: 100px;
+            font-family: var(--font-body); font-size: 13.5px; font-weight: 700;
+            cursor: pointer; transition: background .2s, border-color .2s, transform .2s;
+        }
+        .btn-demo-main:hover { background: rgba(200,146,42,0.14); border-color: rgba(200,146,42,0.42); transform: translateY(-1px); }
+        .btn-auth-demo {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
+            margin-top: 10px; padding: 13px 16px;
+            background: rgba(82,201,122,0.08); color: var(--success);
+            border: 1px solid rgba(82,201,122,0.24); border-radius: var(--radius-sm);
+            font-family: var(--font-body); font-size: 13.5px; font-weight: 700; cursor: pointer;
+        }
+        .btn-auth-demo:hover { background: rgba(82,201,122,0.13); }
+        .demo-mode-banner {
+            display: none; align-items: center; justify-content: space-between; gap: 14px;
+            margin: 0 28px 14px; padding: 13px 16px;
+            border: 1px solid rgba(82,201,122,0.22); border-radius: var(--radius-md);
+            background: linear-gradient(135deg, rgba(82,201,122,0.12), rgba(200,146,42,0.08));
+            color: var(--text-sub); box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+        }
+        .demo-mode-banner strong { color: var(--success); display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+        .demo-mode-banner span { font-size: 12.5px; }
+        .demo-mode-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+        .demo-mode-actions button { border: 1px solid var(--gold-border); border-radius: 100px; padding: 8px 12px; background: rgba(13,11,7,0.35); color: var(--text); font-family: var(--font-body); font-size: 12px; font-weight: 700; cursor: pointer; }
+        .demo-mode-actions button:first-child { background: var(--gold); color: #0a0806; border-color: transparent; }
+        @media (max-width: 760px) {
+            .demo-mode-banner { margin: 0 14px 12px; align-items: flex-start; flex-direction: column; }
+            .demo-mode-actions { width: 100%; justify-content: stretch; }
+            .demo-mode-actions button { flex: 1; }
+        }
         @media (max-width: 640px) {
             .l-nav { padding: 0 16px; }
             .l-nav-links { display: none; }
@@ -1769,6 +1811,9 @@
         <button class="l-nav-mobile-cta" onclick="enterApp(); closeMobileMenu();">
             <i class="fa-solid fa-paw"></i> Ouvrir l'app gratuitement
         </button>
+        <button class="l-nav-mobile-demo" onclick="startDemoMode(); closeMobileMenu();">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Voir la démo
+        </button>
     </div>
 
     <div class="landing-inner">
@@ -1784,8 +1829,11 @@
 
         <div class="l-cta-wrap">
             <button class="btn-cta-main" onclick="startOnboarding()">
-                Votre 1er carnet en 1 min
+                Créer mon carnet en 1 min
                 <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <button class="btn-demo-main" onclick="startDemoMode()">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Voir une démo remplie
             </button>
             <div class="l-trust-badges">
                 <span class="l-badge"><i class="fa-solid fa-check"></i> 100% Gratuit</span>
@@ -1970,6 +2018,10 @@
             <i class="fa-brands fa-google"></i> Continuer avec Google
         </button>
 
+        <button class="btn-auth-demo" type="button" onclick="startDemoMode()">
+            <i class="fa-solid fa-eye"></i> Tester Pablo avec une démo
+        </button>
+
         <p class="auth-switch-row">
             <span id="auth-switch-text">Pas encore de compte ?</span>
             <a id="auth-switch-link" onclick="toggleAuthMode()">Créer un compte</a>
@@ -2051,6 +2103,17 @@
                     </div>
                 </div>
             </header>
+
+            <div id="demo-mode-banner" class="demo-mode-banner">
+                <div>
+                    <strong>Mode démo</strong>
+                    <span>Données fictives locales : explorez le carnet, l'élevage, les rappels et les exports sans compte.</span>
+                </div>
+                <div class="demo-mode-actions">
+                    <button type="button" onclick="startOnboarding(true)">Créer mon vrai carnet</button>
+                    <button type="button" onclick="resetDemoMode()">Quitter la démo</button>
+                </div>
+            </div>
 
             <div class="screens-wrap">
 
@@ -3015,6 +3078,7 @@
                 </div>
             </div>
             <button class="btn-ob-next" onclick="obNext(1)">Continuer <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn-ob-skip" onclick="startDemoMode()">Voir d'abord une démo remplie</button>
             <button class="btn-ob-skip" onclick="skipOnboarding()">Passer et accéder directement à l'app</button>
         </div>
         <div id="ob-step-2" style="display:none;">
@@ -3059,6 +3123,10 @@
 ============================================================ -->
 <script>
     window.enterApp = () => {
+        if (typeof window.openLocalApp === 'function') {
+            window.openLocalApp();
+            return;
+        }
         document.getElementById('landing-page').style.display = 'none';
         if (!window._fbAuth?.currentUser) {
             document.getElementById('auth-page').style.display = 'flex';

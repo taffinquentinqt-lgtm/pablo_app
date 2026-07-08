@@ -18,7 +18,7 @@
 
 - PWA installable sur iOS et Android sans passer par un store
 - Données stockées localement (localStorage) + synchronisation optionnelle via Firebase
-- IA propulsée par Groq (modèle Llama 3.3 70B)
+- IA propulsée par OpenAI côté serveur
 - Authentification Firebase (email/mot de passe + Google)
 
 ## Auteur
