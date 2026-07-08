@@ -16,12 +16,20 @@ function trackEvent(name) {
 }
 
 async function pabloChat(messages) {
+    if (!auth.currentUser) {
+        throw new Error("Connectez-vous pour utiliser Hey Pablo.");
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
+        const idToken = await auth.currentUser.getIdToken();
         const res = await fetch("/api/pablo-chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${idToken}`
+            },
             body: JSON.stringify({ model: OPENAI_MODEL, messages }),
             signal: controller.signal
         });
@@ -160,7 +168,7 @@ onAuthStateChanged(auth, async (user) => {
         const _pending = localStorage.getItem('_pendingCession');
         if (_pending) claimCession(_pending);
     } else {
-        if (hasLocalAppData()) {
+        if (hasDemoAccess()) {
             showMainApp();
         } else {
             if (mainApp) mainApp.style.display = 'none';
@@ -173,7 +181,7 @@ onAuthStateChanged(auth, async (user) => {
 window.openLocalApp = function() {
     const authPage = document.getElementById('auth-page');
     const landing = document.getElementById('landing-page');
-    if (auth.currentUser || hasLocalAppData()) {
+    if (auth.currentUser || hasDemoAccess()) {
         showMainApp();
         return;
     }
@@ -335,6 +343,11 @@ function hasLocalAppData() {
     return getPetsListFromStorage().length > 0 && localStorage.getItem('pablo_onboarded') === '1';
 }
 
+function hasDemoAccess() {
+    return localStorage.getItem(DEMO_MODE_KEY) === '1'
+        && getPetsListFromStorage().some(p => String(p.id).startsWith('demo_'));
+}
+
 function setLocalDataOnly(petId, key, data) {
     localStorage.setItem(`${key}_${petId}`, JSON.stringify(data));
 }
@@ -350,6 +363,15 @@ function showMainApp() {
     const landing = document.getElementById('landing-page');
     const authPage = document.getElementById('auth-page');
     const mainApp = document.getElementById('main-app-layout');
+
+    if (!auth.currentUser && !hasDemoAccess()) {
+        if (mainApp) mainApp.style.display = 'none';
+        if (landing) landing.style.display = 'none';
+        if (authPage) authPage.style.display = 'flex';
+        updateDemoModeUI();
+        return;
+    }
+
     document.getElementById('onboarding-overlay')?.classList.remove('open');
     if (landing) landing.style.display = 'none';
     if (authPage) authPage.style.display = 'none';
@@ -2856,6 +2878,21 @@ window.resetDemoMode = function() {
 };
 
 window.startOnboarding = function(forceFresh = false) {
+    if (!auth.currentUser) {
+        if (forceFresh || localStorage.getItem(DEMO_MODE_KEY) === '1') {
+            clearPabloLocalDataset();
+            updateDemoModeUI();
+        }
+        document.getElementById('onboarding-overlay')?.classList.remove('open');
+        document.getElementById('main-app-layout').style.display = 'none';
+        document.getElementById('landing-page').style.display = 'none';
+        document.getElementById('auth-page').style.display = 'flex';
+        if (typeof window.showAuthMsg === 'function') {
+            window.showAuthMsg("Connectez-vous pour creer votre vrai carnet.", "success");
+        }
+        return;
+    }
+
     if (forceFresh || localStorage.getItem(DEMO_MODE_KEY) === '1') {
         clearPabloLocalDataset();
         updateDemoModeUI();
@@ -2898,6 +2935,15 @@ window.obNext = function(step) {
 };
 
 window.finishOnboarding = function() {
+    if (!auth.currentUser) {
+        document.getElementById('onboarding-overlay')?.classList.remove('open');
+        enterApp();
+        if (typeof window.showAuthMsg === 'function') {
+            window.showAuthMsg("Connectez-vous pour enregistrer votre carnet.", "error");
+        }
+        return;
+    }
+
     const name    = document.getElementById('ob-pet-name')?.value.trim()    || 'Mon animal';
     const species = document.getElementById('ob-pet-species')?.value         || 'Chien';
     const breed   = document.getElementById('ob-pet-breed')?.value.trim()   || '';
@@ -2935,7 +2981,8 @@ window.finishOnboarding = function() {
 
 window.skipOnboarding = function() {
     document.getElementById('onboarding-overlay')?.classList.remove('open');
-    showMainApp();
+    if (auth.currentUser) showMainApp();
+    else enterApp();
 };
 
 // ==========================================
