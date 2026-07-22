@@ -1,30 +1,40 @@
-# Pablo — Tableau de bord santé pour maîtres et éleveurs
+# Pablo
 
-> Pablo est une application web progressive (PWA) gratuite, sans publicité, dédiée aux maîtres et éleveurs de chiens et chats.
+Pablo est une application web progressive gratuite pour les maitres et eleveurs de chiens et chats. Elle aide a suivre le poids, la sante, la nutrition, l'education, le budget, les rappels et les donnees d'elevage.
 
-## Fonctionnalités principales
+## Pages principales
 
-- **Assistant IA "Hey Pablo"** : assistant contextuel spécialisé en bien-être animal, nourri par le profil de l'animal (race, âge, poids)
-- **Suivi de poids** : enregistrement et courbes de croissance
-- **Carnet médical** : vaccins, vermifuges, visites vétérinaires, rappels
-- **Nutrition** : calcul de ration, gestion du stock de croquettes, alertes
-- **Éducation** : suivi des exercices et niveaux comportementaux
-- **Budget** : dépenses liées à l'animal, export PDF
-- **Module Élevage** : chaleurs, saillies, portées, calcul automatique du COI%
-- **Souvenirs** : photos et moments marquants
-- **Multi-animaux** : gestion illimitée de profils indépendants
+- [Accueil Pablo](https://www.pablocanin.fr/)
+- [Pablo pour les eleveurs](https://www.pablocanin.fr/eleveurs)
+- [Mentions legales et confidentialite](https://www.pablocanin.fr/mentions-legales)
+- [Sitemap XML](https://www.pablocanin.fr/sitemap.xml)
+- [Robots.txt](https://www.pablocanin.fr/robots.txt)
 
-## Technologie
+## Articles utiles
 
-- PWA installable sur iOS et Android sans passer par un store
-- Données stockées localement (localStorage) + synchronisation optionnelle via Firebase
-- IA propulsée par OpenAI côté serveur
-- Authentification Firebase (email/mot de passe + Google)
+- [Quelle ration pour un Berger Allemand ?](https://www.pablocanin.fr/blog/ration-berger-allemand)
+- [Calendrier vaccins chiot](https://www.pablocanin.fr/blog/calendrier-vaccins-chiot)
+- [Suivi poids chiot semaine par semaine](https://www.pablocanin.fr/blog/suivi-poids-chiot)
+- [Alimentation chiot en pleine croissance](https://www.pablocanin.fr/blog/alimentation-chiot-croissance)
 
-## Auteur
+## Fonctionnalites
 
-Quentin Taffin — développeur passionné, fils d'éleveur de Bergers Allemands.
+- Assistant IA Hey Pablo specialise en bien-etre animal
+- Suivi du poids et courbes de croissance
+- Carnet medical : vaccins, vermifuges, soins, visites veterinaires
+- Nutrition : calcul de ration, stock de croquettes, alertes
+- Education : exercices et niveaux de progression
+- Budget mensuel animal
+- Module elevage : chaleurs, saillies, portees, chiots, cession
+- Fiches publiques d'elevage
+- PWA installable sur mobile
 
-## URL
+## Donnees et securite
 
-https://pablo-app-roan.vercel.app
+Les donnees personnelles de l'application sont reservees aux utilisateurs connectes. Les donnees de demo restent locales. L'assistant IA ne remplace pas un veterinaire et ne doit pas etre utilise pour une urgence medicale.
+
+## Contact
+
+- [Contact e-mail](mailto:contact@pablocanin.fr)
+- [Facebook Pablo](https://www.facebook.com/profile.php?id=61590422280094)
+- [LinkedIn Pablo](https://www.linkedin.com/company/119454268)

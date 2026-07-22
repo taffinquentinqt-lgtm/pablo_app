@@ -4,7 +4,7 @@
     <meta name="google-site-verification" content="5708f23d8da414cf" />
     <meta name="google-site-verification" content="oPggxfBCov4y5UFPvYQF8Ipem34dYE-tyDLIn1Zb4RQ" />
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Pablo — Tableau de bord santé pour maîtres et éleveurs</title>
     <meta name="description" content="Pablo, le tableau de bord gratuit pour maîtres et éleveurs. Suivi santé, nutrition, éducation, budget et assistant IA pour chien ou chat.">
 
@@ -62,11 +62,11 @@
     <!-- Premium Font Pairing: Cormorant Garamond (editorial luxury) + Cabinet Grotesk (modern utility) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <style>
         /* ============================================================
            DESIGN SYSTEM — PABLO PREMIUM
@@ -82,7 +82,7 @@
             --card-hover:    #1f1a0e;
             --text:          #f0e8d8;
             --text-sub:      #b8a88a;
-            --text-muted:    #6b5f4a;
+            --text-muted:    #9b8b70;
             --gold:          #c8922a;
             --gold-light:    #e8b84b;
             --gold-dim:      rgba(200,146,42,0.12);
@@ -549,7 +549,7 @@
             font-size: 14px;
             transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
         }
-        .auth-input::placeholder { color: rgba(240,232,216,0.2); }
+        .auth-input::placeholder { color: rgba(240,232,216,0.58); }
         .auth-input:focus {
             outline: none;
             border-color: rgba(200,146,42,0.5);
@@ -564,9 +564,13 @@
         }
         .auth-hint-link {
             font-size: 11.5px;
-            color: rgba(200,146,42,0.7);
+            color: #d9aa45;
             cursor: pointer;
             text-decoration: none;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            font: inherit;
             transition: color 0.2s ease;
         }
         .auth-hint-link:hover { color: #c8922a; }
@@ -626,7 +630,7 @@
             text-align: center;
             margin-top: 22px;
             font-size: 12.5px;
-            color: rgba(240,232,216,0.3);
+            color: rgba(240,232,216,0.68);
         }
         .auth-switch-row a {
             color: #c8922a;
@@ -637,6 +641,31 @@
             transition: opacity 0.2s;
         }
         .auth-switch-row a:hover { opacity: 0.8; }
+        .auth-switch-row button {
+            color: #c8922a;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            margin-left: 4px;
+            transition: opacity 0.2s;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            font: inherit;
+        }
+        .auth-switch-row button:hover { opacity: 0.8; }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
 
         /* ============================================================
            APP LAYOUT
@@ -1831,8 +1860,8 @@
                 </div>
             </div>
             <a href="/mentions-legales" class="l-nav-link">Mentions légales</a>
-            <a href="https://www.facebook.com/profile.php?id=61590422280094" target="_blank" rel="noopener" class="l-nav-link" title="Facebook" style="padding:6px 8px; font-size:15px;"><i class="fa-brands fa-facebook"></i></a>
-            <a href="https://www.linkedin.com/company/119454268" target="_blank" rel="noopener" class="l-nav-link" title="LinkedIn" style="padding:6px 8px; font-size:15px;"><i class="fa-brands fa-linkedin"></i></a>
+            <a href="https://www.facebook.com/profile.php?id=61590422280094" target="_blank" rel="noopener" class="l-nav-link" aria-label="Pablo sur Facebook" title="Facebook" style="padding:6px 8px; font-size:15px;"><i class="fa-brands fa-facebook" aria-hidden="true"></i></a>
+            <a href="https://www.linkedin.com/company/119454268" target="_blank" rel="noopener" class="l-nav-link" aria-label="Pablo sur LinkedIn" title="LinkedIn" style="padding:6px 8px; font-size:15px;"><i class="fa-brands fa-linkedin" aria-hidden="true"></i></a>
             <button class="l-nav-cta" onclick="enterApp()">
                 <i class="fa-solid fa-paw"></i> Ouvrir l'app
             </button>
@@ -1893,7 +1922,8 @@
             </div>
         </div>
 
-        <div class="l-features">
+        <h2 class="sr-only" id="landing-features-title">Fonctionnalités principales de Pablo</h2>
+        <div class="l-features" aria-labelledby="landing-features-title">
             <div class="l-feat-card">
                 <div class="l-feat-icon"><i class="fa-solid fa-comment-medical"></i></div>
                 <h3>Assistant contextuel</h3>
@@ -2010,8 +2040,8 @@
         </div>
 
         <div style="display:flex; gap:16px; justify-content:center; margin-top:-20px; margin-bottom:20px;">
-            <a href="https://www.facebook.com/profile.php?id=61590422280094" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(200,146,42,0.1); border:1px solid rgba(200,146,42,0.2); color:#c8922a; font-size:16px; text-decoration:none; transition:background 0.2s;" onmouseover="this.style.background='rgba(200,146,42,0.2)'" onmouseout="this.style.background='rgba(200,146,42,0.1)'"><i class="fa-brands fa-facebook"></i></a>
-            <a href="https://www.linkedin.com/company/119454268" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(200,146,42,0.1); border:1px solid rgba(200,146,42,0.2); color:#c8922a; font-size:16px; text-decoration:none; transition:background 0.2s;" onmouseover="this.style.background='rgba(200,146,42,0.2)'" onmouseout="this.style.background='rgba(200,146,42,0.1)'"><i class="fa-brands fa-linkedin"></i></a>
+            <a href="https://www.facebook.com/profile.php?id=61590422280094" target="_blank" rel="noopener" aria-label="Pablo sur Facebook" style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(200,146,42,0.1); border:1px solid rgba(200,146,42,0.2); color:#c8922a; font-size:16px; text-decoration:none; transition:background 0.2s;" onmouseover="this.style.background='rgba(200,146,42,0.2)'" onmouseout="this.style.background='rgba(200,146,42,0.1)'"><i class="fa-brands fa-facebook" aria-hidden="true"></i></a>
+            <a href="https://www.linkedin.com/company/119454268" target="_blank" rel="noopener" aria-label="Pablo sur LinkedIn" style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(200,146,42,0.1); border:1px solid rgba(200,146,42,0.2); color:#c8922a; font-size:16px; text-decoration:none; transition:background 0.2s;" onmouseover="this.style.background='rgba(200,146,42,0.2)'" onmouseout="this.style.background='rgba(200,146,42,0.1)'"><i class="fa-brands fa-linkedin" aria-hidden="true"></i></a>
         </div>
 
         <div class="l-quote">
@@ -2054,7 +2084,7 @@
             <input type="password" id="auth-password" class="auth-input" placeholder="••••••••"
                    autocomplete="current-password">
             <div class="auth-hint-row">
-                <a class="auth-hint-link" onclick="switchToResetMode()">Mot de passe oublié ?</a>
+                <button type="button" class="auth-hint-link" onclick="switchToResetMode()">Mot de passe oublié ?</button>
             </div>
         </div>
 
@@ -2072,7 +2102,7 @@
 
         <p class="auth-switch-row">
             <span id="auth-switch-text">Pas encore de compte ?</span>
-            <a id="auth-switch-link" onclick="toggleAuthMode()">Créer un compte</a>
+            <button type="button" id="auth-switch-link" onclick="toggleAuthMode()">Créer un compte</button>
         </p>
     </div>
 </div>

@@ -4,7 +4,7 @@
   <!-- Page principale -->
   <url>
     <loc>https://www.pablocanin.fr/</loc>
-    <lastmod>2026-06-16</lastmod>
+    <lastmod>2026-07-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -12,14 +12,14 @@
   <!-- Pages statiques -->
   <url>
     <loc>https://www.pablocanin.fr/eleveurs</loc>
-    <lastmod>2026-06-16</lastmod>
+    <lastmod>2026-07-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://www.pablocanin.fr/mentions-legales</loc>
-    <lastmod>2026-06-16</lastmod>
+    <lastmod>2026-07-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -27,28 +27,28 @@
   <!-- Articles blog -->
   <url>
     <loc>https://www.pablocanin.fr/blog/ration-berger-allemand</loc>
-    <lastmod>2026-06-16</lastmod>
+    <lastmod>2026-07-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.pablocanin.fr/blog/calendrier-vaccins-chiot</loc>
-    <lastmod>2026-06-16</lastmod>
+    <lastmod>2026-07-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.pablocanin.fr/blog/suivi-poids-chiot</loc>
-    <lastmod>2026-06-16</lastmod>
+    <lastmod>2026-07-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.pablocanin.fr/blog/alimentation-chiot-croissance</loc>
-    <lastmod>2026-06-16</lastmod>
+    <lastmod>2026-07-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

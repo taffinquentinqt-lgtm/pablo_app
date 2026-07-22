@@ -20,9 +20,25 @@ const PABLO_CHAT_API_URL = IS_LOCAL_PREVIEW
     ? "https://www.pablocanin.fr/api/pablo-chat"
     : "/api/pablo-chat";
 let deferredPwaInstallPrompt = null;
+let chartJsPromise = null;
 
 function trackEvent(name) {
     if (typeof window.clarity === 'function') window.clarity('event', name);
+}
+
+function ensureChartJs() {
+    if (window.Chart) return Promise.resolve(window.Chart);
+    if (!chartJsPromise) {
+        chartJsPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            script.async = true;
+            script.onload = () => resolve(window.Chart);
+            script.onerror = () => reject(new Error('Chart.js indisponible'));
+            document.head.appendChild(script);
+        });
+    }
+    return chartJsPromise;
 }
 
 async function pabloChat(messages) {
@@ -1072,6 +1088,12 @@ window.addNewWeight = function() {
 function renderWeightChart() {
     const canvas = document.getElementById('weightChart');
     if (!canvas) return;
+    if (!window.Chart) {
+        ensureChartJs()
+            .then(() => renderWeightChart())
+            .catch(() => console.warn('Chart.js indisponible pour la courbe de poids.'));
+        return;
+    }
     weightHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const labels    = weightHistory.map(i => new Date(i.date).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }));
@@ -2338,6 +2360,12 @@ function renderPuppyWeights(puppy) {
     if (!canvas) return;
     if (_puppyWeightChart) { _puppyWeightChart.destroy(); _puppyWeightChart = null; }
     if (weights.length < 2) return;
+    if (!window.Chart) {
+        ensureChartJs()
+            .then(() => renderPuppyWeights(puppy))
+            .catch(() => console.warn('Chart.js indisponible pour la courbe chiot.'));
+        return;
+    }
 
     const isLight = document.body.classList.contains('light-mode');
     const lc = isLight ? '#a87020' : '#c8922a';
