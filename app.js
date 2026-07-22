@@ -515,6 +515,26 @@ function escHtml(str) {
     return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function formatHeyPabloMessage(text) {
+    const cleaned = String(text ?? '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*\n]+)\*/g, '$1')
+        .replace(/__([^_]+)__/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/#{1,6}\s*/g, '')
+        .replace(/^\s*[-*•]\s+/gm, '')
+        .replace(/\s+([?!])/g, '$1')
+        .replace(/([.!?])\s+(\d+\.\s)/g, '$1\n\n$2')
+        .replace(/(\d+\.\s[^:\n]{3,80}:)\s+/g, '$1\n')
+        .trim();
+
+    return escHtml(cleaned)
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+}
+
 function getPetsListFromStorage() {
     try {
         return JSON.parse(localStorage.getItem('app_pets_list') || '[]');
@@ -892,6 +912,7 @@ function buildPabloSystemPrompt() {
         "Tu reponds uniquement aux sujets lies aux animaux: sante preventive, alimentation, education, comportement, elevage, organisation du carnet.",
         "Tu ne poses jamais de diagnostic medical ferme, tu ne prescris pas de medicament, et tu recommandes un veterinaire en cas de symptome grave, douleur, urgence, doute important ou aggravation.",
         "Tu es clair, concis, chaleureux, avec des etapes actionnables. Tu finis par un wouf ou un miaou quand c'est naturel.",
+        "N'utilise pas de Markdown brut: pas d'asterisques, pas de gras **texte**, pas de tableaux. Fais des reponses aerées avec des lignes courtes.",
         `Profil: ${petProfile.name || "l'animal"} | espece: ${petProfile.species || 'Chien'} | race: ${petProfile.breed || 'inconnue'} | age: ${petProfile.age || '?'} mois | poids profil: ${petProfile.weight || '?'} kg | taille: ${petProfile.size || '?'} cm.`,
         `Sante: allergies/alertes: ${allergies}. Derniers actes: ${summarizeMedicalForAI()}`,
         `Poids: ${summarizeWeightForAI()}`,
@@ -924,7 +945,7 @@ window.sendMessage = async function() {
 
     const loadingId  = Date.now();
     const loadingTxt = `<span class="running-dog">🐶</span> <em style="font-size:13px; color:var(--text-muted); margin-left:8px;">Pablo renifle une piste…</em>`;
-    chatHistory.push({ sender: 'bot', text: loadingTxt, _id: loadingId });
+    chatHistory.push({ sender: 'bot', text: loadingTxt, _id: loadingId, html: true });
     renderChat();
 
     const systemPrompt = buildPabloSystemPrompt();
@@ -1425,7 +1446,7 @@ function renderChat() {
             msgDiv.className = 'msg msg-bot';
             msgDiv.innerHTML = `
                 <div class="msg-avatar">${initial}</div>
-                <div class="msg-bubble">${msg.text}</div>`;
+                <div class="msg-bubble">${msg.html ? msg.text : formatHeyPabloMessage(msg.text)}</div>`;
         } else {
             msgDiv.className = 'msg msg-user';
             msgDiv.innerHTML = `<div class="msg-bubble">${escHtml(msg.text)}</div>`;
