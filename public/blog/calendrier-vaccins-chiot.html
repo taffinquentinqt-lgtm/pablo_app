@@ -31,8 +31,12 @@
     <link rel="apple-touch-icon" href="/pablo.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </noscript>
     <style>
         :root{--bg:#0d0b07;--bg-elevated:#1c1710;--card:#181309;--card-border:#2a2215;--text:#f0e8d8;--text-sub:#b8a88a;--text-muted:#6b5f4a;--gold:#c8922a;--gold-light:#e8b84b;--gold-dim:rgba(200,146,42,0.12);--gold-border:rgba(200,146,42,0.22);--danger:#e05252;--danger-dim:rgba(224,82,82,0.1);--radius-sm:10px;--radius-md:16px;--radius-lg:22px;--font-display:'Cormorant Garamond',Georgia,serif;--font-body:'Outfit',system-ui,sans-serif;}
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}

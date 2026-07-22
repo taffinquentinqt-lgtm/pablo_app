@@ -32,6 +32,38 @@
       "author": { "@type": "Person", "name": "Quentin Taffin" }
     }
     </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Pablo est-il gratuit pour les eleveurs canins ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, Pablo est gratuit, sans abonnement et sans publicite."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Peut-on gerer plusieurs portees ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, Pablo permet de gerer plusieurs profils d'animaux et leurs portees independamment."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Pablo fonctionne-t-il sur mobile ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, Pablo est une PWA installable depuis le navigateur sur mobile."
+          }
+        }
+      ]
+    }
+    </script>
 
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a0806">
@@ -39,8 +71,12 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </noscript>
 
     <style>
         :root {
@@ -256,6 +292,33 @@
             color: var(--text-muted); font-size: 14px;
             max-width: 500px; margin: 12px auto 0;
         }
+        .guide-panel {
+            max-width: 820px;
+            margin: 0 auto 64px;
+            padding: 26px;
+            background: linear-gradient(135deg, rgba(200,146,42,0.09), rgba(20,16,9,0.92));
+            border: 1px solid var(--gold-border);
+            border-radius: var(--radius-lg);
+        }
+        .guide-panel h2 {
+            font-family: var(--font-display);
+            font-size: clamp(26px, 3vw, 36px);
+            font-weight: 600;
+            line-height: 1.18;
+            margin-bottom: 12px;
+        }
+        .guide-panel p {
+            color: var(--text-sub);
+            font-size: 14px;
+            max-width: 680px;
+            margin-bottom: 18px;
+        }
+        .guide-panel a {
+            color: var(--gold-light);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .guide-panel a:hover { color: var(--text); }
 
         /* ── Feature grid ── */
         .features-grid {
@@ -472,6 +535,9 @@
                 <a href="#fonctionnalites" class="btn-cta-secondary">
                     <i class="fa-solid fa-chevron-down"></i> Voir les fonctionnalités
                 </a>
+                <a href="/blog/application-eleveur-canin" class="btn-cta-secondary">
+                    <i class="fa-solid fa-book-open"></i> Guide éleveur
+                </a>
             </div>
             <div class="hero-badges">
                 <span class="hero-badge"><i class="fa-solid fa-check"></i> Gratuit</span>
@@ -568,6 +634,19 @@
             <p class="quote-text">"Fils d'éleveur de Bergers Allemands, j'ai construit Pablo pour en finir avec les carnets papier perdus et les tableaux Excel impossibles à tenir à jour."</p>
             <p class="quote-author">Quentin Taffin — Créateur de Pablo</p>
         </div>
+
+        <section class="guide-panel" aria-labelledby="guide-eleveur-title">
+            <div class="section-eyebrow">Organisation elevage</div>
+            <h2 id="guide-eleveur-title">Pourquoi une application eleveur canin change le suivi des chiots</h2>
+            <p>
+                Entre les pesees, les vaccins, les vermifuges et les infos a transmettre aux familles,
+                un elevage canin a besoin d'un suivi clair et partageable. Pablo centralise ces donnees
+                dans un carnet numerique, consultable sur mobile, pour garder une trace fiable de chaque chiot.
+            </p>
+            <a href="/blog/application-eleveur-canin">
+                Lire le guide complet pour eleveurs <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </section>
 
         <!-- FAQ -->
         <section class="faq-wrap">

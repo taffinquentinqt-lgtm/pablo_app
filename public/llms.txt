@@ -16,6 +16,9 @@ Pablo est une application web progressive gratuite pour les maitres et eleveurs 
 - [Calendrier vaccins chiot](https://www.pablocanin.fr/blog/calendrier-vaccins-chiot)
 - [Suivi poids chiot semaine par semaine](https://www.pablocanin.fr/blog/suivi-poids-chiot)
 - [Alimentation chiot en pleine croissance](https://www.pablocanin.fr/blog/alimentation-chiot-croissance)
+- [Carnet de sante chien numerique](https://www.pablocanin.fr/blog/carnet-sante-chien-numerique)
+- [Rappel vaccin chien](https://www.pablocanin.fr/blog/rappel-vaccin-chien)
+- [Application eleveur canin](https://www.pablocanin.fr/blog/application-eleveur-canin)
 
 ## Fonctionnalites
 

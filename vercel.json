@@ -31,6 +31,18 @@
     {
       "source": "/blog/alimentation-chiot-croissance",
       "destination": "/blog/alimentation-chiot-croissance.html"
+    },
+    {
+      "source": "/blog/carnet-sante-chien-numerique",
+      "destination": "/blog/carnet-sante-chien-numerique.html"
+    },
+    {
+      "source": "/blog/rappel-vaccin-chien",
+      "destination": "/blog/rappel-vaccin-chien.html"
+    },
+    {
+      "source": "/blog/application-eleveur-canin",
+      "destination": "/blog/application-eleveur-canin.html"
     }
   ]
 }

@@ -1816,13 +1816,19 @@
         .repro-row .r-value { font-weight:700; color:var(--gold); }
     </style>
 
-    <!-- Microsoft Clarity -->
+    <!-- Microsoft Clarity, charge apres le rendu initial -->
     <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "x0z09j1027");
+        window.clarity = window.clarity || function(){ (window.clarity.q = window.clarity.q || []).push(arguments); };
+        (function(){
+            var loadClarity = function(){
+                var t = document.createElement("script");
+                t.async = true;
+                t.src = "https://www.clarity.ms/tag/x0z09j1027";
+                document.head.appendChild(t);
+            };
+            if ("requestIdleCallback" in window) requestIdleCallback(loadClarity, { timeout: 3500 });
+            else setTimeout(loadClarity, 1600);
+        })();
     </script>
 </head>
 <body>
@@ -1857,6 +1863,15 @@
                     <a href="/blog/alimentation-chiot-croissance" class="l-nav-dropdown-item">
                         <i class="fa-solid fa-seedling"></i> Alimentation chiot croissance
                     </a>
+                    <a href="/blog/carnet-sante-chien-numerique" class="l-nav-dropdown-item">
+                        <i class="fa-solid fa-book-medical"></i> Carnet santé numérique
+                    </a>
+                    <a href="/blog/rappel-vaccin-chien" class="l-nav-dropdown-item">
+                        <i class="fa-solid fa-bell"></i> Rappel vaccin chien
+                    </a>
+                    <a href="/blog/application-eleveur-canin" class="l-nav-dropdown-item">
+                        <i class="fa-solid fa-clipboard-list"></i> Application éleveur canin
+                    </a>
                 </div>
             </div>
             <a href="/mentions-legales" class="l-nav-link">Mentions légales</a>
@@ -1880,6 +1895,9 @@
         <a href="/blog/calendrier-vaccins-chiot" class="l-nav-mobile-item"><i class="fa-solid fa-syringe"></i> Calendrier vaccins chiot</a>
         <a href="/blog/suivi-poids-chiot" class="l-nav-mobile-item"><i class="fa-solid fa-weight-scale"></i> Suivi poids chiot</a>
         <a href="/blog/alimentation-chiot-croissance" class="l-nav-mobile-item"><i class="fa-solid fa-seedling"></i> Alimentation chiot</a>
+        <a href="/blog/carnet-sante-chien-numerique" class="l-nav-mobile-item"><i class="fa-solid fa-book-medical"></i> Carnet santé numérique</a>
+        <a href="/blog/rappel-vaccin-chien" class="l-nav-mobile-item"><i class="fa-solid fa-bell"></i> Rappel vaccin chien</a>
+        <a href="/blog/application-eleveur-canin" class="l-nav-mobile-item"><i class="fa-solid fa-clipboard-list"></i> Application éleveur canin</a>
         <div class="l-nav-mobile-sep"></div>
         <a href="/mentions-legales" class="l-nav-mobile-item"><i class="fa-solid fa-scale-balanced"></i> Mentions légales</a>
         <div class="l-nav-mobile-sep"></div>

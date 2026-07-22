@@ -1,12 +1,17 @@
 // Service worker PWA — cache applicatif, API toujours reseau
-const CACHE_NAME = 'pablo-app-cache-v6';
+const CACHE_NAME = 'pablo-app-cache-v7';
 const OFFLINE_ASSETS = [
     '/',
     '/index.html',
     '/manifest.json',
     '/pablo.jpg',
     '/mentions-legales.html',
-    '/eleveurs.html'
+    '/eleveurs.html',
+    '/blog/carnet-sante-chien-numerique.html',
+    '/blog/rappel-vaccin-chien.html',
+    '/blog/application-eleveur-canin.html',
+    '/sitemap.xml',
+    '/llms.txt'
 ];
 
 self.addEventListener('install', event => {

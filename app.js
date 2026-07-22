@@ -1,6 +1,5 @@
 // --- IMPORTS FIREBASE & CLOUD FIRESTORE ---
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 import { getMessaging, getToken } from "firebase/messaging";
@@ -13,9 +12,11 @@ const CLOUD_PENDING_KEY = "pablo_pending_cloud_writes";
 const CLOUD_SYNC_META_KEY = "pablo_cloud_sync_meta";
 const CLOUD_SYNC_DEBOUNCE_MS = 650;
 const OPENAI_MODEL = "gpt-5.4-mini";
-const IS_LOCAL_PREVIEW = window.location.protocol === 'file:'
-    || ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
-    || /^517\d$/.test(window.location.port);
+const IS_FILE_PREVIEW = window.location.protocol === 'file:';
+const IS_LOCAL_PREVIEW = !IS_FILE_PREVIEW && (
+    ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    || /^517\d$/.test(window.location.port)
+);
 const PABLO_CHAT_API_URL = IS_LOCAL_PREVIEW
     ? "https://www.pablocanin.fr/api/pablo-chat"
     : "/api/pablo-chat";
@@ -44,6 +45,9 @@ function ensureChartJs() {
 async function pabloChat(messages) {
     if (!auth.currentUser) {
         throw new Error("Connectez-vous pour utiliser Hey Pablo.");
+    }
+    if (IS_FILE_PREVIEW) {
+        throw new Error("Ouvrez Pablo via le site en ligne ou le serveur local pour utiliser Hey Pablo.");
     }
 
     const controller = new AbortController();
@@ -81,14 +85,22 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-let analytics;
-try {
-    analytics = getAnalytics(app);
-} catch (e) {
-    console.warn("Firebase Analytics bloqué ou non supporté.");
-}
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+function runWhenIdle(callback) {
+    if ('requestIdleCallback' in window) window.requestIdleCallback(callback, { timeout: 3000 });
+    else window.setTimeout(callback, 1200);
+}
+
+runWhenIdle(async () => {
+    try {
+        const { getAnalytics, isSupported } = await import("firebase/analytics");
+        if (await isSupported()) getAnalytics(app);
+    } catch {
+        console.warn("Firebase Analytics bloqué ou non supporté.");
+    }
+});
 
 // Capture immédiate d'un lien de cession (?cession=...) AVANT que l'auth ne réagisse
 try {
@@ -3446,7 +3458,6 @@ window.schedulePushReminders = async function() {
     // Sauvegarder les rappels dans Firestore pour la Cloud Function
     if (reminders.length > 0) {
         try {
-            const { doc, setDoc } = await import('firebase/firestore');
             await setDoc(
                 doc(db, 'users', auth.currentUser.uid),
                 { pendingReminders: reminders, petName: petProfile.name || 'votre animal', updatedAt: Date.now() },
@@ -3834,8 +3845,7 @@ function initFicheFields() {
         const wrap = document.getElementById('public-fiche-link-wrap');
         const urlInput = document.getElementById('public-fiche-url');
         // Vérifier en Firestore si la fiche existe
-        import('firebase/firestore').then(({ doc, getDoc }) => {
-            getDoc(doc(db, 'fiches_publiques', auth.currentUser.uid)).then(snap => {
+        getDoc(doc(db, 'fiches_publiques', auth.currentUser.uid)).then(snap => {
                 if (snap.exists()) {
                     if (urlInput) urlInput.value = ficheUrl;
                     if (wrap) wrap.style.display = 'block';
@@ -3858,7 +3868,6 @@ function initFicheFields() {
                         if (icon) icon.style.display = 'none';
                     }
                 }
-            }).catch(() => {});
         }).catch(() => {});
     }
 }

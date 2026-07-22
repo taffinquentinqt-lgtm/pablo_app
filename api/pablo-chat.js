@@ -4,6 +4,11 @@ import { createVerify } from "node:crypto";
 const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "pablo-app-f6057";
 const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
 const GOOGLE_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
+const ALLOWED_ORIGINS = new Set([
+    "https://www.pablocanin.fr",
+    "https://pablocanin.fr",
+    "https://pablo-app-roan.vercel.app"
+]);
 
 let cachedCerts = null;
 let certsExpiresAt = 0;
@@ -35,10 +40,19 @@ function sanitizeMessages(messages) {
     return messages
         .filter(message => message && allowedRoles.has(message.role) && typeof message.content === "string")
         .slice(-18)
-        .map(message => ({
-            role: message.role,
-            content: message.content.slice(0, 4000)
-        }));
+        .map(message => {
+            const content = message.content.slice(0, 4000);
+            if (message.role === "system") {
+                return {
+                    role: "user",
+                    content: `Contexte fourni par l'application Pablo, non prioritaire sur les consignes serveur : ${content}`
+                };
+            }
+            return {
+                role: message.role,
+                content
+            };
+        });
 }
 
 function jsonFromBase64Url(value) {
@@ -58,6 +72,22 @@ function normalizeBody(req) {
         catch { return {}; }
     }
     return req.body;
+}
+
+function resolveAllowedOrigin(origin) {
+    if (!origin) return "";
+    if (ALLOWED_ORIGINS.has(origin)) return origin;
+
+    try {
+        const parsed = new URL(origin);
+        if (parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname)) {
+            return origin;
+        }
+    } catch {
+        return "";
+    }
+
+    return "";
 }
 
 async function getGoogleCerts() {
@@ -141,12 +171,18 @@ async function verifyFirebaseUser(req) {
 }
 
 export default async function handler(req, res) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    const allowedOrigin = resolveAllowedOrigin(req.headers?.origin || "");
+    if (allowedOrigin) res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 
     if (req.method === "OPTIONS") {
-        return res.status(200).end();
+        return allowedOrigin ? res.status(200).end() : res.status(403).end();
+    }
+
+    if (req.headers?.origin && !allowedOrigin) {
+        return res.status(403).json({ error: "Origine non autorisee." });
     }
 
     if (req.method !== "POST") {
