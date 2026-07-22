@@ -21,6 +21,13 @@ Le choix actuel reste volontairement simple : une app front statique, deployable
 - `scripts/quality-check.mjs` : controles automatiques de securite, SEO, PWA et formatage.
 - `public/` : pages statiques SEO, PWA, sitemap, service worker public.
 
+## Fonctions produit critiques
+
+- Profil sante premium : `profile`, `healthExtras`, score de completude et champs veterinaire, alimentation, alertes, traitements, notes d'urgence.
+- Rappels intelligents : `CARE_RULES` calcule les soins en retard ou bientot dus, puis ajoute les alertes dossier, croquettes, elevage et evenements.
+- Mode urgence : `EMERGENCY_GUIDES` affiche des reflexes de triage prudents et met en avant l'appel veterinaire.
+- Hey Pablo vers carnet : une reponse peut etre sauvegardee en souvenir ou ajoutee au carnet medical comme note datee.
+
 ## Regles d'acces
 
 - La demo est accessible sans compte et reste locale.
@@ -56,6 +63,7 @@ Ne pas tout casser en une seule fois. A chaque evolution importante :
 - `src/services/pabloStorage.mjs` : localStorage, file d'attente cloud, migration, suppression.
 - `src/modules/pets.mjs` : creation, selection, suppression, profil animal.
 - `src/modules/medical.mjs` : carnet, poids, nutrition, rappels et historique.
+- `src/modules/emergency.mjs` : guides d'urgence, contacts veterinaire, notes de triage.
 - `src/modules/breeder.mjs` : elevage, portees, chiots, cessions et registre.
 - `src/modules/export.mjs` : PDF, JSON et fiches publiques.
 - `src/assistant/` : contexte Hey Pablo, prompts, erreurs IA.

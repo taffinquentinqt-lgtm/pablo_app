@@ -1093,7 +1093,8 @@
         .log-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 12px;
             padding: 10px 0;
             border-bottom: 1px solid var(--card-border);
             font-size: 13.5px;
@@ -1114,6 +1115,36 @@
         .badge-warning { background: rgba(232,168,60,0.1); color: var(--warning); border: 1px solid rgba(232,168,60,0.25); }
         .badge-gold    { background: var(--gold-dim); color: var(--gold); border: 1px solid var(--gold-border); }
         .badge-success { background: var(--success-dim); color: var(--success); border: 1px solid rgba(82,201,122,0.2); }
+
+        .profile-quality-box {
+            padding: 13px 14px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-elevated);
+        }
+        .profile-quality-box strong {
+            color: var(--gold);
+            font-family: var(--font-display);
+            font-size: 19px;
+        }
+        .profile-quality-track {
+            height: 7px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.07);
+            overflow: hidden;
+        }
+        #profile-quality-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            transition: width .25s ease;
+        }
+        #profile-quality-hint {
+            margin: 8px 0 0;
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
 
         /* ============================================================
            FORMS
@@ -1207,8 +1238,8 @@
         ============================================================ */
         .reminder-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 12px;
             padding: 13px 16px;
             background: var(--card);
             border: 1px solid var(--card-border);
@@ -1216,9 +1247,135 @@
             margin-bottom: 9px;
             transition: border-color 0.2s ease;
         }
+        .reminder-item--danger { border-left: 3px solid var(--danger); }
+        .reminder-item--warning { border-left: 3px solid var(--warning); }
+        .reminder-item--gold { border-left: 3px solid var(--gold); }
         .reminder-item:hover { border-color: var(--gold-border); }
-        .reminder-item h4   { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; color: var(--text); }
-        .reminder-item span { font-size: 11.5px; color: var(--text-muted); }
+        .reminder-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: 1px solid var(--card-border);
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .reminder-copy {
+            flex: 1;
+            min-width: 0;
+        }
+        .reminder-copy h4 {
+            font-size: 13.5px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            color: var(--text);
+        }
+        .reminder-item > div:not(.reminder-icon) h4 {
+            font-size: 13.5px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            color: var(--text);
+        }
+        .reminder-copy span {
+            display: block;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            overflow-wrap: anywhere;
+        }
+        .reminder-item > div:not(.reminder-icon) span {
+            display: block;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            overflow-wrap: anywhere;
+        }
+        .reminder-item > .badge { flex-shrink: 0; }
+
+        .emergency-mode {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px dashed var(--card-border);
+        }
+        .emergency-mode-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .emergency-mode-head strong {
+            color: var(--danger);
+            font-size: 13px;
+        }
+        .emergency-mode-head span {
+            color: var(--text-muted);
+            font-size: 11.5px;
+            text-align: right;
+        }
+        .emergency-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .emergency-grid button {
+            min-height: 42px;
+            border-radius: var(--radius-xs);
+            border: 1px solid rgba(224,82,82,0.22);
+            background: var(--danger-dim);
+            color: var(--danger);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .emergency-grid button:hover { background: rgba(224,82,82,0.18); }
+        .emergency-guide-panel {
+            margin-top: 10px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            padding: 12px 14px;
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+        .emergency-guide-panel h4 {
+            margin: 0 0 6px;
+            color: var(--text);
+            font-size: 13.5px;
+        }
+        .emergency-guide-panel ul {
+            margin: 7px 0 0 18px;
+            padding: 0;
+        }
+        .emergency-guide-panel li { margin-bottom: 4px; }
+        .emergency-call-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .emergency-call-row a,
+        .emergency-call-row button {
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: var(--radius-xs);
+            border: 1px solid var(--card-border);
+            background: var(--card);
+            color: var(--text);
+            font-weight: 700;
+            font-size: 12px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
 
         /* ============================================================
            CHAT
@@ -1550,6 +1707,9 @@
             .screens-wrap { padding: 14px; padding-bottom: 76px; }
             .chat-wrapper  { height: calc(100dvh - 175px); }
             .main-header   { padding: 0 14px; }
+            .emergency-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .emergency-mode-head { align-items: flex-start; flex-direction: column; }
+            .emergency-mode-head span { text-align: left; }
         }
 
         /* ============================================================
@@ -2365,8 +2525,8 @@
                         </div>
                         <div class="g2">
                             <div>
-                                <input type="text" id="vet-name" placeholder="Nom du Vétérinaire" style="margin-bottom:8px;">
-                                <input type="tel" id="vet-phone" placeholder="Téléphone" autocomplete="tel">
+                                <input type="text" id="vet-name" placeholder="Nom du Vétérinaire" style="margin-bottom:8px;" onchange="saveEmergencyContacts()">
+                                <input type="tel" id="vet-phone" placeholder="Téléphone" autocomplete="tel" onchange="saveEmergencyContacts()">
                             </div>
                             <div style="display:flex; flex-direction:column; gap:8px;">
                                 <button class="btn btn-success btn-full" onclick="callVet()">
@@ -2375,6 +2535,29 @@
                                 <button class="btn btn-danger btn-full" onclick="callPoisonControl()">
                                     <i class="fa-solid fa-skull-crossbones"></i> Centre Antipoison
                                 </button>
+                            </div>
+                        </div>
+                        <div class="emergency-mode">
+                            <div class="emergency-mode-head">
+                                <strong>Mode urgence</strong>
+                                <span id="emergency-vet-summary">Vétérinaire non renseigné</span>
+                            </div>
+                            <div class="emergency-grid">
+                                <button type="button" onclick="openEmergencyGuide('breathing')">
+                                    <i class="fa-solid fa-lungs"></i> Respiration
+                                </button>
+                                <button type="button" onclick="openEmergencyGuide('poison')">
+                                    <i class="fa-solid fa-skull-crossbones"></i> Intoxication
+                                </button>
+                                <button type="button" onclick="openEmergencyGuide('trauma')">
+                                    <i class="fa-solid fa-bandage"></i> Traumatisme
+                                </button>
+                                <button type="button" onclick="openEmergencyGuide('seizure')">
+                                    <i class="fa-solid fa-bolt"></i> Crise
+                                </button>
+                            </div>
+                            <div id="emergency-guide-panel" class="emergency-guide-panel">
+                                Sélectionnez un cas pour afficher les bons réflexes avant l’appel vétérinaire.
                             </div>
                         </div>
                     </div>
@@ -2978,12 +3161,70 @@
                                 <label class="form-label">Poids (kg)</label>
                                 <input type="number" id="profile-weight" step="0.1" min="0">
                             </div>
+                            <div>
+                                <label class="form-label">Date de naissance</label>
+                                <input type="date" id="profile-birthdate">
+                            </div>
+                            <div>
+                                <label class="form-label">Stérilisation</label>
+                                <select id="profile-sterilized">
+                                    <option value="">Non renseigné</option>
+                                    <option value="yes">Stérilisé(e)</option>
+                                    <option value="no">Non stérilisé(e)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="profile-quality-box mt-12">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px;">
+                                <span class="form-label" style="margin:0;">Dossier santé</span>
+                                <strong id="profile-quality-text">--%</strong>
+                            </div>
+                            <div class="profile-quality-track">
+                                <div id="profile-quality-fill"></div>
+                            </div>
+                            <p id="profile-quality-hint">Complétez les infos clés pour de meilleurs rappels.</p>
+                        </div>
+
+                        <div class="g2 mt-12">
+                            <div>
+                                <label class="form-label">Vétérinaire</label>
+                                <input type="text" id="profile-vet-name" placeholder="Nom de la clinique">
+                            </div>
+                            <div>
+                                <label class="form-label">Téléphone vétérinaire</label>
+                                <input type="tel" id="profile-vet-phone" placeholder="Ex: 03 20 00 00 00" autocomplete="tel">
+                            </div>
+                            <div>
+                                <label class="form-label">Assurance / mutuelle</label>
+                                <input type="text" id="profile-insurance" placeholder="Nom du contrat">
+                            </div>
+                            <div>
+                                <label class="form-label">Alimentation actuelle</label>
+                                <input type="text" id="profile-food-name" placeholder="Marque, gamme, ration">
+                            </div>
                         </div>
 
                         <div class="mt-12">
-                            <label class="form-label">Allergies &amp; Traitements chroniques</label>
-                            <input type="text" id="profile-allergies" placeholder="Ex: Allergie au bœuf, Épileptique…">
-                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">Affiché en rouge dans la section Santé</p>
+                            <label class="form-label">Allergies &amp; alertes santé</label>
+                            <input type="text" id="profile-allergies" placeholder="Ex: allergie au bœuf, intolérance...">
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">Affiché en rouge dans la section Santé.</p>
+                        </div>
+
+                        <div class="g2 mt-12">
+                            <div>
+                                <label class="form-label">Pathologie / surveillance</label>
+                                <input type="text" id="profile-chronic" placeholder="Ex: dysplasie, peau sensible">
+                            </div>
+                            <div>
+                                <label class="form-label">Traitement récurrent</label>
+                                <input type="text" id="profile-treatment" placeholder="Ex: comprimé quotidien, vermifuge">
+                            </div>
+                        </div>
+
+                        <div class="mt-12">
+                            <label class="form-label">Notes d'urgence</label>
+                            <input type="text" id="profile-emergency-notes" placeholder="Ex: anxieux en voiture, muselière, contact secondaire">
                         </div>
 
                         <button class="btn btn-gold btn-full" onclick="savePetProfile()" style="margin-top:16px;">

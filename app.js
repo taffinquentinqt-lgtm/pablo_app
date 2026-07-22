@@ -513,6 +513,64 @@ function escHtml(str) {
     return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function getDefaultHealthExtras() {
+    return {
+        allergies: '',
+        vetName: '',
+        vetPhone: '',
+        kibbleBag: 0,
+        kibbleRemaining: 0,
+        insurance: '',
+        foodName: '',
+        chronicConditions: '',
+        recurringTreatment: '',
+        emergencyNotes: ''
+    };
+}
+
+function readHealthExtras(petId = currentPetId) {
+    return { ...getDefaultHealthExtras(), ...getLocalData(petId, 'healthExtras', {}) };
+}
+
+function getProfileHealthScore(profile = petProfile, extras = healthExtras) {
+    const checks = [
+        { key: 'name', label: 'nom', done: Boolean(profile?.name) },
+        { key: 'species', label: 'espece', done: Boolean(profile?.species) },
+        { key: 'breed', label: 'race', done: Boolean(profile?.breed) },
+        { key: 'age', label: 'age', done: Number(profile?.age) > 0 || Boolean(profile?.birthDate) },
+        { key: 'weight', label: 'poids', done: Number(profile?.weight) > 0 },
+        { key: 'vet', label: 'veterinaire', done: Boolean(extras?.vetName || extras?.vetPhone) },
+        { key: 'alerts', label: 'allergies/traitements', done: Boolean(extras?.allergies || extras?.chronicConditions || extras?.recurringTreatment) },
+        { key: 'food', label: 'alimentation', done: Boolean(extras?.foodName || extras?.kibbleBag) },
+        { key: 'status', label: 'sterilisation', done: Boolean(profile?.sterilized) }
+    ];
+    const completed = checks.filter(item => item.done).length;
+    return {
+        completed,
+        total: checks.length,
+        score: Math.round((completed / checks.length) * 100),
+        missing: checks.filter(item => !item.done).map(item => item.label)
+    };
+}
+
+function getTodayIsoDate() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function getAgeMonthsFromBirthDate(value) {
+    if (!value) return 0;
+    const birthDate = new Date(value);
+    if (Number.isNaN(birthDate.getTime())) return 0;
+    const now = new Date();
+    let months = (now.getFullYear() - birthDate.getFullYear()) * 12 + (now.getMonth() - birthDate.getMonth());
+    if (now.getDate() < birthDate.getDate()) months -= 1;
+    return Math.max(0, months);
+}
+
+function getPhoneHref(phone) {
+    return String(phone || '').replace(/[^\d+]/g, '');
+}
+
 function getPetsListFromStorage() {
     try {
         return JSON.parse(localStorage.getItem('app_pets_list') || '[]');
@@ -672,7 +730,7 @@ window.confirmCreateNewPet = function() {
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
     saveCloudFields({ app_pets_list: petsList, current_pet_id: newId });
 
-    saveLocalData(newId, 'profile',      { name, species, breed, age: 0, size: 0, weight: 0, avatar: "", breedAdvice: "" });
+    saveLocalData(newId, 'profile',      { name, species, breed, age: 0, size: 0, weight: 0, avatar: "", birthDate: "", sterilized: "", breedAdvice: "" });
     saveLocalData(newId, 'weight',      []);
     saveLocalData(newId, 'medical',     []);
     saveLocalData(newId, 'education',   {});
@@ -682,7 +740,7 @@ window.confirmCreateNewPet = function() {
     saveLocalData(newId, 'proData',     { gender: 'Non spécifié' });
     saveLocalData(newId, 'proEvents',   []);
     saveLocalData(newId, 'proLitters',  []);
-    saveLocalData(newId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
+    saveLocalData(newId, 'healthExtras', getDefaultHealthExtras());
     saveLocalData(newId, 'proHistory',  { heats: [], matings: [] });
     saveLocalData(newId, 'memories',    []);
     saveLocalData(newId, 'gamification', { streak: 0, lastLogin: null, badges: [] });
@@ -882,6 +940,9 @@ function summarizeReproForAI() {
 
 function buildPabloSystemPrompt() {
     const allergies = healthExtras?.allergies?.trim() || 'aucune allergie renseignee';
+    const chronic = healthExtras?.chronicConditions?.trim() || 'aucune pathologie renseignee';
+    const treatment = healthExtras?.recurringTreatment?.trim() || 'aucun traitement recurrent renseigne';
+    const food = healthExtras?.foodName?.trim() || 'alimentation non renseignee';
     const daily = dailyTrackers || {};
     const memories = (memoriesList || []).slice(-3).map(m => m.text || m.title || m).filter(Boolean).join(' ; ') || 'aucun souvenir recent';
 
@@ -891,8 +952,9 @@ function buildPabloSystemPrompt() {
         "Tu ne poses jamais de diagnostic medical ferme, tu ne prescris pas de medicament, et tu recommandes un veterinaire en cas de symptome grave, douleur, urgence, doute important ou aggravation.",
         "Tu es clair, concis, chaleureux, avec des etapes actionnables. Tu finis par un wouf ou un miaou quand c'est naturel.",
         "N'utilise pas de Markdown brut: pas d'asterisques, pas de gras **texte**, pas de tableaux. Fais des reponses aerées avec des lignes courtes.",
-        `Profil: ${petProfile.name || "l'animal"} | espece: ${petProfile.species || 'Chien'} | race: ${petProfile.breed || 'inconnue'} | age: ${petProfile.age || '?'} mois | poids profil: ${petProfile.weight || '?'} kg | taille: ${petProfile.size || '?'} cm.`,
-        `Sante: allergies/alertes: ${allergies}. Derniers actes: ${summarizeMedicalForAI()}`,
+        `Profil: ${petProfile.name || "l'animal"} | espece: ${petProfile.species || 'Chien'} | race: ${petProfile.breed || 'inconnue'} | age: ${petProfile.age || '?'} mois | poids profil: ${petProfile.weight || '?'} kg | taille: ${petProfile.size || '?'} cm | sterilisation: ${petProfile.sterilized || 'non renseignee'}.`,
+        `Sante: allergies/alertes: ${allergies}. Surveillance: ${chronic}. Traitement recurrent: ${treatment}. Derniers actes: ${summarizeMedicalForAI()}`,
+        `Nutrition: ${food}. Stock croquettes: ${healthExtras?.kibbleRemaining || 0} kg restants sur sac ${healthExtras?.kibbleBag || 0} kg.`,
         `Poids: ${summarizeWeightForAI()}`,
         `Aujourd'hui: eau ${daily.water || 0} ml, promenade ${daily.walk || 0} min.`,
         `Budget: ${summarizeBudgetForAI()}`,
@@ -981,6 +1043,7 @@ window.sendMessage = async function() {
 // ==========================================
 function initPetProfile() {
     petProfile = getLocalData(currentPetId, 'profile', {});
+    const profileHealthExtras = readHealthExtras();
 
     const breedEl = document.getElementById('header-pet-breed');
     if (breedEl) breedEl.innerText = petProfile.breed || 'Compagnon santé';
@@ -1007,13 +1070,40 @@ function initPetProfile() {
     setVal('profile-age',     petProfile.age);
     setVal('profile-size',    petProfile.size);
     setVal('profile-weight',  petProfile.weight);
-
-    const allergyInput = document.getElementById('profile-allergies');
-    if (allergyInput) allergyInput.value = (getLocalData(currentPetId, 'healthExtras', {})).allergies || '';
+    setVal('profile-birthdate', petProfile.birthDate);
+    setVal('profile-sterilized', petProfile.sterilized);
+    setVal('profile-vet-name', profileHealthExtras.vetName);
+    setVal('profile-vet-phone', profileHealthExtras.vetPhone);
+    setVal('profile-insurance', profileHealthExtras.insurance);
+    setVal('profile-food-name', profileHealthExtras.foodName);
+    setVal('profile-allergies', profileHealthExtras.allergies);
+    setVal('profile-chronic', profileHealthExtras.chronicConditions);
+    setVal('profile-treatment', profileHealthExtras.recurringTreatment);
+    setVal('profile-emergency-notes', profileHealthExtras.emergencyNotes);
 
     document.querySelectorAll('.dynamic-pet-name').forEach(el => el.innerText = petProfile.name || 'Pablo');
 
     updateBreedAdviceUI();
+    updateProfileQualityScore(petProfile, profileHealthExtras);
+}
+
+function updateProfileQualityScore(profile = petProfile, extras = healthExtras) {
+    const textEl = document.getElementById('profile-quality-text');
+    const fillEl = document.getElementById('profile-quality-fill');
+    const hintEl = document.getElementById('profile-quality-hint');
+    if (!textEl || !fillEl || !hintEl) return;
+
+    const result = getProfileHealthScore(profile, extras);
+    textEl.innerText = `${result.score}%`;
+    fillEl.style.width = `${result.score}%`;
+    fillEl.style.background = result.score >= 80
+        ? 'linear-gradient(90deg, var(--success), #8ee6aa)'
+        : result.score >= 55
+            ? 'linear-gradient(90deg, var(--warning), var(--gold))'
+            : 'linear-gradient(90deg, var(--danger), var(--warning))';
+    hintEl.innerText = result.score >= 80
+        ? 'Dossier solide : les rappels et Hey Pablo ont le bon contexte.'
+        : `A compléter : ${result.missing.slice(0, 3).join(', ')}.`;
 }
 
 window.savePetProfile = function() {
@@ -1021,25 +1111,37 @@ window.savePetProfile = function() {
     if (!name) { showToast("Le nom est obligatoire.", "⚠️", "error"); return; }
     const weight    = parseFloat(document.getElementById('profile-weight').value);
     const newBreed  = document.getElementById('profile-breed').value.trim();
+    const birthDate = document.getElementById('profile-birthdate')?.value || '';
+    const ageInput  = parseInt(document.getElementById('profile-age').value) || 0;
 
     if (petProfile.breed !== newBreed) petProfile.breedAdvice = '';
     petProfile.name  = name;
     petProfile.breed = newBreed;
-    petProfile.age   = parseInt(document.getElementById('profile-age').value)  || 0;
+    petProfile.age   = ageInput || getAgeMonthsFromBirthDate(birthDate);
     petProfile.size  = parseInt(document.getElementById('profile-size').value) || 0;
+    petProfile.birthDate = birthDate;
+    petProfile.sterilized = document.getElementById('profile-sterilized')?.value || '';
 
     if (weight && weight !== petProfile.weight) {
-        weightHistory.push({ date: new Date().toISOString().split('T')[0], weight });
+        weightHistory.push({ date: getTodayIsoDate(), weight });
         saveLocalData(currentPetId, 'weight', weightHistory);
     }
     petProfile.weight = weight || petProfile.weight;
     saveLocalData(currentPetId, 'profile', petProfile);
 
-    const allergyInput = document.getElementById('profile-allergies');
-    if (allergyInput) {
-        healthExtras.allergies = allergyInput.value.trim();
-        saveLocalData(currentPetId, 'healthExtras', healthExtras);
-    }
+    healthExtras = {
+        ...readHealthExtras(),
+        vetName: document.getElementById('profile-vet-name')?.value.trim() || '',
+        vetPhone: document.getElementById('profile-vet-phone')?.value.trim() || '',
+        insurance: document.getElementById('profile-insurance')?.value.trim() || '',
+        foodName: document.getElementById('profile-food-name')?.value.trim() || '',
+        allergies: document.getElementById('profile-allergies')?.value.trim() || '',
+        chronicConditions: document.getElementById('profile-chronic')?.value.trim() || '',
+        recurringTreatment: document.getElementById('profile-treatment')?.value.trim() || '',
+        emergencyNotes: document.getElementById('profile-emergency-notes')?.value.trim() || ''
+    };
+    saveLocalData(currentPetId, 'healthExtras', healthExtras);
+    updateProfileQualityScore(petProfile, healthExtras);
 
     const petObj = petsList.find(p => p.id === currentPetId);
     if (petObj) {
@@ -1219,7 +1321,8 @@ function renderMedicalHistory() {
     sorted.forEach(ev => {
         const item      = document.createElement('div');
         item.className  = 'log-item';
-        item.innerHTML  = `<span style="color:var(--text-sub);">${ev.type}</span><strong style="color:var(--text-muted); font-size:12.5px;">${new Date(ev.date).toLocaleDateString('fr-FR')}</strong>`;
+        const note = ev.notes ? `<small style="display:block; color:var(--text-muted); margin-top:3px; line-height:1.35;">${escHtml(String(ev.notes).slice(0, 180))}${String(ev.notes).length > 180 ? '...' : ''}</small>` : '';
+        item.innerHTML  = `<span style="color:var(--text-sub);">${escHtml(ev.type)}${note}</span><strong style="color:var(--text-muted); font-size:12.5px;">${new Date(ev.date).toLocaleDateString('fr-FR')}</strong>`;
         list.appendChild(item);
     });
     if (sorted.length === 0) list.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:10px 0;">Aucun acte enregistré.</p>';
@@ -1234,39 +1337,130 @@ window.clearMedicalHistory = function() {
     });
 };
 
+const CARE_RULES = {
+    'Vaccin': { days: 365, warn: 30, icon: 'fa-syringe' },
+    'Vermifuge': { days: 90, warn: 14, icon: 'fa-pills' },
+    'Anti-puces': { days: 30, warn: 7, icon: 'fa-shield-dog' },
+    'Toilettage': { days: 90, warn: 14, icon: 'fa-scissors' },
+    'Dents': { days: 7, warn: 2, icon: 'fa-tooth' },
+    'Oreilles': { days: 30, warn: 7, icon: 'fa-ear-listen' },
+    'Griffes': { days: 60, warn: 10, icon: 'fa-paw' }
+};
+
+function getLastCareDate(type) {
+    const sorted = medicalEvents
+        .filter(event => event.type === type)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    return sorted.length > 0 ? new Date(sorted[0].date) : null;
+}
+
+function getDaysBetween(a, b) {
+    const dayA = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+    const dayB = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.floor((dayA - dayB) / 86400000);
+}
+
+function buildReminderItemHtml(item) {
+    return `
+        <div class="reminder-item reminder-item--${item.level}">
+            <div class="reminder-icon"><i class="fa-solid ${item.icon || 'fa-calendar-check'}"></i></div>
+            <div class="reminder-copy">
+                <h4>${escHtml(item.title)}</h4>
+                <span>${escHtml(item.detail)}</span>
+            </div>
+            <span class="badge ${item.badgeClass}">${escHtml(item.badge)}</span>
+        </div>`;
+}
+
 function renderReminders() {
     const container = document.getElementById('dynamic-reminders-list');
     if (!container) return;
     container.innerHTML = '';
     const today = new Date();
-    let hasReminders = false;
+    const items = [];
 
-    const rules = { 'Vaccin': 365, 'Vermifuge': 90, 'Anti-puces': 30, 'Toilettage': 90, 'Dents': 7, 'Oreilles': 30, 'Griffes': 60 };
-    Object.keys(rules).forEach(type => {
-        const eventsOfType = medicalEvents.filter(e => e.type === type);
-        const sorted       = eventsOfType.sort((a, b) => new Date(b.date) - new Date(a.date));
-        const lastDate     = sorted.length > 0 ? new Date(sorted[0].date) : null;
-        const daysPass     = lastDate ? Math.ceil(Math.abs(today - lastDate) / 86400000) : 999;
-        if (!lastDate || daysPass > rules[type]) {
-            hasReminders = true;
-            container.innerHTML += `
-                <div class="reminder-item">
-                    <div><h4>${type} requis</h4><span>Dernier : ${lastDate ? lastDate.toLocaleDateString('fr-FR') : 'Jamais'}</span></div>
-                    <span class="badge badge-danger">À FAIRE</span>
-                </div>`;
+    Object.entries(CARE_RULES).forEach(([type, rule]) => {
+        const lastDate = getLastCareDate(type);
+        const daysSince = lastDate ? getDaysBetween(today, lastDate) : null;
+        const daysLeft = lastDate ? rule.days - daysSince : -1;
+        if (!lastDate || daysLeft < 0) {
+            items.push({
+                level: 'danger',
+                icon: rule.icon,
+                title: `${type} requis`,
+                detail: `Dernier acte : ${lastDate ? lastDate.toLocaleDateString('fr-FR') : 'jamais'}`,
+                badge: 'A faire',
+                badgeClass: 'badge-danger',
+                priority: 1
+            });
+        } else if (daysLeft <= rule.warn) {
+            items.push({
+                level: 'warning',
+                icon: rule.icon,
+                title: `${type} bientôt`,
+                detail: `A prévoir dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
+                badge: `J-${daysLeft}`,
+                badgeClass: 'badge-warning',
+                priority: 2
+            });
         }
     });
+
+    const profileScore = getProfileHealthScore(petProfile, healthExtras);
+    if (profileScore.score < 70) {
+        items.push({
+            level: 'warning',
+            icon: 'fa-id-card-clip',
+            title: 'Dossier santé à compléter',
+            detail: `Manque : ${profileScore.missing.slice(0, 3).join(', ')}`,
+            badge: `${profileScore.score}%`,
+            badgeClass: 'badge-warning',
+            priority: 2
+        });
+    }
+
+    if (healthExtras.recurringTreatment) {
+        items.push({
+            level: 'gold',
+            icon: 'fa-prescription-bottle-medical',
+            title: 'Traitement récurrent',
+            detail: healthExtras.recurringTreatment,
+            badge: 'Suivi',
+            badgeClass: 'badge-gold',
+            priority: 3
+        });
+    }
+
+    const remaining = Number(healthExtras.kibbleRemaining) || 0;
+    if (remaining > 0 && petProfile.weight > 0) {
+        const dailyRation = (petProfile.weight * 13.5) / 1000;
+        const daysLeft = Math.floor(remaining / dailyRation);
+        if (daysLeft <= 7) {
+            items.push({
+                level: daysLeft <= 3 ? 'danger' : 'warning',
+                icon: 'fa-bowl-food',
+                title: 'Stock croquettes',
+                detail: `${daysLeft} jour${daysLeft > 1 ? 's' : ''} restant${daysLeft > 1 ? 's' : ''}`,
+                badge: daysLeft <= 3 ? 'Urgent' : 'Bientôt',
+                badgeClass: daysLeft <= 3 ? 'badge-danger' : 'badge-warning',
+                priority: daysLeft <= 3 ? 1 : 2
+            });
+        }
+    }
 
     if (proData.gender !== 'Mâle' && proData.expectedBirth && !proData.actualBirth) {
         const birthDate   = new Date(proData.expectedBirth);
         const daysToBirth = Math.ceil((birthDate - today) / 86400000);
         if (daysToBirth >= -5 && daysToBirth <= 30) {
-            hasReminders = true;
-            container.innerHTML += `
-                <div class="reminder-item">
-                    <div><h4>Mise à bas prévue</h4><span>${birthDate.toLocaleDateString('fr-FR')}</span></div>
-                    <span class="badge badge-warning">J-${daysToBirth}</span>
-                </div>`;
+            items.push({
+                level: 'warning',
+                icon: 'fa-baby-carriage',
+                title: 'Mise à bas prévue',
+                detail: birthDate.toLocaleDateString('fr-FR'),
+                badge: `J-${daysToBirth}`,
+                badgeClass: 'badge-warning',
+                priority: 2
+            });
         }
     }
 
@@ -1277,28 +1471,41 @@ function renderReminders() {
         nextHeat.setMonth(nextHeat.getMonth() + 6);
         const daysToHeat = Math.ceil((nextHeat - today) / 86400000);
         if (daysToHeat >= 0 && daysToHeat <= 30) {
-            hasReminders = true;
-            container.innerHTML += `
-                <div class="reminder-item">
-                    <div><h4>Prochaines chaleurs</h4><span>Estimées le ${nextHeat.toLocaleDateString('fr-FR')}</span></div>
-                    <span class="badge badge-danger">ATTENTION</span>
-                </div>`;
+            items.push({
+                level: 'danger',
+                icon: 'fa-venus',
+                title: 'Prochaines chaleurs',
+                detail: `Estimées le ${nextHeat.toLocaleDateString('fr-FR')}`,
+                badge: 'Attention',
+                badgeClass: 'badge-danger',
+                priority: 1
+            });
         }
     }
 
     const upcoming = proEvents.filter(e => new Date(e.date) > today).sort((a, b) => new Date(a.date) - new Date(b.date));
     if (upcoming.length > 0) {
-        hasReminders = true;
         const next    = upcoming[0];
         const daysTo  = Math.ceil((new Date(next.date) - today) / 86400000);
-        container.innerHTML += `
-            <div class="reminder-item">
-                <div><h4>Concours : ${next.type}</h4><span>${new Date(next.date).toLocaleDateString('fr-FR')}</span></div>
-                <span class="badge badge-gold">J-${daysTo}</span>
-            </div>`;
+        items.push({
+            level: 'gold',
+            icon: 'fa-award',
+            title: `Concours : ${next.type}`,
+            detail: new Date(next.date).toLocaleDateString('fr-FR'),
+            badge: `J-${daysTo}`,
+            badgeClass: 'badge-gold',
+            priority: 3
+        });
     }
 
-    if (!hasReminders) container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px 0;">Tout est à jour ! ✨</p>';
+    items
+        .sort((a, b) => a.priority - b.priority)
+        .slice(0, 7)
+        .forEach(item => { container.innerHTML += buildReminderItemHtml(item); });
+
+    if (items.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px 0;">Tout est à jour.</p>';
+    }
 }
 
 // ==========================================
@@ -1537,6 +1744,9 @@ function renderChatActions(index, msg) {
             <button class="msg-action-btn" type="button" onclick="saveChatMessage(${index})" title="Sauvegarder dans les souvenirs" aria-label="Sauvegarder dans les souvenirs">
                 <i class="fa-solid fa-bookmark" aria-hidden="true"></i>
             </button>
+            <button class="msg-action-btn" type="button" onclick="saveChatMessageToHealth(${index})" title="Ajouter au carnet santé" aria-label="Ajouter au carnet santé">
+                <i class="fa-solid fa-notes-medical" aria-hidden="true"></i>
+            </button>
             <button class="msg-action-btn${upActive}" type="button" onclick="rateChatMessage(${index}, 'up')" title="Réponse utile" aria-label="Réponse utile">
                 <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
             </button>
@@ -1605,6 +1815,23 @@ window.saveChatMessage = async function(index) {
     showToast('Conseil sauvegardé dans les souvenirs.', '🔖');
 };
 
+window.saveChatMessageToHealth = async function(index) {
+    const msg = chatHistory[index];
+    if (!msg || !currentPetId) return;
+    const text = normalizeHeyPabloText(msg.text).slice(0, 900);
+    medicalEvents.push({
+        type: 'Note Hey Pablo',
+        date: getTodayIsoDate(),
+        notes: text,
+        source: 'hey_pablo'
+    });
+    await saveLocalData(currentPetId, 'medical', medicalEvents);
+    renderMedicalHistory();
+    renderReminders();
+    trackEvent('chat_reply_saved_to_health');
+    showToast('Note ajoutée au carnet santé.', '🩺');
+};
+
 window.rateChatMessage = async function(index, value) {
     const msg = chatHistory[index];
     if (!msg) return;
@@ -1664,6 +1891,85 @@ window.navigateTo = function(screenId) {
 // ==========================================
 // SANTÉ, URGENCES & CROQUETTES
 // ==========================================
+const EMERGENCY_GUIDES = {
+    breathing: {
+        title: 'Respiration difficile ou malaise',
+        body: 'Difficulté à respirer, gencives pâles/bleues, effondrement ou grande faiblesse = appel vétérinaire immédiat.',
+        steps: [
+            'Gardez votre animal au calme et limitez les manipulations.',
+            'Appelez votre vétérinaire ou une clinique d’urgence avant le trajet.',
+            'Transportez-le doucement, sans forcer l’exercice ni donner de médicament.'
+        ]
+    },
+    poison: {
+        title: 'Ingestion suspecte ou toxique',
+        body: 'Produit ménager, médicament, plante, aliment toxique ou quantité inconnue : il faut appeler vite.',
+        steps: [
+            'Gardez l’emballage, le nom du produit, l’heure et la quantité estimée.',
+            'Notez le poids de l’animal et les symptômes observés.',
+            'Ne faites pas vomir sans avis vétérinaire.'
+        ]
+    },
+    trauma: {
+        title: 'Choc, blessure ou saignement',
+        body: 'Accident, chute, morsure, plaie profonde, saignement important ou douleur intense nécessitent une prise en charge rapide.',
+        steps: [
+            'Mettez l’animal en sécurité, sans manipuler une zone douloureuse.',
+            'Compressez doucement un saignement avec un linge propre.',
+            'Appelez avant de partir pour que la clinique prépare l’accueil.'
+        ]
+    },
+    seizure: {
+        title: 'Crise, ventre gonflé ou blocage urinaire',
+        body: 'Crises répétées, ventre très gonflé, vomissements importants, douleur forte ou difficulté à uriner sont des signaux d’urgence.',
+        steps: [
+            'Éloignez les objets dangereux et chronométrez la crise si possible.',
+            'Ne mettez rien dans la bouche de l’animal.',
+            'Appelez immédiatement si la crise dure, revient, ou si l’état se dégrade.'
+        ]
+    }
+};
+
+function refreshEmergencySummary() {
+    const summary = document.getElementById('emergency-vet-summary');
+    if (!summary) return;
+    const vet = healthExtras.vetName || 'Vétérinaire non renseigné';
+    const phone = healthExtras.vetPhone ? ` · ${healthExtras.vetPhone}` : '';
+    summary.innerText = `${vet}${phone}`;
+}
+
+window.openEmergencyGuide = function(type) {
+    const guide = EMERGENCY_GUIDES[type] || EMERGENCY_GUIDES.breathing;
+    const panel = document.getElementById('emergency-guide-panel');
+    if (!panel) return;
+    const phone = getPhoneHref(healthExtras.vetPhone);
+    const notes = String(healthExtras.emergencyNotes || '').trim();
+    panel.innerHTML = `
+        <h4>${escHtml(guide.title)}</h4>
+        <div>${escHtml(guide.body)}</div>
+        <ul>${guide.steps.map(step => `<li>${escHtml(step)}</li>`).join('')}</ul>
+        ${notes ? `<div style="margin-top:8px;"><strong>Note dossier :</strong> ${escHtml(notes)}</div>` : ''}
+        <div class="emergency-call-row">
+            ${phone ? `<a href="tel:${phone}"><i class="fa-solid fa-phone"></i> Appeler le vétérinaire</a>` : ''}
+            <button type="button" onclick="askPreset('Quels signes imposent une urgence vétérinaire pour mon animal ?')">
+                <i class="fa-solid fa-comment-medical"></i> Demander à Hey Pablo
+            </button>
+        </div>`;
+    trackEvent(`emergency_guide_${type}`);
+};
+
+window.saveEmergencyContacts = function() {
+    const vetPhoneEl = document.getElementById('vet-phone');
+    const vetNameEl  = document.getElementById('vet-name');
+    healthExtras = {
+        ...readHealthExtras(),
+        vetPhone: vetPhoneEl?.value.trim() || '',
+        vetName: vetNameEl?.value.trim() || ''
+    };
+    saveLocalData(currentPetId, 'healthExtras', healthExtras);
+    refreshEmergencySummary();
+};
+
 window.updateKibbleDaysAlert = function updateKibbleDaysAlert() {
     const alertEl = document.getElementById('kibble-days-alert');
     if (!alertEl) return;
@@ -1690,7 +1996,7 @@ window.updateKibbleDaysAlert = function updateKibbleDaysAlert() {
 }
 
 function initHealthExtras() {
-    healthExtras = getLocalData(currentPetId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
+    healthExtras = readHealthExtras();
 
     const vetNameEl  = document.getElementById('vet-name');
     const vetPhoneEl = document.getElementById('vet-phone');
@@ -1700,9 +2006,14 @@ function initHealthExtras() {
     const alertsBanner = document.getElementById('health-alerts-banner');
     const alertsText   = document.getElementById('health-alerts-text');
     if (alertsBanner && alertsText) {
-        if (healthExtras.allergies && healthExtras.allergies.trim() !== '') {
+        const alerts = [
+            healthExtras.allergies,
+            healthExtras.chronicConditions,
+            healthExtras.recurringTreatment
+        ].map(value => String(value || '').trim()).filter(Boolean);
+        if (alerts.length > 0) {
             alertsBanner.style.display = 'block';
-            alertsText.innerText       = healthExtras.allergies;
+            alertsText.innerText       = alerts.join(' · ');
         } else {
             alertsBanner.style.display = 'none';
         }
@@ -1711,16 +2022,15 @@ function initHealthExtras() {
     updateKibbleUI();
     generateTransitionPlan();
     updateKibbleDaysAlert();
+    refreshEmergencySummary();
+    renderReminders();
 }
 
 window.callVet = function() {
     const vetPhoneEl = document.getElementById('vet-phone');
-    const vetNameEl  = document.getElementById('vet-name');
     if (vetPhoneEl?.value) {
-        healthExtras.vetPhone = vetPhoneEl.value;
-        healthExtras.vetName  = vetNameEl?.value || '';
-        saveLocalData(currentPetId, 'healthExtras', healthExtras);
-        window.open(`tel:${vetPhoneEl.value}`);
+        saveEmergencyContacts();
+        window.open(`tel:${getPhoneHref(vetPhoneEl.value)}`);
     } else {
         showToast("Entrez un numéro de téléphone.", "⚠️", "error");
     }
@@ -2093,7 +2403,7 @@ async function claimCession(cessionId) {
         }
 
         // --- IMPORTATION DES DONNÉES RÉCUPÉRÉES ---
-        saveLocalData(newId, 'profile',      { name: petName, species: d.species || 'Chien', breed: d.breed || '', age, size: 0, weight: latestWeight, avatar: '', breedAdvice: '' });
+        saveLocalData(newId, 'profile',      { name: petName, species: d.species || 'Chien', breed: d.breed || '', age, size: 0, weight: latestWeight, avatar: '', birthDate: p.birthDate || '', sterilized: '', breedAdvice: '' });
         saveLocalData(newId, 'weight',       p.weights || []);
         
         const importedActs = (p.acts || []).map(act => ({ type: act.type, date: act.date }));
@@ -2106,7 +2416,7 @@ async function claimCession(cessionId) {
         saveLocalData(newId, 'proData',      { gender: p.sex || 'Non spécifié', chip: p.chip || '', lof: '', pedigree: '', breederAffixe: d.breeder?.affixe || '', sire: p.sire || '', dam: p.dam || '' });
         saveLocalData(newId, 'proEvents',    []);
         saveLocalData(newId, 'proLitters',   []);
-        saveLocalData(newId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
+        saveLocalData(newId, 'healthExtras', getDefaultHealthExtras());
         saveLocalData(newId, 'proHistory',   { heats: [], matings: [] });
         saveLocalData(newId, 'memories',     []);
         saveLocalData(newId, 'gamification', { streak: 0, lastLogin: null, badges: [] });
@@ -2272,6 +2582,7 @@ function initProHistory() {
     proHistory = getLocalData(currentPetId, 'proHistory', { heats: [], matings: [] });
     renderHeatHistory();
     renderMatingHistory();
+    renderReminders();
 }
 
 window.addHeatRecord = function() {
@@ -2281,6 +2592,7 @@ window.addHeatRecord = function() {
     saveLocalData(currentPetId, 'proHistory', proHistory);
     document.getElementById('new-heat-date').value = '';
     renderHeatHistory();
+    renderReminders();
     showToast('Chaleurs enregistrées !', '🩸');
 };
 
@@ -3243,7 +3555,7 @@ function seedDemoDataset() {
     localStorage.setItem(DEMO_MODE_KEY, '1');
 
     setLocalDataOnly(nayaId, 'profile', {
-        name: 'Naya', species: 'Chien', breed: 'Berger Allemand', age: 32, size: 61, weight: 31.4, avatar: '',
+        name: 'Naya', species: 'Chien', breed: 'Berger Allemand', age: 32, size: 61, weight: 31.4, avatar: '', birthDate: dateOffset(-980), sterilized: 'no',
         breedAdvice: '<p><strong>Berger Allemand :</strong> chien sportif, proche de son humain, qui a besoin de régularité. Surveillez surtout la croissance, les articulations, le poids et la récupération après l\'effort.</p>'
     });
     setLocalDataOnly(nayaId, 'weight', [
@@ -3297,7 +3609,19 @@ function seedDemoDataset() {
             { id: 'wl_2', name: 'Mme Leroy', phone: '06 98 76 54 32', email: 'leroy@example.fr', status: 'En attente', deposit: 'Non', note: 'Disponible fin août.' }
         ]
     }]);
-    setLocalDataOnly(nayaId, 'healthExtras', { allergies: 'Aucune connue', vetName: 'Clinique VetNord', vetPhone: '03 20 00 00 00', kibbleBag: 12, kibbleRemaining: 3.4 });
+    setLocalDataOnly(nayaId, 'healthExtras', {
+        ...getDefaultHealthExtras(),
+        allergies: 'Aucune connue',
+        vetName: 'Clinique VetNord',
+        vetPhone: '03 20 00 00 00',
+        kibbleBag: 12,
+        kibbleRemaining: 3.4,
+        insurance: 'Mutuelle sante active',
+        foodName: 'Croquettes performance agneau',
+        chronicConditions: 'Surveillance post-gestation',
+        recurringTreatment: 'Vermifuge selon calendrier elevage',
+        emergencyNotes: 'Transporter avec carnet, puce et historique de portee.'
+    });
     setLocalDataOnly(nayaId, 'memories', [
         { id: 1, date: dateOffset(-40), title: 'Première balade avec les chiots', text: 'Tout le monde a suivi Naya dans le jardin.' }
     ]);
@@ -3307,7 +3631,7 @@ function seedDemoDataset() {
         { id: 2, type: 'Sortie — Réservation', date: dateOffset(-5), animal: 'Alma', chip: '250269100000002', person: 'Famille Martin', createdAt: Date.now() }
     ]);
 
-    setLocalDataOnly(pabloId, 'profile', { name: 'Pablo', species: 'Chien', breed: 'Berger Allemand', age: 54, size: 64, weight: 36.8, avatar: '', breedAdvice: '' });
+    setLocalDataOnly(pabloId, 'profile', { name: 'Pablo', species: 'Chien', breed: 'Berger Allemand', age: 54, size: 64, weight: 36.8, avatar: '', birthDate: dateOffset(-1640), sterilized: 'yes', breedAdvice: '' });
     setLocalDataOnly(pabloId, 'weight', [{ date: dateOffset(-40), weight: 36.2 }, { date: dateOffset(-8), weight: 36.8 }]);
     setLocalDataOnly(pabloId, 'medical', [{ type: 'Vaccin', date: dateOffset(-210) }, { type: 'Anti-puces', date: dateOffset(-12) }]);
     setLocalDataOnly(pabloId, 'education', { assis: 3, rappel: 3, 'pas-bouger': 2 });
@@ -3317,7 +3641,14 @@ function seedDemoDataset() {
     setLocalDataOnly(pabloId, 'proData', { gender: 'Mâle' });
     setLocalDataOnly(pabloId, 'proEvents', []);
     setLocalDataOnly(pabloId, 'proLitters', []);
-    setLocalDataOnly(pabloId, 'healthExtras', { allergies: '', vetName: 'Clinique VetNord', vetPhone: '03 20 00 00 00', kibbleBag: 12, kibbleRemaining: 7.1 });
+    setLocalDataOnly(pabloId, 'healthExtras', {
+        ...getDefaultHealthExtras(),
+        vetName: 'Clinique VetNord',
+        vetPhone: '03 20 00 00 00',
+        kibbleBag: 12,
+        kibbleRemaining: 7.1,
+        foodName: 'Croquettes adulte grande race'
+    });
     setLocalDataOnly(pabloId, 'proHistory', { heats: [], matings: [] });
     setLocalDataOnly(pabloId, 'memories', []);
     setLocalDataOnly(pabloId, 'gamification', { streak: 2, lastLogin: new Date().toISOString().split('T')[0], badges: [] });
@@ -3427,7 +3758,7 @@ window.finishOnboarding = function() {
     petsList.push({ id: newId, name });
     localStorage.setItem('app_pets_list', JSON.stringify(petsList));
 
-    saveLocalData(newId, 'profile',      { name, species, breed, age: 0, size: 0, weight, avatar: '', breedAdvice: '' });
+    saveLocalData(newId, 'profile',      { name, species, breed, age: 0, size: 0, weight, avatar: '', birthDate: '', sterilized: '', breedAdvice: '' });
     saveLocalData(newId, 'weight',       weight > 0 ? [{ date: new Date().toISOString().split('T')[0], weight }] : []);
     saveLocalData(newId, 'medical',      []);
     saveLocalData(newId, 'education',    {});
@@ -3437,7 +3768,7 @@ window.finishOnboarding = function() {
     saveLocalData(newId, 'proData',      { gender: 'Non spécifié' });
     saveLocalData(newId, 'proEvents',    []);
     saveLocalData(newId, 'proLitters',   []);
-    saveLocalData(newId, 'healthExtras', { allergies: '', vetName: '', vetPhone: '', kibbleBag: 0, kibbleRemaining: 0 });
+    saveLocalData(newId, 'healthExtras', getDefaultHealthExtras());
     saveLocalData(newId, 'proHistory',   { heats: [], matings: [] });
     saveLocalData(newId, 'memories',     []);
     saveLocalData(newId, 'gamification', { streak: 0, lastLogin: null, badges: [] });

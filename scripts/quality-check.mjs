@@ -62,10 +62,17 @@ assertContains(app, 'client_error', 'Monitoring client');
 assertContains(app, 'client_promise_error', 'Monitoring client');
 assertContains(app, 'copyChatMessage', 'Hey Pablo premium');
 assertContains(app, 'saveChatMessage', 'Hey Pablo premium');
+assertContains(app, 'saveChatMessageToHealth', 'Hey Pablo vers carnet sante');
 assertContains(app, 'rateChatMessage', 'Hey Pablo premium');
 assertContains(app, 'askChatFollowUp', 'Hey Pablo premium');
 assertContains(app, 'clearChatHistory', 'Hey Pablo premium');
 assertContains(app, 'isChatSending', 'Hey Pablo anti double envoi');
+assertContains(app, 'getDefaultHealthExtras', 'Profil sante premium');
+assertContains(app, 'getProfileHealthScore', 'Profil sante premium');
+assertContains(app, 'CARE_RULES', 'Rappels intelligents');
+assertContains(app, 'EMERGENCY_GUIDES', 'Mode urgence');
+assertContains(app, 'openEmergencyGuide', 'Mode urgence');
+assertContains(app, 'saveEmergencyContacts', 'Contacts urgence');
 assertContains(chatClient, 'getIdToken', 'Service Hey Pablo');
 assertContains(chatClient, 'AbortController', 'Service Hey Pablo');
 assertContains(chatClient, 'Authorization', 'Service Hey Pablo');
@@ -81,6 +88,10 @@ const indexHtml = read('index.html');
 assertContains(indexHtml, 'id="chat-send-btn"', 'Chat accessible');
 assertContains(indexHtml, 'enterkeyhint="send"', 'Chat mobile');
 assertContains(indexHtml, 'clearChatHistory()', 'Chat reset');
+assertContains(indexHtml, 'profile-quality-fill', 'Profil sante premium');
+assertContains(indexHtml, 'profile-birthdate', 'Profil sante premium');
+assertContains(indexHtml, 'emergency-guide-panel', 'Mode urgence');
+assertContains(indexHtml, "openEmergencyGuide('poison')", 'Mode urgence');
 const seoPages = [
     'carnet-sante-chien-numerique',
     'rappel-vaccin-chien',
