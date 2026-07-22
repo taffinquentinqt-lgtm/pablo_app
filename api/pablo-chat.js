@@ -34,6 +34,12 @@ function enforceRateLimit(uid) {
     }
     bucket.push(now);
     rateLimitBuckets.set(uid, bucket);
+
+    if (rateLimitBuckets.size > 5000) {
+        for (const [key, hits] of rateLimitBuckets.entries()) {
+            if (!hits.some(ts => now - ts < windowMs)) rateLimitBuckets.delete(key);
+        }
+    }
 }
 
 function sanitizeMessages(messages) {
@@ -175,6 +181,7 @@ export default async function handler(req, res) {
     const allowedOrigin = resolveAllowedOrigin(req.headers?.origin || "");
     if (allowedOrigin) res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
     res.setHeader("Vary", "Origin");
+    res.setHeader("Cache-Control", "no-store");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 

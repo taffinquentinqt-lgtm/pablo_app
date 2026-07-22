@@ -3,6 +3,8 @@ import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 import { getMessaging, getToken } from "firebase/messaging";
+import { callPabloChat } from "./src/services/pabloChatClient.mjs";
+import { formatHeyPabloMessage, normalizeHeyPabloText } from "./src/utils/heyPabloFormatting.mjs";
 
 // CONFIGURATION GLOBALE
 // ==========================================
@@ -12,6 +14,7 @@ const CLOUD_PENDING_KEY = "pablo_pending_cloud_writes";
 const CLOUD_SYNC_META_KEY = "pablo_cloud_sync_meta";
 const CLOUD_SYNC_DEBOUNCE_MS = 650;
 const OPENAI_MODEL = "gpt-5.4-mini";
+const APP_CHECK_SITE_KEY = import.meta.env?.VITE_FIREBASE_APPCHECK_SITE_KEY || "";
 const IS_FILE_PREVIEW = window.location.protocol === 'file:';
 const IS_LOCAL_PREVIEW = !IS_FILE_PREVIEW && (
     ['localhost', '127.0.0.1'].includes(window.location.hostname)
@@ -26,6 +29,9 @@ let chartJsPromise = null;
 function trackEvent(name) {
     if (typeof window.clarity === 'function') window.clarity('event', name);
 }
+
+window.addEventListener('error', () => trackEvent('client_error'));
+window.addEventListener('unhandledrejection', () => trackEvent('client_promise_error'));
 
 function ensureChartJs() {
     if (window.Chart) return Promise.resolve(window.Chart);
@@ -43,33 +49,10 @@ function ensureChartJs() {
 }
 
 async function pabloChat(messages) {
-    if (!auth.currentUser) {
-        throw new Error("Connectez-vous pour utiliser Hey Pablo.");
-    }
     if (IS_FILE_PREVIEW) {
         throw new Error("Ouvrez Pablo via le site en ligne ou le serveur local pour utiliser Hey Pablo.");
     }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    try {
-        const idToken = await auth.currentUser.getIdToken();
-        const res = await fetch(PABLO_CHAT_API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${idToken}`
-            },
-            body: JSON.stringify({ model: OPENAI_MODEL, messages }),
-            signal: controller.signal
-        });
-        if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-        const data = await res.json();
-        if (data.error) throw new Error(data.error.message || data.error || 'Erreur OpenAI');
-        return data.choices?.[0]?.message?.content?.trim() || '';
-    } finally {
-        clearTimeout(timeout);
-    }
+    return callPabloChat({ auth, apiUrl: PABLO_CHAT_API_URL, model: OPENAI_MODEL, messages });
 }
 
 const groqChat = pabloChat;
@@ -102,6 +85,20 @@ runWhenIdle(async () => {
     }
 });
 
+if (APP_CHECK_SITE_KEY && !IS_FILE_PREVIEW) {
+    runWhenIdle(async () => {
+        try {
+            const { initializeAppCheck, ReCaptchaV3Provider } = await import("firebase/app-check");
+            initializeAppCheck(app, {
+                provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+                isTokenAutoRefreshEnabled: true
+            });
+        } catch (error) {
+            console.warn("Firebase App Check non initialisé.", error);
+        }
+    });
+}
+
 // Capture immédiate d'un lien de cession (?cession=...) AVANT que l'auth ne réagisse
 try {
     const _cp = new URLSearchParams(window.location.search).get('cession');
@@ -119,6 +116,7 @@ let weightHistory = [];
 let medicalEvents = [];
 let dailyTrackers = {};
 let chatHistory = [];
+let isChatSending = false;
 let budgetExpenses = [];
 let educationData = {};
 let proData = {};
@@ -513,26 +511,6 @@ function getLocalData(petId, key, defaultValue) {
 
 function escHtml(str) {
     return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function formatHeyPabloMessage(text) {
-    const cleaned = String(text ?? '')
-        .replace(/\r\n/g, '\n')
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/\*([^*\n]+)\*/g, '$1')
-        .replace(/__([^_]+)__/g, '$1')
-        .replace(/`([^`]+)`/g, '$1')
-        .replace(/#{1,6}\s*/g, '')
-        .replace(/^\s*[-*•]\s+/gm, '')
-        .replace(/\s+([?!])/g, '$1')
-        .replace(/([.!?])\s+(\d+\.\s)/g, '$1\n\n$2')
-        .replace(/(\d+\.\s[^:\n]{3,80}:)\s+/g, '$1\n')
-        .trim();
-
-    return escHtml(cleaned)
-        .replace(/\n{3,}/g, '\n\n')
-        .replace(/\n\n/g, '<br><br>')
-        .replace(/\n/g, '<br>');
 }
 
 function getPetsListFromStorage() {
@@ -934,10 +912,19 @@ function getDemoAssistantReply(userText) {
     return "Mode demo : je peux te montrer le fonctionnement, mais l'IA live est volontairement bloquee sans compte. Connecte-toi pour que Hey Pablo utilise le vrai profil de ton animal. Wouf !";
 }
 
+function setChatSendingState(isSending) {
+    const btn = document.getElementById('chat-send-btn');
+    const input = document.getElementById('chat-input-field');
+    if (btn) btn.disabled = isSending;
+    if (input) input.disabled = isSending;
+}
+
 window.sendMessage = async function() {
     const input = document.getElementById('chat-input-field');
     const text  = input?.value.trim();
-    if (!text) return;
+    if (!text || isChatSending) return;
+    isChatSending = true;
+    setChatSendingState(true);
 
     chatHistory.push({ sender: 'user', text });
     input.value = '';
@@ -960,6 +947,9 @@ window.sendMessage = async function() {
         chatHistory.push({ sender: 'bot', text: getDemoAssistantReply(text) });
         renderChat();
         await saveLocalData(currentPetId, 'chat', chatHistory);
+        isChatSending = false;
+        setChatSendingState(false);
+        input?.focus();
         return;
     }
 
@@ -981,6 +971,9 @@ window.sendMessage = async function() {
         chatHistory.push({ sender: 'bot', text: errMsg });
         renderChat();
     }
+    isChatSending = false;
+    setChatSendingState(false);
+    input?.focus();
 };
 
 // ==========================================
@@ -1425,28 +1418,97 @@ window.addBudgetExpense = function() {
 
 window.exportToPDF = () => window.print();
 
+const PABLO_DATA_KEYS = [
+    'profile', 'weight', 'medical', 'education', 'daily', 'chat', 'budget',
+    'proData', 'proEvents', 'proLitters', 'healthExtras', 'proHistory',
+    'memories', 'gamification', 'custom_exercises', 'registre'
+];
+
+function collectPabloExportData() {
+    const pets = getPetsListFromStorage().map(pet => {
+        const data = {};
+        PABLO_DATA_KEYS.forEach(key => {
+            data[key] = getLocalData(pet.id, key, null);
+        });
+        return { ...pet, data };
+    });
+
+    return {
+        app: 'Pablo',
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        ownerUid: auth.currentUser?.uid || null,
+        currentPetId,
+        pets
+    };
+}
+
+window.exportPabloData = function() {
+    const payload = collectPabloExportData();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `pablo-donnees-${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    trackEvent('data_exported');
+    showToast('Export des données généré.', '📦');
+};
+
+window.clearLocalCacheFromSettings = function() {
+    showConfirm("Vider le cache local de Pablo ? Vos données cloud seront rechargées à la prochaine connexion.", () => {
+        clearAppLocalData();
+        showToast('Cache local vidé.', '✅');
+        setTimeout(() => location.reload(), 700);
+    });
+};
+
 function initChat() {
-    chatHistory = getLocalData(currentPetId, 'chat', [{
-        sender: 'bot',
-        text: `Wouf ! Je suis l'assistant de ${petProfile.name || 'votre compagnon'}. Comment puis-je aider ?`
-    }]);
+    chatHistory = getLocalData(currentPetId, 'chat', [getWelcomeChatMessage()]);
     renderChat();
 }
+
+function getWelcomeChatMessage() {
+    return {
+        sender: 'bot',
+        text: `Wouf ! Je suis l'assistant de ${petProfile.name || 'votre compagnon'}. Comment puis-je aider ?`
+    };
+}
+
+window.clearChatHistory = function() {
+    showConfirm('Vider le fil Hey Pablo pour ce profil ?', async () => {
+        chatHistory = [getWelcomeChatMessage()];
+        await saveLocalData(currentPetId, 'chat', chatHistory);
+        renderChat();
+        trackEvent('chat_cleared');
+        showToast('Nouveau fil prêt.', '✨');
+    });
+};
 
 function renderChat() {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
     container.innerHTML = '';
+    const lastBotIndex = getLastActionableBotIndex();
 
-    chatHistory.forEach(msg => {
+    chatHistory.forEach((msg, index) => {
         const msgDiv       = document.createElement('div');
         const initial      = (petProfile.name || 'P').charAt(0).toUpperCase();
 
         if (msg.sender === 'bot') {
+            const canAct = !msg._id && !msg.html;
             msgDiv.className = 'msg msg-bot';
             msgDiv.innerHTML = `
                 <div class="msg-avatar">${initial}</div>
-                <div class="msg-bubble">${msg.html ? msg.text : formatHeyPabloMessage(msg.text)}</div>`;
+                <div class="msg-content">
+                    <div class="msg-bubble">${msg.html ? msg.text : formatHeyPabloMessage(msg.text)}</div>
+                    ${canAct ? renderChatActions(index, msg) : ''}
+                    ${canAct && index === lastBotIndex ? renderChatFollowups(index) : ''}
+                </div>`;
         } else {
             msgDiv.className = 'msg msg-user';
             msgDiv.innerHTML = `<div class="msg-bubble">${escHtml(msg.text)}</div>`;
@@ -1455,6 +1517,114 @@ function renderChat() {
     });
     container.scrollTop = container.scrollHeight;
 }
+
+function getLastActionableBotIndex() {
+    for (let i = chatHistory.length - 1; i >= 0; i--) {
+        const msg = chatHistory[i];
+        if (msg?.sender === 'bot' && !msg._id && !msg.html) return i;
+    }
+    return -1;
+}
+
+function renderChatActions(index, msg) {
+    const upActive = msg.feedback === 'up' ? ' active' : '';
+    const downActive = msg.feedback === 'down' ? ' active' : '';
+    return `
+        <div class="msg-actions" aria-label="Actions Hey Pablo">
+            <button class="msg-action-btn" type="button" onclick="copyChatMessage(${index})" title="Copier la réponse" aria-label="Copier la réponse">
+                <i class="fa-solid fa-copy" aria-hidden="true"></i>
+            </button>
+            <button class="msg-action-btn" type="button" onclick="saveChatMessage(${index})" title="Sauvegarder dans les souvenirs" aria-label="Sauvegarder dans les souvenirs">
+                <i class="fa-solid fa-bookmark" aria-hidden="true"></i>
+            </button>
+            <button class="msg-action-btn${upActive}" type="button" onclick="rateChatMessage(${index}, 'up')" title="Réponse utile" aria-label="Réponse utile">
+                <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
+            </button>
+            <button class="msg-action-btn${downActive}" type="button" onclick="rateChatMessage(${index}, 'down')" title="Réponse à améliorer" aria-label="Réponse à améliorer">
+                <i class="fa-solid fa-thumbs-down" aria-hidden="true"></i>
+            </button>
+        </div>`;
+}
+
+function renderChatFollowups(index) {
+    return `
+        <div class="msg-followups" aria-label="Relances rapides Hey Pablo">
+            <button class="msg-followup-btn" type="button" onclick="askChatFollowUp(${index}, 'checklist')">
+                <i class="fa-solid fa-list-check" aria-hidden="true"></i> Checklist
+            </button>
+            <button class="msg-followup-btn" type="button" onclick="askChatFollowUp(${index}, 'plan7')">
+                <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> 7 jours
+            </button>
+            <button class="msg-followup-btn" type="button" onclick="askChatFollowUp(${index}, 'watch')">
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> À surveiller
+            </button>
+        </div>`;
+}
+
+function getPreviousUserQuestion(index) {
+    for (let i = index - 1; i >= 0; i--) {
+        if (chatHistory[i]?.sender === 'user') return chatHistory[i].text;
+    }
+    return 'la situation de mon animal';
+}
+
+window.copyChatMessage = async function(index) {
+    const msg = chatHistory[index];
+    if (!msg) return;
+    const text = normalizeHeyPabloText(msg.text);
+    try {
+        await navigator.clipboard.writeText(text);
+    } catch {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        area.remove();
+    }
+    trackEvent('chat_reply_copied');
+    showToast('Réponse copiée.', '📋');
+};
+
+window.saveChatMessage = async function(index) {
+    const msg = chatHistory[index];
+    if (!msg || !currentPetId) return;
+    const text = normalizeHeyPabloText(msg.text);
+    const title = (text.split('\n').find(Boolean) || 'Conseil Hey Pablo').slice(0, 90);
+    memoriesList.push({
+        id: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        title: `Hey Pablo : ${title}`,
+        text
+    });
+    await saveLocalData(currentPetId, 'memories', memoriesList);
+    renderMemories();
+    trackEvent('chat_reply_saved');
+    showToast('Conseil sauvegardé dans les souvenirs.', '🔖');
+};
+
+window.rateChatMessage = async function(index, value) {
+    const msg = chatHistory[index];
+    if (!msg) return;
+    msg.feedback = value;
+    msg.feedbackAt = Date.now();
+    await saveLocalData(currentPetId, 'chat', chatHistory);
+    trackEvent(value === 'up' ? 'chat_reply_helpful' : 'chat_reply_unhelpful');
+    renderChat();
+    showToast(value === 'up' ? 'Merci, réponse marquée utile.' : 'Merci, je note à améliorer.', value === 'up' ? '👍' : '📝');
+};
+
+window.askChatFollowUp = function(index, type) {
+    const base = getPreviousUserQuestion(index);
+    const prompts = {
+        checklist: `Fais-moi une checklist simple pour: ${base}`,
+        plan7: `Fais-moi un planning des 7 prochains jours pour: ${base}`,
+        watch: `Dis-moi les points à surveiller et quand appeler un vétérinaire pour: ${base}`
+    };
+    askPreset(prompts[type] || prompts.checklist);
+};
 
 window.askPreset = function(questionText) {
     const input = document.getElementById('chat-input-field');

@@ -1,10 +1,25 @@
 # Architecture Pablo
 
+## Objectif
+
+Pablo reste une PWA Vite simple a deployer, mais le code critique doit sortir progressivement de `app.js`.
+Le but est de garder une app rapide, fiable, testable et facile a faire evoluer.
+
 ## Etat actuel
 
 Pablo est une application Vite/PWA avec une interface principale dans `index.html`, une logique applicative centrale dans `app.js`, des fonctions serveur Vercel dans `api/`, et Firebase pour l'authentification, Firestore et les notifications.
 
 Le choix actuel reste volontairement simple : une app front statique, deployable sur Vercel, avec une API serveur minimale pour proteger les appels IA.
+
+## Structure actuelle
+
+- `index.html` : structure de l'interface et styles principaux.
+- `app.js` : orchestration de l'app, etat global, navigation, ecrans metier.
+- `api/pablo-chat.js` : proxy serveur Hey Pablo, cle OpenAI cote serveur, verification Firebase.
+- `src/services/pabloChatClient.mjs` : appel client Hey Pablo avec jeton Firebase et timeout.
+- `src/utils/heyPabloFormatting.mjs` : nettoyage et rendu des reponses Hey Pablo.
+- `scripts/quality-check.mjs` : controles automatiques de securite, SEO, PWA et formatage.
+- `public/` : pages statiques SEO, PWA, sitemap, service worker public.
 
 ## Regles d'acces
 
@@ -23,27 +38,36 @@ Le choix actuel reste volontairement simple : une app front statique, deployable
 5. En cas de perte de connexion, les ecritures sont mises en attente puis rejouees au retour du reseau.
 6. Les donnees de demo ne sont pas poussees vers Firestore.
 
+## Regle de refactor
+
+Ne pas tout casser en une seule fois. A chaque evolution importante :
+
+1. Extraire une fonction autonome vers `src/services`, `src/utils` ou `src/modules`.
+2. Garder les fonctions globales `window.*` comme facade temporaire si l'HTML en depend encore.
+3. Ajouter un controle dans `scripts/quality-check.mjs`.
+4. Lancer `npm test` puis `npm run build`.
+5. Pousser seulement si les deux passent.
+
 ## Modules cibles
 
 `app.js` est encore trop volumineux. La decomposition cible doit se faire progressivement :
 
 - `src/auth/` : connexion, deconnexion, restauration session, garde d'acces.
-- `src/storage/` : localStorage, file d'attente cloud, migration, suppression.
-- `src/pets/` : creation, selection, suppression, profil animal.
-- `src/health/` : poids, medical, nutrition, rappels.
-- `src/breeding/` : elevage, portees, cessions, fiche publique.
+- `src/services/pabloStorage.mjs` : localStorage, file d'attente cloud, migration, suppression.
+- `src/modules/pets.mjs` : creation, selection, suppression, profil animal.
+- `src/modules/medical.mjs` : carnet, poids, nutrition, rappels et historique.
+- `src/modules/breeder.mjs` : elevage, portees, chiots, cessions et registre.
+- `src/modules/export.mjs` : PDF, JSON et fiches publiques.
 - `src/assistant/` : contexte Hey Pablo, prompts, erreurs IA.
 - `src/pwa/` : installation, service worker, etat offline.
 - `src/ui/` : navigation, toasts, modales, petits composants.
 
 ## Prochaine refonte conseillee
 
-La prochaine etape technique doit etre une extraction sans changement fonctionnel :
+La prochaine etape technique doit rester une extraction sans changement fonctionnel :
 
-1. Creer un dossier `src/`.
-2. Deplacer uniquement les helpers purs en premier.
-3. Garder les fonctions globales `window.*` comme facade temporaire.
+1. Deplacer les helpers purs en premier.
+2. Isoler le stockage local + cloud.
+3. Isoler les ecrans metier un par un.
 4. Verifier le build et les parcours demo/auth apres chaque extraction.
 5. Supprimer les doublons une fois les modules stabilises.
-
-Cette approche evite de casser l'app tout en rendant le code maintenable.

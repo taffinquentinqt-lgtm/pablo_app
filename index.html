@@ -1257,6 +1257,53 @@
         }
         .msg-bot  .msg-bubble { background: var(--bg-elevated); color: var(--text); border-bottom-left-radius: 4px; }
         .msg-user .msg-bubble { background: var(--gold); color: #0a0806; border-bottom-right-radius: 4px; }
+        .msg-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 7px;
+            min-width: 0;
+        }
+        .msg-actions,
+        .msg-followups {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding-left: 2px;
+        }
+        .msg-action-btn,
+        .msg-followup-btn {
+            min-width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--card-border);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-muted);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11.5px;
+            transition: border-color .15s, color .15s, background .15s;
+        }
+        .msg-action-btn:hover,
+        .msg-followup-btn:hover {
+            border-color: var(--gold-border);
+            color: var(--gold-light);
+            background: var(--gold-dim);
+        }
+        .msg-action-btn.active {
+            border-color: var(--gold);
+            color: var(--gold-light);
+            background: var(--gold-dim);
+        }
+        .msg-followup-btn {
+            width: auto;
+            padding: 0 9px;
+            gap: 5px;
+            font-weight: 600;
+        }
 
         .msg-avatar {
             width: 30px; height: 30px; border-radius: 50%;
@@ -1272,6 +1319,11 @@
             display: flex;
             gap: 8px;
             background: var(--card);
+        }
+        #chat-send-btn[disabled] {
+            opacity: .65;
+            cursor: progress;
+            transform: none;
         }
 
         .chat-safety-note {
@@ -2461,8 +2513,8 @@
                     <div class="chat-wrapper">
                         <div class="messages-box" id="chat-messages-container"></div>
                         <div class="chat-input-bar">
-                            <input type="text" id="chat-input-field" placeholder="Une question sur l'éducation ou le bien-être…">
-                            <button class="btn btn-gold btn-round" onclick="sendMessage()">
+                            <input type="text" id="chat-input-field" placeholder="Une question sur l'éducation ou le bien-être…" autocomplete="off" enterkeyhint="send" aria-label="Question pour Hey Pablo">
+                            <button id="chat-send-btn" class="btn btn-gold btn-round" onclick="sendMessage()" aria-label="Envoyer à Hey Pablo">
                                 <i class="fa-solid fa-paper-plane"></i>
                             </button>
                         </div>
@@ -2471,6 +2523,7 @@
                         Hey Pablo aide à organiser et comprendre le carnet. En cas de douleur, symptôme grave, traitement ou doute médical, contactez un vétérinaire.
                     </div>
                     <div class="chat-presets">
+                        <button class="preset-btn" onclick="clearChatHistory()"><i class="fa-solid fa-rotate"></i> Nouveau fil</button>
                         <button class="preset-btn" onclick="askPreset('Quels fruits sont toxiques pour les chiens ?')">Fruits toxiques 🍇</button>
                         <button class="preset-btn" onclick="askPreset('Comment calculer la ration idéale de mon animal ?')">Calcul de ration 🍖</button>
                         <button class="preset-btn" onclick="askPreset('Faut-il vermifuger à chaque changement de saison ?')">Vermifuge &amp; Saison 🍂</button>
@@ -2949,6 +3002,12 @@
                             </button>
                             <button id="btn-enable-notifications" class="btn btn-outline btn-full" onclick="requestNotificationPermission()">
                                 <i class="fa-solid fa-bell"></i> Activer les notifications push
+                            </button>
+                            <button class="btn btn-outline btn-full" onclick="exportPabloData()">
+                                <i class="fa-solid fa-file-export"></i> Télécharger mes données
+                            </button>
+                            <button class="btn btn-outline btn-full" onclick="clearLocalCacheFromSettings()">
+                                <i class="fa-solid fa-rotate"></i> Rafraîchir le cache local
                             </button>
                             <button class="btn btn-danger btn-full" onclick="deleteCurrentPet()">
                                 <i class="fa-solid fa-trash-can"></i> Supprimer définitivement ce profil
