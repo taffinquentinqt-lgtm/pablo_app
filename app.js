@@ -4,6 +4,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 import { getMessaging, getToken } from "firebase/messaging";
 import { callPabloChat } from "./src/services/pabloChatClient.mjs";
+import { callPabloAvatar } from "./src/services/pabloAvatarClient.mjs";
 import { formatHeyPabloMessage, normalizeHeyPabloText } from "./src/utils/heyPabloFormatting.mjs";
 
 // CONFIGURATION GLOBALE
@@ -23,6 +24,9 @@ const IS_LOCAL_PREVIEW = !IS_FILE_PREVIEW && (
 const PABLO_CHAT_API_URL = IS_LOCAL_PREVIEW
     ? "https://www.pablocanin.fr/api/pablo-chat"
     : "/api/pablo-chat";
+const PABLO_AVATAR_API_URL = IS_LOCAL_PREVIEW
+    ? "https://www.pablocanin.fr/api/pablo-avatar"
+    : "/api/pablo-avatar";
 let deferredPwaInstallPrompt = null;
 let chartJsPromise = null;
 
@@ -53,6 +57,24 @@ async function pabloChat(messages) {
         throw new Error("Ouvrez Pablo via le site en ligne ou le serveur local pour utiliser Hey Pablo.");
     }
     return callPabloChat({ auth, apiUrl: PABLO_CHAT_API_URL, model: OPENAI_MODEL, messages });
+}
+
+async function pabloAvatar(imageDataUrl, style) {
+    if (IS_FILE_PREVIEW) {
+        throw new Error("Ouvrez Pablo via le site en ligne pour générer un avatar IA.");
+    }
+    if (!auth.currentUser) {
+        throw new Error("Connectez-vous pour générer un avatar IA.");
+    }
+    return callPabloAvatar({
+        auth,
+        apiUrl: PABLO_AVATAR_API_URL,
+        imageDataUrl,
+        petName: petProfile.name || '',
+        species: petProfile.species || '',
+        breed: petProfile.breed || '',
+        style
+    });
 }
 
 const groqChat = pabloChat;
@@ -2688,51 +2710,29 @@ function renderMemories() {
     });
 }
 
-function fitImageCover(ctx, img, x, y, width, height) {
-    const scale = Math.max(width / img.width, height / img.height);
-    const drawWidth = img.width * scale;
-    const drawHeight = img.height * scale;
-    ctx.drawImage(img, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
+function loadImageFromDataUrl(dataUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Photo illisible."));
+        img.src = dataUrl;
+    });
 }
 
-function cartoonizeImageData(imageData) {
-    const data = imageData.data;
-    const original = new Uint8ClampedArray(data);
-    const width = imageData.width;
-    const height = imageData.height;
-
-    for (let i = 0; i < data.length; i += 4) {
-        let r = original[i];
-        let g = original[i + 1];
-        let b = original[i + 2];
-        const avg = (r + g + b) / 3;
-        r = avg + (r - avg) * 1.45;
-        g = avg + (g - avg) * 1.45;
-        b = avg + (b - avg) * 1.45;
-        r = Math.min(255, Math.max(0, (r - 128) * 1.12 + 138));
-        g = Math.min(255, Math.max(0, (g - 128) * 1.12 + 138));
-        b = Math.min(255, Math.max(0, (b - 128) * 1.12 + 138));
-        data[i] = Math.round(r / 34) * 34;
-        data[i + 1] = Math.round(g / 34) * 34;
-        data[i + 2] = Math.round(b / 34) * 34;
-    }
-
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            const idx = (y * width + x) * 4;
-            const right = (y * width + x + 1) * 4;
-            const down = ((y + 1) * width + x) * 4;
-            const lum = original[idx] * .3 + original[idx + 1] * .59 + original[idx + 2] * .11;
-            const lumRight = original[right] * .3 + original[right + 1] * .59 + original[right + 2] * .11;
-            const lumDown = original[down] * .3 + original[down + 1] * .59 + original[down + 2] * .11;
-            if (Math.abs(lum - lumRight) + Math.abs(lum - lumDown) > 70) {
-                data[idx] = 24;
-                data[idx + 1] = 18;
-                data[idx + 2] = 13;
-            }
-        }
-    }
-    return imageData;
+async function prepareAvatarSourceDataUrl(sourceDataUrl) {
+    const img = await loadImageFromDataUrl(sourceDataUrl);
+    const maxSide = 1400;
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#f6f0e8';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', 0.9);
 }
 
 function renderMagicAvatarPreview() {
@@ -2754,80 +2754,32 @@ window.generateAvatar = async function() {
         navigateTo('screen-profile');
         return;
     }
+    if (!auth.currentUser || hasDemoAccess()) {
+        showToast("Connectez-vous pour utiliser l'avatar IA premium.", "🔒", "error");
+        return;
+    }
 
     const button = document.getElementById('btn-generate-avatar');
     const previousHtml = button?.innerHTML;
+    const style = document.getElementById('magic-avatar-style')?.value || 'portrait premium';
     if (button) {
         button.disabled = true;
-        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Génération IA...';
     }
 
     try {
-        const img = new Image();
-        img.src = source;
-        await img.decode();
-
-        const size = 768;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-
-        const bg = ctx.createLinearGradient(0, 0, size, size);
-        bg.addColorStop(0, '#271836');
-        bg.addColorStop(.45, '#9f3a64');
-        bg.addColorStop(1, '#f5bd58');
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, size, size);
-
-        ctx.globalAlpha = .18;
-        for (let i = 0; i < 26; i++) {
-            ctx.beginPath();
-            ctx.arc((i * 97) % size, (i * 149) % size, 18 + (i % 5) * 8, 0, Math.PI * 2);
-            ctx.fillStyle = i % 2 ? '#ffffff' : '#0a0806';
-            ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-
-        const work = document.createElement('canvas');
-        work.width = 520;
-        work.height = 520;
-        const workCtx = work.getContext('2d');
-        fitImageCover(workCtx, img, 0, 0, work.width, work.height);
-        const imageData = workCtx.getImageData(0, 0, work.width, work.height);
-        workCtx.putImageData(cartoonizeImageData(imageData), 0, 0);
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(104, 76, 560, 560, 86);
-        ctx.clip();
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(work, 104, 76, 560, 560);
-        ctx.restore();
-
-        ctx.lineWidth = 12;
-        ctx.strokeStyle = 'rgba(255,255,255,.78)';
-        ctx.beginPath();
-        ctx.roundRect(104, 76, 560, 560, 86);
-        ctx.stroke();
-
-        ctx.fillStyle = 'rgba(10,8,6,.78)';
-        ctx.roundRect(126, 616, 516, 84, 28);
-        ctx.fill();
-        ctx.fillStyle = '#f7d782';
-        ctx.font = '700 44px Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText((petProfile.name || 'Pablo').slice(0, 18), size / 2, 657);
-
-        petProfile.magicAvatar = canvas.toDataURL('image/png');
+        const preparedSource = await prepareAvatarSourceDataUrl(source);
+        petProfile.magicAvatar = await pabloAvatar(preparedSource, style);
         await saveLocalData(currentPetId, 'profile', petProfile);
         renderMagicAvatarPreview();
-        trackEvent('magic_avatar_generated');
-        showToast('Avatar magique généré !', '🎨');
+        trackEvent('magic_avatar_ai_generated');
+        showToast('Avatar IA premium généré !', '🎨');
     } catch (error) {
-        console.error('Avatar magique échoué :', error);
-        showToast("Impossible de générer l'avatar avec cette photo.", "⚠️", "error");
+        console.error('Avatar IA échoué :', error);
+        const message = error.name === 'AbortError'
+            ? "La génération IA a pris trop de temps. Réessayez."
+            : error.message || "Impossible de générer l'avatar IA.";
+        showToast(message, "⚠️", "error");
     } finally {
         if (button) {
             button.disabled = false;

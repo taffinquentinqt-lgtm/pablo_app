@@ -27,7 +27,7 @@ Le choix actuel reste volontairement simple : une app front statique, deployable
 - Rappels intelligents : `CARE_RULES` calcule les soins en retard ou bientot dus, puis ajoute les alertes dossier, croquettes, elevage et evenements.
 - Mode urgence : `EMERGENCY_GUIDES` affiche des reflexes de triage prudents et met en avant l'appel veterinaire.
 - Hey Pablo vers carnet : une reponse peut etre sauvegardee en souvenir ou ajoutee au carnet medical comme note datee.
-- Avatar magique : transformation cartoon locale en canvas, sans appel API et sans envoyer la photo de l'animal.
+- Avatar magique : generation IA via `api/pablo-avatar.js`, reservee aux utilisateurs connectes. La photo est compressee cote client, envoyee a OpenAI uniquement au clic, et la cle reste cote serveur.
 
 ## Regles d'acces
 

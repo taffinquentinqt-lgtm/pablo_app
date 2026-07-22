@@ -45,16 +45,27 @@ assert.ok(formatted.includes('<br><br>1.'), 'Hey Pablo doit aerer les listes num
 assert.equal(plain, 'A retenir : calme?');
 
 const api = read('api/pablo-chat.js');
+const avatarApi = read('api/pablo-avatar.js');
 assertContains(api, 'verifyFirebaseUser', 'Le proxy IA');
 assertContains(api, 'ALLOWED_ORIGINS', 'Le proxy IA');
 assertContains(api, 'OPENAI_API_KEY', 'Le proxy IA');
 assertContains(api, 'Cache-Control", "no-store"', 'Le proxy IA');
 assert.ok(!api.includes('Access-Control-Allow-Origin", "*"'), 'Le proxy IA ne doit pas ouvrir CORS a tout le monde.');
+assertContains(avatarApi, 'verifyFirebaseUser', 'Le proxy avatar IA');
+assertContains(avatarApi, 'OPENAI_IMAGE_MODEL', 'Le proxy avatar IA');
+assertContains(avatarApi, 'OPENAI_API_KEY', 'Le proxy avatar IA');
+assertContains(avatarApi, 'https://api.openai.com/v1/images/edits', 'Le proxy avatar IA');
+assertContains(avatarApi, 'MAX_IMAGE_BYTES', 'Le proxy avatar IA');
+assertContains(avatarApi, 'enforceRateLimit', 'Le proxy avatar IA');
+assert.ok(!avatarApi.includes('Access-Control-Allow-Origin", "*"'), 'Le proxy avatar IA ne doit pas ouvrir CORS a tout le monde.');
 
 const app = read('app.js');
 const chatClient = read('src/services/pabloChatClient.mjs');
+const avatarClient = read('src/services/pabloAvatarClient.mjs');
 assertContains(app, 'formatHeyPabloMessage', 'app.js');
 assertContains(app, 'callPabloChat', 'Service Hey Pablo');
+assertContains(app, 'callPabloAvatar', 'Service avatar IA');
+assertContains(app, 'PABLO_AVATAR_API_URL', 'Service avatar IA');
 assertContains(app, 'VITE_FIREBASE_APPCHECK_SITE_KEY', 'App Check');
 assertContains(app, 'exportPabloData', 'Export utilisateur');
 assertContains(app, 'clearLocalCacheFromSettings', 'Cache utilisateur');
@@ -73,13 +84,18 @@ assertContains(app, 'CARE_RULES', 'Rappels intelligents');
 assertContains(app, 'EMERGENCY_GUIDES', 'Mode urgence');
 assertContains(app, 'openEmergencyGuide', 'Mode urgence');
 assertContains(app, 'saveEmergencyContacts', 'Contacts urgence');
-assertContains(app, 'cartoonizeImageData', 'Avatar magique actif');
+assertContains(app, 'prepareAvatarSourceDataUrl', 'Avatar IA premium');
+assertContains(app, 'magic_avatar_ai_generated', 'Avatar IA premium');
 assertContains(app, 'useMagicAvatarAsProfile', 'Avatar magique actif');
 assertContains(app, 'downloadMagicAvatar', 'Avatar magique actif');
+assert.ok(!app.includes('cartoonizeImageData'), 'Le createur avatar ne doit pas utiliser le filtre local cheap.');
 assert.ok(!app.includes('bientôt disponible'), 'Le createur avatar ne doit plus etre un faux bouton.');
 assertContains(chatClient, 'getIdToken', 'Service Hey Pablo');
 assertContains(chatClient, 'AbortController', 'Service Hey Pablo');
 assertContains(chatClient, 'Authorization', 'Service Hey Pablo');
+assertContains(avatarClient, 'getIdToken', 'Service avatar IA');
+assertContains(avatarClient, 'AbortController', 'Service avatar IA');
+assertContains(avatarClient, 'Authorization', 'Service avatar IA');
 assert.ok(!app.includes('sk-proj-'), 'Aucune cle OpenAI ne doit etre dans app.js.');
 
 const vercel = read('vercel.json');
@@ -97,6 +113,8 @@ assertContains(indexHtml, 'profile-birthdate', 'Profil sante premium');
 assertContains(indexHtml, 'emergency-guide-panel', 'Mode urgence');
 assertContains(indexHtml, "openEmergencyGuide('poison')", 'Mode urgence');
 assertContains(indexHtml, 'magic-avatar-result', 'Avatar magique actif');
+assertContains(indexHtml, 'magic-avatar-style', 'Avatar IA premium');
+assertContains(indexHtml, "La photo est envoyée à OpenAI", 'Consentement avatar IA');
 assertContains(indexHtml, 'useMagicAvatarAsProfile()', 'Avatar magique actif');
 const seoPages = [
     'carnet-sante-chien-numerique',
