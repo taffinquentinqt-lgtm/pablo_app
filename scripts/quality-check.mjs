@@ -73,6 +73,10 @@ assertContains(app, 'CARE_RULES', 'Rappels intelligents');
 assertContains(app, 'EMERGENCY_GUIDES', 'Mode urgence');
 assertContains(app, 'openEmergencyGuide', 'Mode urgence');
 assertContains(app, 'saveEmergencyContacts', 'Contacts urgence');
+assertContains(app, 'cartoonizeImageData', 'Avatar magique actif');
+assertContains(app, 'useMagicAvatarAsProfile', 'Avatar magique actif');
+assertContains(app, 'downloadMagicAvatar', 'Avatar magique actif');
+assert.ok(!app.includes('bientôt disponible'), 'Le createur avatar ne doit plus etre un faux bouton.');
 assertContains(chatClient, 'getIdToken', 'Service Hey Pablo');
 assertContains(chatClient, 'AbortController', 'Service Hey Pablo');
 assertContains(chatClient, 'Authorization', 'Service Hey Pablo');
@@ -92,6 +96,8 @@ assertContains(indexHtml, 'profile-quality-fill', 'Profil sante premium');
 assertContains(indexHtml, 'profile-birthdate', 'Profil sante premium');
 assertContains(indexHtml, 'emergency-guide-panel', 'Mode urgence');
 assertContains(indexHtml, "openEmergencyGuide('poison')", 'Mode urgence');
+assertContains(indexHtml, 'magic-avatar-result', 'Avatar magique actif');
+assertContains(indexHtml, 'useMagicAvatarAsProfile()', 'Avatar magique actif');
 const seoPages = [
     'carnet-sante-chien-numerique',
     'rappel-vaccin-chien',

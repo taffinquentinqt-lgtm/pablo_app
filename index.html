@@ -1361,10 +1361,10 @@
             margin-top: 10px;
         }
         .emergency-call-row a,
-        .emergency-call-row button {
-            min-height: 34px;
-            padding: 0 12px;
-            border-radius: var(--radius-xs);
+                        .emergency-call-row button {
+                            min-height: 34px;
+                            padding: 0 12px;
+                            border-radius: var(--radius-xs);
             border: 1px solid var(--card-border);
             background: var(--card);
             color: var(--text);
@@ -1373,8 +1373,36 @@
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            cursor: pointer;
+                            gap: 6px;
+                            cursor: pointer;
+                        }
+
+        .magic-avatar-result {
+            display: none;
+            margin-top: 14px;
+            padding: 12px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-elevated);
+        }
+        .magic-avatar-result img {
+            width: min(220px, 100%);
+            aspect-ratio: 1;
+            border-radius: 22px;
+            object-fit: cover;
+            border: 1px solid var(--gold-border);
+            box-shadow: 0 14px 30px rgba(0,0,0,.25);
+        }
+        .magic-avatar-actions {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .magic-avatar-actions .btn {
+            min-height: 36px;
+            padding: 8px 10px;
+            font-size: 12px;
         }
 
         /* ============================================================
@@ -1710,6 +1738,7 @@
             .emergency-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .emergency-mode-head { align-items: flex-start; flex-direction: column; }
             .emergency-mode-head span { text-align: left; }
+            .magic-avatar-actions { grid-template-columns: 1fr; }
         }
 
         /* ============================================================
@@ -3102,6 +3131,20 @@
                             style="background:linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); border:none; color:#fff; padding:14px;">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Générer la magie
                         </button>
+                        <div id="magic-avatar-result" class="magic-avatar-result">
+                            <img id="magic-avatar-img" src="" alt="Avatar magique généré">
+                            <div class="magic-avatar-actions">
+                                <button class="btn btn-gold" onclick="useMagicAvatarAsProfile()">
+                                    <i class="fa-solid fa-user-check"></i> Profil
+                                </button>
+                                <button class="btn btn-outline" onclick="downloadMagicAvatar()">
+                                    <i class="fa-solid fa-download"></i> Télécharger
+                                </button>
+                                <button class="btn btn-outline" onclick="saveMagicAvatarMemory()">
+                                    <i class="fa-solid fa-bookmark"></i> Souvenir
+                                </button>
+                            </div>
+                        </div>
                         <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Ajoutez d'abord une photo dans le profil.</p>
                     </div>
 

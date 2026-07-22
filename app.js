@@ -2655,6 +2655,7 @@ function renderMatingHistory() {
 function initMemories() {
     memoriesList = getLocalData(currentPetId, 'memories', []);
     renderMemories();
+    renderMagicAvatarPreview();
     document.querySelectorAll('.dynamic-pet-name').forEach(el => el.innerText = petProfile.name || 'Pablo');
 }
 
@@ -2676,17 +2677,192 @@ function renderMemories() {
     const sorted = [...memoriesList].sort((a, b) => new Date(b.date) - new Date(a.date));
     if (sorted.length === 0) { timeline.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">Aucun souvenir encore. Ajoutez la première ! ✨</p>'; return; }
     sorted.forEach(m => {
+        const image = m.image ? `<img src="${escHtml(m.image)}" alt="" style="width:72px; height:72px; object-fit:cover; border-radius:14px; border:1px solid var(--gold-border); margin-top:8px;">` : '';
         timeline.innerHTML += `
             <div style="position:relative; margin-bottom:16px;">
                 <div style="position:absolute; left:-22px; top:4px; width:10px; height:10px; border-radius:50%; background:var(--gold); border:2px solid var(--bg);"></div>
                 <div style="font-size:11.5px; color:var(--text-muted);">${new Date(m.date).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' })}</div>
                 <div style="font-weight:600; color:var(--text); font-size:13.5px;">${escHtml(m.title)}</div>
+                ${image}
             </div>`;
     });
 }
 
-window.generateAvatar = function() {
-    showToast(`Avatar de ${petProfile.name || 'votre compagnon'} bientôt disponible ! 🪄`, '🎨');
+function fitImageCover(ctx, img, x, y, width, height) {
+    const scale = Math.max(width / img.width, height / img.height);
+    const drawWidth = img.width * scale;
+    const drawHeight = img.height * scale;
+    ctx.drawImage(img, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
+}
+
+function cartoonizeImageData(imageData) {
+    const data = imageData.data;
+    const original = new Uint8ClampedArray(data);
+    const width = imageData.width;
+    const height = imageData.height;
+
+    for (let i = 0; i < data.length; i += 4) {
+        let r = original[i];
+        let g = original[i + 1];
+        let b = original[i + 2];
+        const avg = (r + g + b) / 3;
+        r = avg + (r - avg) * 1.45;
+        g = avg + (g - avg) * 1.45;
+        b = avg + (b - avg) * 1.45;
+        r = Math.min(255, Math.max(0, (r - 128) * 1.12 + 138));
+        g = Math.min(255, Math.max(0, (g - 128) * 1.12 + 138));
+        b = Math.min(255, Math.max(0, (b - 128) * 1.12 + 138));
+        data[i] = Math.round(r / 34) * 34;
+        data[i + 1] = Math.round(g / 34) * 34;
+        data[i + 2] = Math.round(b / 34) * 34;
+    }
+
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const idx = (y * width + x) * 4;
+            const right = (y * width + x + 1) * 4;
+            const down = ((y + 1) * width + x) * 4;
+            const lum = original[idx] * .3 + original[idx + 1] * .59 + original[idx + 2] * .11;
+            const lumRight = original[right] * .3 + original[right + 1] * .59 + original[right + 2] * .11;
+            const lumDown = original[down] * .3 + original[down + 1] * .59 + original[down + 2] * .11;
+            if (Math.abs(lum - lumRight) + Math.abs(lum - lumDown) > 70) {
+                data[idx] = 24;
+                data[idx + 1] = 18;
+                data[idx + 2] = 13;
+            }
+        }
+    }
+    return imageData;
+}
+
+function renderMagicAvatarPreview() {
+    const wrap = document.getElementById('magic-avatar-result');
+    const img = document.getElementById('magic-avatar-img');
+    if (!wrap || !img) return;
+    if (petProfile.magicAvatar) {
+        img.src = petProfile.magicAvatar;
+        wrap.style.display = 'block';
+    } else {
+        wrap.style.display = 'none';
+    }
+}
+
+window.generateAvatar = async function() {
+    const source = petProfile.avatar;
+    if (!source) {
+        showToast("Ajoutez d'abord une photo dans le profil.", "⚠️", "error");
+        navigateTo('screen-profile');
+        return;
+    }
+
+    const button = document.getElementById('btn-generate-avatar');
+    const previousHtml = button?.innerHTML;
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
+    }
+
+    try {
+        const img = new Image();
+        img.src = source;
+        await img.decode();
+
+        const size = 768;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const bg = ctx.createLinearGradient(0, 0, size, size);
+        bg.addColorStop(0, '#271836');
+        bg.addColorStop(.45, '#9f3a64');
+        bg.addColorStop(1, '#f5bd58');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, size, size);
+
+        ctx.globalAlpha = .18;
+        for (let i = 0; i < 26; i++) {
+            ctx.beginPath();
+            ctx.arc((i * 97) % size, (i * 149) % size, 18 + (i % 5) * 8, 0, Math.PI * 2);
+            ctx.fillStyle = i % 2 ? '#ffffff' : '#0a0806';
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        const work = document.createElement('canvas');
+        work.width = 520;
+        work.height = 520;
+        const workCtx = work.getContext('2d');
+        fitImageCover(workCtx, img, 0, 0, work.width, work.height);
+        const imageData = workCtx.getImageData(0, 0, work.width, work.height);
+        workCtx.putImageData(cartoonizeImageData(imageData), 0, 0);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(104, 76, 560, 560, 86);
+        ctx.clip();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(work, 104, 76, 560, 560);
+        ctx.restore();
+
+        ctx.lineWidth = 12;
+        ctx.strokeStyle = 'rgba(255,255,255,.78)';
+        ctx.beginPath();
+        ctx.roundRect(104, 76, 560, 560, 86);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(10,8,6,.78)';
+        ctx.roundRect(126, 616, 516, 84, 28);
+        ctx.fill();
+        ctx.fillStyle = '#f7d782';
+        ctx.font = '700 44px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((petProfile.name || 'Pablo').slice(0, 18), size / 2, 657);
+
+        petProfile.magicAvatar = canvas.toDataURL('image/png');
+        await saveLocalData(currentPetId, 'profile', petProfile);
+        renderMagicAvatarPreview();
+        trackEvent('magic_avatar_generated');
+        showToast('Avatar magique généré !', '🎨');
+    } catch (error) {
+        console.error('Avatar magique échoué :', error);
+        showToast("Impossible de générer l'avatar avec cette photo.", "⚠️", "error");
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = previousHtml;
+        }
+    }
+};
+
+window.useMagicAvatarAsProfile = async function() {
+    if (!petProfile.magicAvatar) return;
+    petProfile.avatar = petProfile.magicAvatar;
+    await saveLocalData(currentPetId, 'profile', petProfile);
+    initPetProfile();
+    showToast('Avatar appliqué au profil.', '✅');
+};
+
+window.downloadMagicAvatar = function() {
+    if (!petProfile.magicAvatar) return;
+    const link = document.createElement('a');
+    link.href = petProfile.magicAvatar;
+    link.download = `avatar-${(petProfile.name || 'pablo').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
+    link.click();
+};
+
+window.saveMagicAvatarMemory = async function() {
+    if (!petProfile.magicAvatar) return;
+    memoriesList.push({
+        id: Date.now(),
+        date: getTodayIsoDate(),
+        title: `Avatar magique de ${petProfile.name || 'mon compagnon'}`,
+        image: petProfile.magicAvatar
+    });
+    await saveLocalData(currentPetId, 'memories', memoriesList);
+    renderMemories();
+    showToast('Avatar ajouté aux souvenirs.', '🔖');
 };
 
 // ==========================================
