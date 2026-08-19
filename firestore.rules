@@ -10,87 +10,13 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    function proAccessValues() {
-      return ['pro', 'premium', 'breeder', 'eleveur', 'elevage', 'business', 'admin'];
-    }
-
-    function protectedAccountFields() {
-      return [
-        'isPro',
-        'pro',
-        'proAccess',
-        'hasProAccess',
-        'isBreeder',
-        'breederAccess',
-        'isEleveur',
-        'eleveurAccess',
-        'plan',
-        'tier',
-        'accountType',
-        'subscriptionPlan',
-        'subscriptionStatus',
-        'billingStatus',
-        'role',
-        'roles',
-        'account',
-        'subscription',
-        'billing',
-        'claims'
-      ];
-    }
-
-    function userDocPath(uid) {
-      return /databases/$(database)/documents/users/$(uid);
-    }
-
-    function hasProToken() {
-      return signedIn()
-        && (
-          request.auth.token.isPro == true
-          || request.auth.token.pro == true
-          || request.auth.token.hasProAccess == true
-          || request.auth.token.role in proAccessValues()
-          || request.auth.token.plan in proAccessValues()
-          || (request.auth.token.roles is list && request.auth.token.roles.hasAny(proAccessValues()))
-        );
-    }
-
-    function hasProUserDoc(uid) {
-      return exists(userDocPath(uid))
-        && (
-          get(userDocPath(uid)).data.isPro == true
-          || get(userDocPath(uid)).data.pro == true
-          || get(userDocPath(uid)).data.hasProAccess == true
-          || get(userDocPath(uid)).data.role in proAccessValues()
-          || (get(userDocPath(uid)).data.roles is list && get(userDocPath(uid)).data.roles.hasAny(proAccessValues()))
-          || get(userDocPath(uid)).data.plan in proAccessValues()
-          || get(userDocPath(uid)).data.accountType in proAccessValues()
-          || (
-            get(userDocPath(uid)).data.account is map
-            && (
-              get(userDocPath(uid)).data.account.isPro == true
-              || get(userDocPath(uid)).data.account.role in proAccessValues()
-              || get(userDocPath(uid)).data.account.plan in proAccessValues()
-            )
-          )
-        );
-    }
-
-    function isProAccount(uid) {
-      return isOwner(uid) && (hasProToken() || hasProUserDoc(uid));
-    }
-
     match /users/{uid} {
-      allow read, delete: if isOwner(uid);
-      allow create: if isOwner(uid)
-        && !request.resource.data.keys().hasAny(protectedAccountFields());
-      allow update: if isOwner(uid)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedAccountFields());
+      allow read, create, update, delete: if isOwner(uid);
     }
 
     match /fiches_publiques/{uid} {
       allow read: if true;
-      allow create, update, delete: if isProAccount(uid);
+      allow create, update, delete: if isOwner(uid);
     }
 
     match /shared_profiles/{token} {
@@ -106,7 +32,6 @@ service cloud.firestore {
 
     match /cessions/{cessionId} {
       allow create: if signedIn()
-        && isProAccount(request.auth.uid)
         && request.resource.data.breeder.uid == request.auth.uid;
       allow read: if signedIn();
       allow update: if signedIn()
@@ -114,7 +39,6 @@ service cloud.firestore {
         && request.resource.data.claimed == true
         && request.resource.data.claimedBy == request.auth.uid;
       allow delete: if signedIn()
-        && isProAccount(request.auth.uid)
         && resource.data.breeder.uid == request.auth.uid;
     }
 

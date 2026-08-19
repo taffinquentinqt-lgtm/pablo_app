@@ -148,135 +148,8 @@ let healthExtras = {};
 let proHistory = { heats: [], matings: [] };
 let memoriesList = [];
 let gamification = { streak: 0, lastLogin: null, badges: [] };
-let currentAccount = { isPro: false, plan: 'free', role: '', status: '' };
 
 let weightChartInstance = null;
-
-const PRO_ACCESS_VALUES = new Set(['pro', 'premium', 'breeder', 'eleveur', 'elevage', 'business', 'admin']);
-const PRO_ACTIVE_STATUSES = new Set(['active', 'trialing', 'paid', 'valid']);
-const PRO_INACTIVE_STATUSES = new Set(['canceled', 'cancelled', 'inactive', 'past_due', 'unpaid', 'expired', 'free']);
-
-function normalizeAccessValue(value) {
-    return String(value ?? '').trim().toLowerCase();
-}
-
-function valueMatchesPro(value) {
-    if (Array.isArray(value)) return value.some(valueMatchesPro);
-    return PRO_ACCESS_VALUES.has(normalizeAccessValue(value));
-}
-
-function valueIsTrue(value) {
-    if (value === true) return true;
-    return ['true', '1', 'yes', 'oui', 'active', 'pro'].includes(normalizeAccessValue(value));
-}
-
-function pickFirstValue(source, keys) {
-    for (const key of keys) {
-        if (source && source[key] !== undefined && source[key] !== null) return source[key];
-    }
-    return '';
-}
-
-function flattenAccountSources(...sources) {
-    const merged = {};
-    sources.filter(Boolean).forEach(source => Object.assign(merged, source));
-    return merged;
-}
-
-function accountDataHasProAccess(data = {}) {
-    const explicitPro = [
-        data.isPro,
-        data.pro,
-        data.proAccess,
-        data.hasProAccess,
-        data.isBreeder,
-        data.breederAccess,
-        data.isEleveur,
-        data.eleveurAccess
-    ].some(valueIsTrue);
-    if (explicitPro) return true;
-
-    const role = pickFirstValue(data, ['role', 'roles', 'userRole', 'accountRole']);
-    if (valueMatchesPro(role)) return true;
-
-    const plan = pickFirstValue(data, ['plan', 'tier', 'accountType', 'subscriptionPlan', 'product', 'priceNickname']);
-    if (!valueMatchesPro(plan)) return false;
-
-    const status = normalizeAccessValue(pickFirstValue(data, ['status', 'subscriptionStatus', 'billingStatus']));
-    if (PRO_INACTIVE_STATUSES.has(status)) return false;
-    return !status || PRO_ACTIVE_STATUSES.has(status) || valueMatchesPro(status);
-}
-
-async function refreshAccountAccess(user, cloudData = {}) {
-    let claims = {};
-    if (user?.getIdTokenResult) {
-        try {
-            claims = (await user.getIdTokenResult()).claims || {};
-        } catch (error) {
-            console.warn('Lecture des claims compte impossible :', error);
-        }
-    }
-
-    const accountSource = flattenAccountSources(
-        cloudData,
-        cloudData?.account,
-        cloudData?.subscription,
-        cloudData?.billing,
-        claims
-    );
-    const plan = normalizeAccessValue(pickFirstValue(accountSource, ['plan', 'tier', 'accountType', 'subscriptionPlan', 'product', 'priceNickname'])) || 'free';
-    const role = normalizeAccessValue(pickFirstValue(accountSource, ['role', 'roles', 'userRole', 'accountRole']));
-    const status = normalizeAccessValue(pickFirstValue(accountSource, ['status', 'subscriptionStatus', 'billingStatus']));
-
-    currentAccount = {
-        isPro: Boolean(user) && accountDataHasProAccess(accountSource),
-        plan,
-        role,
-        status
-    };
-    updateProAccessUI();
-    return currentAccount;
-}
-
-function resetAccountAccess() {
-    currentAccount = { isPro: false, plan: 'free', role: '', status: '' };
-    updateProAccessUI();
-}
-
-function hasProAccess() {
-    return Boolean(currentAccount?.isPro);
-}
-
-window.hasProAccess = hasProAccess;
-
-function showProAccessDenied() {
-    if (typeof showToast === 'function') showToast('Fonction reservee aux comptes Pro.', 'PRO', 'error');
-    trackEvent('pro_access_denied');
-}
-
-function requireProAccess() {
-    if (hasProAccess()) return true;
-    showProAccessDenied();
-    return false;
-}
-
-function updateProAccessUI() {
-    const isPro = hasProAccess();
-    document.body?.classList.toggle('is-pro-account', isPro);
-    document.body?.classList.toggle('is-free-account', !isPro);
-
-    document.querySelectorAll('[data-pro-only="true"]').forEach(el => {
-        el.hidden = !isPro;
-        el.setAttribute('aria-disabled', String(!isPro));
-        if (!isPro) el.setAttribute('title', 'Reserve aux comptes Pro');
-        else el.removeAttribute('title');
-    });
-
-    const proScreen = document.getElementById('screen-pro');
-    if (!isPro && proScreen?.classList.contains('active')) {
-        window.navigateTo?.('screen-home');
-    }
-}
 
 const DEFAULT_EDU_EXERCISES = [
     { id: 'assis',          name: "S'asseoir (Assis)",             icon: 'fa-arrow-down' },
@@ -432,12 +305,11 @@ onAuthStateChanged(auth, async (user) => {
 
     if (user) {
         console.log("🟢 Connecté :", user.email);
-        let cloudData = null;
         try {
             const prevUid    = localStorage.getItem('_pablo_owner_uid');
             const userDocRef = doc(db, "users", user.uid);
             const userDoc    = await getDoc(userDocRef);
-            cloudData        = userDoc.exists() ? userDoc.data() : null;
+            const cloudData  = userDoc.exists() ? userDoc.data() : null;
             const loadCloud  = () => loadCloudDataIntoLocalStorage(cloudData);
 
             if (prevUid === user.uid) {
@@ -451,7 +323,6 @@ onAuthStateChanged(auth, async (user) => {
             localStorage.setItem('_pablo_owner_uid', user.uid);
             await flushPendingCloudWrites();
         } catch (e) { console.error("Erreur de restauration Cloud :", e); }
-        await refreshAccountAccess(user, cloudData);
 
         if (landing)  landing.style.display  = 'none';
         if (authPage) authPage.style.display  = 'none';
@@ -469,7 +340,6 @@ onAuthStateChanged(auth, async (user) => {
         const _pending = localStorage.getItem('_pendingCession');
         if (_pending) claimCession(_pending);
     } else {
-        resetAccountAccess();
         if (hasDemoAccess()) {
             showMainApp();
         } else {
@@ -1097,9 +967,6 @@ function buildPabloSystemPrompt() {
     const food = healthExtras?.foodName?.trim() || 'alimentation non renseignee';
     const daily = dailyTrackers || {};
     const memories = (memoriesList || []).slice(-3).map(m => m.text || m.title || m).filter(Boolean).join(' ; ') || 'aucun souvenir recent';
-    const proContext = hasProAccess()
-        ? `Elevage/officiel: sexe ${proData?.gender || 'non renseigne'}, puce ${proData?.chip || 'non renseignee'}, LOF ${proData?.lof || 'non renseigne'}. ${summarizeReproForAI()}`
-        : 'Elevage/officiel: acces reserve aux comptes Pro.';
 
     return [
         "Tu es Hey Pablo, assistant specialise en bien-etre animal pour l'application Pablo.",
@@ -1113,7 +980,7 @@ function buildPabloSystemPrompt() {
         `Poids: ${summarizeWeightForAI()}`,
         `Aujourd'hui: eau ${daily.water || 0} ml, promenade ${daily.walk || 0} min.`,
         `Budget: ${summarizeBudgetForAI()}`,
-        proContext,
+        `Elevage/officiel: sexe ${proData?.gender || 'non renseigne'}, puce ${proData?.chip || 'non renseignee'}, LOF ${proData?.lof || 'non renseigne'}. ${summarizeReproForAI()}`,
         `Notes memoire: ${memories}.`
     ].join("\n");
 }
@@ -1603,7 +1470,7 @@ function renderReminders() {
         }
     }
 
-    if (hasProAccess() && proData.gender !== 'Mâle' && proData.expectedBirth && !proData.actualBirth) {
+    if (proData.gender !== 'Mâle' && proData.expectedBirth && !proData.actualBirth) {
         const birthDate   = new Date(proData.expectedBirth);
         const daysToBirth = Math.ceil((birthDate - today) / 86400000);
         if (daysToBirth >= -5 && daysToBirth <= 30) {
@@ -1619,7 +1486,7 @@ function renderReminders() {
         }
     }
 
-    if (hasProAccess() && proData.gender !== 'Mâle' && proData.heatReminder && proHistory.heats.length > 0) {
+    if (proData.gender !== 'Mâle' && proData.heatReminder && proHistory.heats.length > 0) {
         const sorted   = [...proHistory.heats].sort((a, b) => new Date(b.date) - new Date(a.date));
         const lastHeat = new Date(sorted[0].date);
         const nextHeat = new Date(lastHeat);
@@ -2018,11 +1885,6 @@ window.askPreset = function(questionText) {
 // NAVIGATION
 // ==========================================
 window.navigateTo = function(screenId) {
-    if (screenId === 'screen-pro' && !hasProAccess()) {
-        showProAccessDenied();
-        return;
-    }
-
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(screenId);
     if (target) target.classList.add('active');
@@ -2276,36 +2138,10 @@ function updateBadges() {
 // ==========================================
 // MODULE OFFICIEL & ÉLEVAGE
 // ==========================================
-function clearLockedProScreen() {
-    const screen = document.getElementById('screen-pro');
-    screen?.querySelectorAll('input, textarea, select').forEach(el => {
-        if (el.type === 'checkbox') el.checked = false;
-        else el.value = '';
-    });
-
-    ['litters-list', 'pro-events-list', 'heat-history-list', 'mating-history-list', 'registre-list'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '';
-    });
-
-    ['stat-portees', 'stat-chiots-total', 'stat-chiots-cedes', 'stat-chiots-dispo', 'stat-waitlist'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = '0';
-    });
-
-    const ficheWrap = document.getElementById('public-fiche-link-wrap');
-    if (ficheWrap) ficheWrap.style.display = 'none';
-}
-
 function initProData() {
     proData    = getLocalData(currentPetId, 'proData',    { gender: 'Non spécifié' });
     proEvents  = getLocalData(currentPetId, 'proEvents',  []);
     proLitters = getLocalData(currentPetId, 'proLitters', []);
-
-    if (!hasProAccess()) {
-        clearLockedProScreen();
-        return;
-    }
 
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
     setVal('pro-gender',    proData.gender);
@@ -2349,8 +2185,6 @@ window.toggleBreederFields = function() {
 };
 
 window.saveProData = function() {
-    if (!requireProAccess()) return;
-
     proData = {
         gender:         document.getElementById('pro-gender')?.value,
         chip:           document.getElementById('pro-chip')?.value,
@@ -2379,8 +2213,6 @@ window.saveProData = function() {
 };
 
 window.addLitter = function() {
-    if (!requireProAccess()) return;
-
     const date    = document.getElementById('litter-date')?.value;
     const partner = document.getElementById('litter-partner')?.value;
     const count   = document.getElementById('litter-count')?.value;
@@ -2397,8 +2229,6 @@ window.addLitter = function() {
 
 // Ajoute un chiot (fiche individuelle) à une portée donnée.
 window.addPuppy = function(litterId) {
-    if (!requireProAccess()) return;
-
     const litter = proLitters.find(l => String(l.id) === String(litterId));
     if (!litter) return;
     if (!Array.isArray(litter.puppies)) litter.puppies = [];
@@ -2425,8 +2255,6 @@ window.addPuppy = function(litterId) {
 
 // Retire un chiot d'une portée.
 window.removePuppy = function(litterId, puppyId) {
-    if (!requireProAccess()) return;
-
     const litter = proLitters.find(l => String(l.id) === String(litterId));
     if (!litter || !Array.isArray(litter.puppies)) return;
     litter.puppies = litter.puppies.filter(p => String(p.id) !== String(puppyId));
@@ -2450,7 +2278,6 @@ function cessionLink(cessionId) {
 
 // Génère le passeport partageable d'un chiot et bascule son statut en "Cédé".
 window.cederChiot = async function(litterId, puppyId) {
-    if (!requireProAccess()) return;
     if (!auth.currentUser) { showToast("Connecte-toi pour générer un passeport.", "⚠️", "error"); return; }
     const litter = proLitters.find(l => String(l.id) === String(litterId));
     if (!litter) return;
@@ -2505,8 +2332,6 @@ window.cederChiot = async function(litterId, puppyId) {
 };
 
 window.copierLienCession = function(cessionId) {
-    if (!requireProAccess()) return;
-
     const url = cessionLink(cessionId);
     if (navigator.clipboard) {
         navigator.clipboard.writeText(url).then(
@@ -2739,8 +2564,6 @@ function renderLitters() {
 }
 
 window.addProEvent = function() {
-    if (!requireProAccess()) return;
-
     const type    = document.getElementById('pro-event-type')?.value;
     const date    = document.getElementById('pro-event-date')?.value;
     const details = document.getElementById('pro-event-details')?.value;
@@ -2779,21 +2602,12 @@ function renderProEvents() {
 // ==========================================
 function initProHistory() {
     proHistory = getLocalData(currentPetId, 'proHistory', { heats: [], matings: [] });
-    if (!hasProAccess()) {
-        const heatList = document.getElementById('heat-history-list');
-        const matingList = document.getElementById('mating-history-list');
-        if (heatList) heatList.innerHTML = '';
-        if (matingList) matingList.innerHTML = '';
-        return;
-    }
     renderHeatHistory();
     renderMatingHistory();
     renderReminders();
 }
 
 window.addHeatRecord = function() {
-    if (!requireProAccess()) return;
-
     const date = document.getElementById('new-heat-date')?.value;
     if (!date) return;
     proHistory.heats.push({ id: Date.now(), date });
@@ -2829,8 +2643,6 @@ function renderHeatHistory() {
 }
 
 window.addMatingRecord = function() {
-    if (!requireProAccess()) return;
-
     const date    = document.getElementById('mating-date')?.value;
     const partner = document.getElementById('mating-partner')?.value;
     if (!date) return;
@@ -3106,8 +2918,6 @@ let _currentPuppyRef = null;
 let _puppyWeightChart = null;
 
 window.openPuppyTracking = function(litterId, puppyId) {
-    if (!requireProAccess()) return;
-
     const litter = proLitters.find(l => String(l.id) === String(litterId));
     if (!litter) return;
     const puppy = (litter.puppies || []).find(p => String(p.id) === String(puppyId));
@@ -3161,8 +2971,6 @@ function savePuppyData() {
 }
 
 window.addPuppyWeight = function() {
-    if (!requireProAccess()) return;
-
     const puppy = getCurrentPuppy();
     if (!puppy) return;
     const w = parseFloat(document.getElementById('puppy-weight-input')?.value);
@@ -3226,8 +3034,6 @@ function renderPuppyWeights(puppy) {
 }
 
 window.addPuppyAct = function() {
-    if (!requireProAccess()) return;
-
     const puppy = getCurrentPuppy();
     if (!puppy) return;
     const type = document.getElementById('puppy-act-type')?.value;
@@ -3250,8 +3056,6 @@ function renderPuppyActs(puppy) {
 }
 
 window.updatePuppyStatus = function() {
-    if (!requireProAccess()) return;
-
     const puppy = getCurrentPuppy();
     if (!puppy) return;
     puppy.status = document.getElementById('puppy-status-select')?.value || 'En élevage';
@@ -3267,19 +3071,12 @@ let registreEntries = [];
 
 function initRegistre() {
     registreEntries = getLocalData(currentPetId, 'registre', []);
-    if (!hasProAccess()) {
-        const list = document.getElementById('registre-list');
-        if (list) list.innerHTML = '';
-        return;
-    }
     renderRegistre();
     const dateEl = document.getElementById('reg-date');
     if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
 }
 
 window.addRegistreEntry = function() {
-    if (!requireProAccess()) return;
-
     const type   = document.getElementById('reg-type')?.value;
     const date   = document.getElementById('reg-date')?.value;
     const animal = document.getElementById('reg-animal')?.value.trim();
@@ -3363,8 +3160,6 @@ function renderRegistre() {
 }
 
 window.deleteRegistreEntry = function(id) {
-    if (!requireProAccess()) return;
-
     showConfirm('Supprimer cette entrée du registre ?', () => {
         registreEntries = registreEntries.filter(e => e.id !== id);
         saveLocalData(currentPetId, 'registre', registreEntries);
@@ -3374,8 +3169,6 @@ window.deleteRegistreEntry = function(id) {
 };
 
 window.clearRegistre = function() {
-    if (!requireProAccess()) return;
-
     showConfirm('Vider tout le registre ? Cette action est irréversible.', () => {
         registreEntries = [];
         saveLocalData(currentPetId, 'registre', registreEntries);
@@ -3385,8 +3178,6 @@ window.clearRegistre = function() {
 };
 
 window.exportRegistrePDF = function() {
-    if (!requireProAccess()) return;
-
     const animal = petProfile.name || 'Animal';
     const rows = [...registreEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -3455,8 +3246,6 @@ window.exportRegistrePDF = function() {
 // EXPORT PDF DIRECT : CONTRAT DE VENTE CHIOT
 // ==========================================
 window.exportContratVentePDF = function(litterId, puppyId) {
-    if (!requireProAccess()) return;
-
     const litter = proLitters.find(l => String(l.id) === String(litterId));
     if (!litter) return;
     const puppy = (litter.puppies || []).find(p => String(p.id) === String(puppyId));
@@ -3580,8 +3369,6 @@ window.exportContratVentePDF = function(litterId, puppyId) {
 let _currentWaitlistLitterId = null;
 
 window.openWaitlistModal = function(litterId) {
-    if (!requireProAccess()) return;
-
     _currentWaitlistLitterId = litterId;
     const litter = proLitters.find(l => String(l.id) === String(litterId));
     if (!litter) return;
@@ -3608,8 +3395,6 @@ window.closeWaitlistModal = function() {
 };
 
 window.addWaitlistEntry = function() {
-    if (!requireProAccess()) return;
-
     const litter = proLitters.find(l => String(l.id) === String(_currentWaitlistLitterId));
     if (!litter) return;
     if (!Array.isArray(litter.waitlist)) litter.waitlist = [];
@@ -3691,8 +3476,6 @@ function renderWaitlistEntries(litter) {
 }
 
 window.updateWaitlistStatus = function(litterId, entryId, newStatus) {
-    if (!requireProAccess()) return;
-
     const litter = proLitters.find(l => String(l.id) === String(litterId));
     if (!litter || !Array.isArray(litter.waitlist)) return;
     const entry = litter.waitlist.find(e => String(e.id) === String(entryId));
@@ -3705,8 +3488,6 @@ window.updateWaitlistStatus = function(litterId, entryId, newStatus) {
 };
 
 window.deleteWaitlistEntry = function(litterId, entryId) {
-    if (!requireProAccess()) return;
-
     const litter = proLitters.find(l => String(l.id) === String(litterId));
     if (!litter || !Array.isArray(litter.waitlist)) return;
     showConfirm('Supprimer cet adoptant de la liste ?', () => {
@@ -3725,8 +3506,6 @@ let _pdfLitterId = null;
 let _pdfPuppyId  = null;
 
 window.openPdfExportModal = function(litterId, puppyId) {
-    if (!requireProAccess()) return;
-
     _pdfLitterId = litterId;
     _pdfPuppyId  = puppyId;
     const litter = proLitters.find(l => String(l.id) === String(litterId));
@@ -3743,8 +3522,6 @@ window.closePdfModal = function() {
 };
 
 window.exportPuppyPDF = function() {
-    if (!requireProAccess()) return;
-
     const litter = proLitters.find(l => String(l.id) === String(_pdfLitterId));
     const puppy  = (litter?.puppies || []).find(p => String(p.id) === String(_pdfPuppyId));
     if (!puppy || !litter) return;
@@ -3866,8 +3643,6 @@ window.exportPuppyPDF = function() {
 // ONGLETS SCREEN-PRO
 // ==========================================
 window.switchProTab = function(tab) {
-    if (!requireProAccess()) return;
-
     ['animal','elevage'].forEach(t => {
         document.getElementById('pro-tab-' + t)?.classList.toggle('active', t === tab);
         document.getElementById('tab-btn-' + t)?.classList.toggle('active', t === tab);
@@ -4353,8 +4128,6 @@ window.requestNotificationPermission = async function() {
 // CALCULATEUR DATES REPRODUCTION
 // ==========================================
 window.calcReproDates = function() {
-    if (!requireProAccess()) return;
-
     const dateInput = document.getElementById('calc-mating-date');
     if (!dateInput?.value) return;
 
@@ -4383,8 +4156,6 @@ window.calcReproDates = function() {
 };
 
 window.applyReproDates = function() {
-    if (!requireProAccess()) return;
-
     if (!window._reproCalcData) return;
     const opEl = document.getElementById('pro-optimal-date');
     const nbEl = document.getElementById('pro-expected-birth');
@@ -4441,8 +4212,6 @@ window.updateElevageStats = function updateElevageStats() {
 let _fichePhotoDataUrl = null;
 
 window.previewFichePhoto = function(input) {
-    if (!requireProAccess()) return;
-
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -4457,7 +4226,6 @@ window.previewFichePhoto = function(input) {
 };
 
 window.generateFichePublique = async function() {
-    if (!requireProAccess()) return;
     if (!auth.currentUser) { showToast('Connectez-vous pour générer votre fiche.', '⚠️', 'error'); return; }
 
     const kennelNameInput = document.getElementById('fiche-kennel-name')?.value.trim();
@@ -4528,16 +4296,12 @@ window.generateFichePublique = async function() {
 };
 
 window.copyFichePublique = function() {
-    if (!requireProAccess()) return;
-
     const url = document.getElementById('public-fiche-url')?.value;
     if (!url) return;
     navigator.clipboard?.writeText(url).then(() => showToast('Lien copié !', '📋')).catch(() => showToast('Copiez le lien manuellement.', '⚠️'));
 };
 
 window.openFichePublique = function() {
-    if (!requireProAccess()) return;
-
     const url = document.getElementById('public-fiche-url')?.value;
     if (url) window.open(url, '_blank');
 };
